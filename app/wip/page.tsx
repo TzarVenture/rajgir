@@ -59,7 +59,13 @@ export default function WipPreviewHome() {
             href="/"
             className="text-xs font-bold text-neutral-300 hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-all"
           >
-            View Coming Soon Live Page
+            Real Marathon Home
+          </Link>
+          <Link
+            href="/coming-soon"
+            className="text-xs font-bold text-[#d49a37] hover:text-[#e0a845] px-3 py-1.5 rounded-lg border border-[#cca043]/30 hover:bg-[#cca043]/10 transition-all"
+          >
+            Public Coming Soon View
           </Link>
           <button
             type="button"

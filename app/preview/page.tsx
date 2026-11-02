@@ -9,7 +9,7 @@ import { FaLock, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 function PreviewLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/wip";
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

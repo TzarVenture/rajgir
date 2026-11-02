@@ -4,13 +4,13 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Bypass completely if COMING_SOON is set to "false" (e.g. during local development)
+  // 1. Bypass completely if COMING_SOON is set to "false" (Official Launch Mode)
   const isComingSoonActive = process.env.COMING_SOON === "true";
   if (!isComingSoonActive) {
     return NextResponse.next();
   }
 
-  // 2. Always allow static files, images, favicon, and Next.js system internals
+  // 2. Always allow static files, images, favicon, Next.js system internals, and preview API
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
@@ -21,31 +21,80 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Publicly accessible routes on the Coming Soon live site
-  const isPublicRoute = pathname === "/" || pathname === "/contact" || pathname === "/preview";
+  const expectedPassword = process.env.PREVIEW_PASSWORD || "rajgir@preview2027";
+
+  // 3. Check for Direct Secret Key in URL (?preview_key=... or ?key=...)
+  const directKey =
+    request.nextUrl.searchParams.get("preview_key") ||
+    request.nextUrl.searchParams.get("key");
+
+  if (directKey && directKey === expectedPassword) {
+    // Authorized via secret link: Strip secret key from URL and set 7-day session cookie
+    const cleanUrl = new URL(pathname, request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (key !== "key" && key !== "preview_key") {
+        cleanUrl.searchParams.set(key, value);
+      }
+    });
+
+    const response = NextResponse.redirect(cleanUrl);
+    response.cookies.set("rajgir_preview_auth", "granted", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
+    });
+    return response;
+  }
 
   // 4. Check for active preview authorization cookie
   const previewAuthCookie = request.cookies.get("rajgir_preview_auth")?.value;
   const isPreviewAuthorized = previewAuthCookie === "granted";
 
-  // If visiting an internal route (like /wip, /portal, /admin) without preview authorization, redirect to /preview
-  if (!isPublicRoute && !isPreviewAuthorized) {
-    const previewUrl = new URL("/preview", request.url);
-    previewUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(previewUrl);
+  // 5. Authorized Users (Developers & Client)
+  if (isPreviewAuthorized) {
+    // If authorized user visits /coming-soon directly, allow it
+    if (pathname.startsWith("/coming-soon")) {
+      return NextResponse.next();
+    }
+    // Otherwise serve the real root production site
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // 6. Public / Unauthorized Visitors (Stealth Coming Soon Gating)
+  if (pathname === "/") {
+    // Transparently rewrite root to quarantined Coming Soon page (URL remains '/')
+    return NextResponse.rewrite(new URL("/coming-soon", request.url));
+  }
+
+  if (pathname === "/contact") {
+    // Transparently rewrite /contact to quarantined Coming Soon Contact page (URL remains '/contact')
+    return NextResponse.rewrite(new URL("/coming-soon/contact", request.url));
+  }
+
+  if (pathname === "/preview") {
+    // Allow access to preview login screen
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/coming-soon")) {
+    // Direct visits to /coming-soon routes are allowed
+    return NextResponse.next();
+  }
+
+  // Stealth: Any attempt to access internal real pages (/about, /register, etc.)
+  // redirects directly to home (Coming Soon), revealing nothing about internal paths.
+  return NextResponse.redirect(new URL("/", request.url));
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      */
     "/((?!_next/static|_next/image).*)",
   ],
 };
-
