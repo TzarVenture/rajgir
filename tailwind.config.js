@@ -12,8 +12,12 @@ module.exports = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        graduate: ["Graduate", "serif", "sans-serif"],
+        montserrat: ["Montserrat", "-apple-system", "sans-serif"],
+        inter: ["Inter", "-apple-system", "sans-serif"],
+      },
     },
   },
   plugins: [],
 };
-

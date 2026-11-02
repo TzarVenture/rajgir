@@ -21,9 +21,17 @@ export default function ComingSoonFooter() {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+
+  const GOOGLE_SHEET_WEBHOOK_URL =
+    process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL ||
+    "https://script.google.com/macros/s/AKfycbxCdMUo3kdmjtEfdje7tmodDtbGBp_Zr-6tqZqFSAGDMYNhy51sa0d-xQ_nFunvWOOo/exec";
+
+  const RECIPIENT_EMAIL =
+    process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || "rajgirmarathon@gmail.com";
 
   const navItems = [
     { label: "Run", href: "/contact?tab=runner", isRoute: true },
@@ -62,7 +70,7 @@ export default function ComingSoonFooter() {
     }
   };
 
-  const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email || !emailRegex.test(email)) {
       setEmailError("Please enter a valid email address.");
@@ -70,11 +78,89 @@ export default function ComingSoonFooter() {
     }
 
     setEmailError("");
-    setSubscribed(true);
-    setTimeout(() => {
-      setSubscribed(false);
-      setEmail("");
-    }, 5000);
+    setIsSubmitting(true);
+
+    const payload: Record<string, string> = {
+      "Enquiry Category": "Stay Connected (Newsletter)",
+      "Full Name": "Newsletter Subscriber",
+      "Email Address": email,
+      "Phone Number": "N/A",
+      "Message": "Subscribed to Stay Connected updates via footer.",
+    };
+
+    const emailPayload = {
+      ...payload,
+      _subject: `Rajgir Marathon [Newsletter Subscription]: ${email}`,
+      _template: "table",
+      _captcha: "false",
+    };
+
+    const sendEmail = async () => {
+      try {
+        const response = await fetch(
+          `https://formsubmit.co/ajax/${RECIPIENT_EMAIL}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(emailPayload),
+          }
+        );
+        const data = await response.json();
+        return {
+          success:
+            response.ok && (data.success === "true" || data.success === true),
+        };
+      } catch {
+        return { success: false };
+      }
+    };
+
+    const sendToGoogleSheet = async () => {
+      try {
+        await fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify(payload),
+          mode: "no-cors",
+        });
+        return { success: true };
+      } catch {
+        return { success: false };
+      }
+    };
+
+    try {
+      const [emailRes, sheetRes] = await Promise.allSettled([
+        sendEmail(),
+        sendToGoogleSheet(),
+      ]);
+
+      const emailSuccess =
+        emailRes.status === "fulfilled" && emailRes.value.success;
+      const sheetSuccess =
+        sheetRes.status === "fulfilled" && sheetRes.value.success;
+
+      if (emailSuccess || sheetSuccess) {
+        setSubscribed(true);
+        setEmail("");
+        setTimeout(() => {
+          setSubscribed(false);
+        }, 5000);
+      } else {
+        setEmailError("Failed to subscribe. Please try again later.");
+      }
+    } catch {
+      setEmailError(
+        "Failed to subscribe. Please check your internet connection."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,7 +171,6 @@ export default function ComingSoonFooter() {
       {/* Main 4-Column Content Container */}
       <div className="w-full px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 sm:py-12 lg:py-14">
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 xl:gap-8 items-start">
-          
           {/* COLUMN 1: STAY CONNECTED */}
           <div className="w-full flex flex-col items-start text-left">
             <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-[0.16em] text-[#d49a37]">
@@ -114,9 +199,12 @@ export default function ComingSoonFooter() {
               />
               <button
                 type="submit"
-                className="shrink-0 bg-[#b91c1c] hover:bg-[#991b1b] text-white font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full transition-all duration-200 active:scale-95 shadow cursor-pointer flex items-center gap-1"
+                disabled={isSubmitting}
+                className="shrink-0 bg-[#b91c1c] hover:bg-[#991b1b] text-white font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full transition-all duration-200 active:scale-95 shadow cursor-pointer flex items-center gap-1 disabled:opacity-60"
               >
-                {subscribed ? (
+                {isSubmitting ? (
+                  <span>WAIT...</span>
+                ) : subscribed ? (
                   <>
                     <FaCheck className="text-[9px]" />
                     <span>DONE</span>
@@ -271,7 +359,6 @@ export default function ComingSoonFooter() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -279,7 +366,8 @@ export default function ComingSoonFooter() {
       <div
         className="w-full py-3.5 px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 text-center font-extrabold tracking-[0.14em] sm:tracking-[0.2em] uppercase text-xs sm:text-sm text-white shadow-xl"
         style={{
-          background: "linear-gradient(90deg, #990f17 0%, #d62828 50%, #990f17 100%)",
+          background:
+            "linear-gradient(90deg, #990f17 0%, #d62828 50%, #990f17 100%)",
           borderTop: "1px solid rgba(255, 255, 255, 0.15)",
         }}
       >
@@ -296,4 +384,3 @@ export default function ComingSoonFooter() {
     </footer>
   );
 }
-

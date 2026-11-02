@@ -633,7 +633,7 @@ export default function ComingSoonPage() {
         <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[500px] h-[320px] bg-[#991b1b]/8 rounded-full blur-[150px] pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col items-center text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight font-graduate leading-tight">
             EVENT <span className="text-[#cca043]">HIGHLIGHTS</span>
           </h2>
 
@@ -663,7 +663,7 @@ export default function ComingSoonPage() {
                     </div>
                   </div>
 
-                  <h3 className="relative z-10 text-xs sm:text-sm lg:text-[14px] xl:text-[15px] font-black uppercase text-white tracking-wide leading-snug group-hover:text-[#cca043] transition-colors">
+                  <h3 className="relative z-10 text-xs sm:text-sm lg:text-[14px] xl:text-[15px] font-black uppercase text-white tracking-wide leading-snug group-hover:text-[#cca043] transition-colors font-graduate">
                     {item.title}
                   </h3>
 
