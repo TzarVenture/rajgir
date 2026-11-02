@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description:
     "Official digital platform for the Rajgir Marathon. Connects runners, volunteers, sponsors, expo vendors, and tourism partners in the historic city of Rajgir, Bihar.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/images/mainLogo.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/images/mainLogo.png",
   },
 };
 
@@ -19,6 +23,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <head>
+        <link rel="icon" type="image/png" href="/images/mainLogo.png" />
+        <link rel="apple-touch-icon" href="/images/mainLogo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
