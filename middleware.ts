@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  // 0. Canonical Domain Redirection: Force all traffic from rajgir.org (and www variants) -> rajgirmarathon.com
+  const host = (request.headers.get("host") || request.nextUrl.host || "").toLowerCase();
+  if (host.includes("rajgir.org") || host.startsWith("www.rajgirmarathon.com")) {
+    const canonicalUrl = new URL(
+      request.nextUrl.pathname + request.nextUrl.search,
+      "https://rajgirmarathon.com"
+    );
+    return NextResponse.redirect(canonicalUrl, 301);
+  }
+
   const { pathname } = request.nextUrl;
 
   // 1. Bypass completely if COMING_SOON is set to "false" (Official Launch Mode)
