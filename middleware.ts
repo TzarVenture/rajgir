@@ -20,11 +20,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Always allow static files, images, favicon, Next.js system internals, and preview API
+  // 2. Always allow static files, images, favicon, Next.js system internals, and API routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
-    pathname.startsWith("/api/preview") ||
+    pathname.startsWith("/api") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt"
   ) {
@@ -81,6 +81,19 @@ export function middleware(request: NextRequest) {
   if (pathname === "/contact") {
     // Transparently rewrite /contact to quarantined Coming Soon Contact page (URL remains '/contact')
     return NextResponse.rewrite(new URL("/coming-soon/contact", request.url));
+  }
+
+  if (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/join" ||
+    pathname.startsWith("/join/") ||
+    pathname === "/influencer" ||
+    pathname.startsWith("/influencer/") ||
+    pathname.startsWith("/register/")
+  ) {
+    // Allow access to Admin Dashboard and Registration forms
+    return NextResponse.next();
   }
 
   if (pathname === "/preview") {
