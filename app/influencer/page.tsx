@@ -1,0 +1,5 @@
+import { redirect } from "next/navigation";
+
+export default function InfluencerPage() {
+  redirect("/register/influencer");
+}
