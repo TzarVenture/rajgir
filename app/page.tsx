@@ -189,7 +189,7 @@ export default function RealMarathonHomePage() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/contact?tab=runner"
+              href="/register/runner"
               className="py-2.5 px-5 rounded-full bg-gradient-to-r from-[#e51b24] to-[#b91c1c] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-900/30 hover:brightness-110 active:scale-95 transition-all"
             >
               Register Now
@@ -228,7 +228,7 @@ export default function RealMarathonHomePage() {
               <FaArrowRight className="text-[11px]" />
             </a>
             <Link
-              href="/contact?tab=runner"
+              href="/register/runner"
               className="py-3.5 px-8 rounded-full bg-white/10 border border-white/20 hover:bg-white/15 text-white font-extrabold text-xs uppercase tracking-wider transition-all"
             >
               Early Bird Registration
@@ -307,7 +307,7 @@ export default function RealMarathonHomePage() {
               </div>
 
               <Link
-                href={`/contact?tab=runner&distance=${encodeURIComponent(cat.distance)}`}
+                href={`/register/runner?distance=${encodeURIComponent(cat.distance)}`}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/5 group-hover:bg-[#d49a37] group-hover:text-black text-white font-bold text-xs uppercase tracking-wider text-center border border-white/10 group-hover:border-[#d49a37] transition-all"
               >
                 Select {cat.distance}

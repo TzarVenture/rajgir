@@ -93,6 +93,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow public direct access to the dedicated runner registration flow
+  if (pathname.startsWith("/register/runner")) {
+    return NextResponse.next();
+  }
+
   // Stealth: Any attempt to access internal real pages (/about, /register, etc.)
   // redirects directly to home (Coming Soon), revealing nothing about internal paths.
   return NextResponse.redirect(new URL("/", request.url));
