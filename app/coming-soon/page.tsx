@@ -173,7 +173,7 @@ export default function ComingSoonPage() {
             
             {/* 1: REGISTER AS RUNNER */}
             <Link
-              href="/contact?tab=runner"
+              href="/register/runner"
               className="flex items-center justify-between px-5 py-3.5 rounded-xl border border-red-400/40 text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-red-900/50 group cursor-pointer"
               style={{
                 background: "linear-gradient(135deg, #e51b24 0%, #b7121b 100%)",
@@ -451,7 +451,7 @@ export default function ComingSoonPage() {
               </div>
 
               <Link
-                href={`/contact?tab=runner${selectedDistance ? `&distance=${selectedDistance}` : ""}`}
+                href={`/register/runner${selectedDistance ? `?distance=${encodeURIComponent(selectedDistance)}` : ""}`}
                 className="w-full py-3 sm:py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#991b1b] via-[#b91c1c] to-[#dc2626] text-white font-extrabold tracking-widest text-xs sm:text-sm uppercase flex items-center justify-center gap-2 shadow-lg shadow-red-950/25 hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <span>PRE-REGISTER NOW</span>

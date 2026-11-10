@@ -16,7 +16,7 @@ function NavLinks({ onMobileItemClick }: { onMobileItemClick?: () => void }) {
   const isHomePage = pathname === "/";
 
   const navItems = [
-    { label: "Run", href: "/contact?tab=runner", isRoute: true, tab: "runner" },
+    { label: "Run / Register", href: "/register/runner", isRoute: true, tab: "runner" },
     { label: "Race info", href: "/contact?tab=general", isRoute: true, tab: "general" },
     { label: "Explore", href: isHomePage ? "#explore" : "/#explore", isRoute: !isHomePage },
     { label: "Experience", href: isHomePage ? "#experience" : "/#experience", isRoute: !isHomePage },
