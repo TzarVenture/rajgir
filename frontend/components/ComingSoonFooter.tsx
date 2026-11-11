@@ -34,7 +34,7 @@ export default function ComingSoonFooter() {
     process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || "rajgirmarathon@gmail.com";
 
   const navItems = [
-    { label: "Run / Register", href: "/register/runner", isRoute: true },
+    { label: "Run", href: "/contact?tab=runner", isRoute: true },
     { label: "Race info", href: "/contact?tab=general", isRoute: true },
     { label: "Explore", href: isHomePage ? "#explore" : "/#explore", isRoute: !isHomePage },
     { label: "Experience", href: isHomePage ? "#experience" : "/#experience", isRoute: !isHomePage },

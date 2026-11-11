@@ -90,9 +90,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/join/") ||
     pathname === "/influencer" ||
     pathname.startsWith("/influencer/") ||
-    pathname.startsWith("/register/")
+    pathname.startsWith("/register/volunteer") ||
+    pathname.startsWith("/register/influencer")
   ) {
-    // Allow access to Admin Dashboard and Registration forms
+    // Allow access to Admin Dashboard, Volunteer, and Influencer forms
     return NextResponse.next();
   }
 
@@ -106,12 +107,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow public direct access to the dedicated runner registration flow
-  if (pathname.startsWith("/register/runner")) {
-    return NextResponse.next();
-  }
-
-  // Stealth: Any attempt to access internal real pages (/about, /register, etc.)
+  // Stealth: Any attempt to access internal real pages (/about, /register/runner, etc.)
   // redirects directly to home (Coming Soon), revealing nothing about internal paths.
   return NextResponse.redirect(new URL("/", request.url));
 }
