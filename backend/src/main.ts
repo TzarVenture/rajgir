@@ -50,7 +50,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 4000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   logger.log(`Rajgir Marathon Backend API running on port ${port}`);
   logger.log(`API Base URL: http://localhost:${port}/api/v1`);
