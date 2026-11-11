@@ -73,7 +73,56 @@ export async function submitRunnerRegistration(
 
     const calculatedNet = Math.max(1, calculatedGross - calculatedDiscount);
 
-    // 4. Generate Unique Official Registration Number
+    // 4. Try sending to NestJS Backend API if configured
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      try {
+        const backendUrl = `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/runners/register`;
+        const res = await fetch(backendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categoryDistance: data.distance,
+            categoryTitle: category.title,
+            registrationFee: category.fee,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+            dateOfBirth: data.dateOfBirth,
+            gender: data.gender,
+            bloodGroup: data.bloodGroup,
+            tshirtSize: data.tshirtSize,
+            bibName: data.bibName,
+            emergencyName: data.emergencyName,
+            emergencyRelation: data.emergencyRelation,
+            emergencyPhone: data.emergencyPhone,
+            medicalNotes: data.medicalNotes || undefined,
+            city: data.city,
+            state: data.state,
+            pincode: data.pincode,
+            country: data.country || "India",
+            runningClub: data.runningClub || undefined,
+            selectedAddons: data.selectedAddons || [],
+            couponCode: cleanCoupon || undefined,
+            waiverAgreed: data.waiverAgreed,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.registrationNumber) {
+            return {
+              success: true,
+              registrationNumber: json.registrationNumber,
+            };
+          }
+        }
+      } catch (backendError) {
+        console.warn("NestJS API call skipped/failed, proceeding with direct Supabase insert:", backendError);
+      }
+    }
+
+    // 5. Generate Unique Official Registration Number (Direct Supabase fallback)
     // Prefix mapping: 42.2 KM -> 42K, 21.1 KM -> 21K, 10 KM -> 10K, 5 KM -> 05K, 3 KM -> 03K
     const prefixMap: Record<string, string> = {
       "42.2 KM": "42K",

@@ -1,0 +1,108 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model RunnerRegistration {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationNumber String   @unique @map("registration_number") @db.VarChar(32)
+  
+  // Race Info
+  distance           String   @db.VarChar(16)
+  raceTitle          String   @map("race_title") @db.VarChar(64)
+  baseFee            Int      @map("base_fee")
+  
+  // Personal Info
+  firstName          String   @map("first_name") @db.VarChar(64)
+  lastName           String   @map("last_name") @db.VarChar(64)
+  email              String   @db.VarChar(128)
+  phone              String   @db.VarChar(15)
+  dateOfBirth        DateTime @map("date_of_birth") @db.Date
+  ageOnRaceDay       Int      @map("age_on_race_day")
+  gender             String   @db.VarChar(16)
+  
+  // Bib & T-Shirt
+  bibName            String   @map("bib_name") @db.VarChar(20)
+  bloodGroup         String   @map("blood_group") @db.VarChar(8)
+  tshirtSize         String   @map("tshirt_size") @db.VarChar(8)
+  
+  // Emergency & Medical
+  emergencyName      String   @map("emergency_name") @db.VarChar(64)
+  emergencyRelation  String   @map("emergency_relation") @db.VarChar(32)
+  emergencyPhone     String   @map("emergency_phone") @db.VarChar(15)
+  medicalNotes       String?  @map("medical_notes")
+  
+  // Address & Logistics
+  city               String   @db.VarChar(64)
+  state              String   @db.VarChar(64)
+  pincode            String   @db.VarChar(10)
+  country            String?  @default("India") @db.VarChar(32)
+  runningClub        String?  @map("running_club") @db.VarChar(64)
+  
+  // Addons & Financials
+  selectedAddons     Json?    @default("[]") @map("selected_addons")
+  grossAmount        Int      @map("gross_amount")
+  discountAmount     Int?     @default(0) @map("discount_amount")
+  netAmount          Int      @map("net_amount")
+  couponCode         String?  @map("coupon_code") @db.VarChar(32)
+  
+  // Lifecycle
+  paymentStatus      String?  @default("CONFIRMED") @map("payment_status") @db.VarChar(24)
+  qrCodeToken        String?  @default(dbgenerated("gen_random_uuid()")) @map("qr_code_token") @db.Uuid
+  waiverAgreed       Boolean  @default(true) @map("waiver_agreed")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@index([phone])
+  @@index([registrationNumber])
+  @@index([distance])
+  @@map("runner_registrations")
+}
+
+model Volunteer {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName              String   @map("full_name") @db.VarChar(128)
+  email                 String   @db.VarChar(128)
+  phone                 String   @db.VarChar(20)
+  tShirtSize            String   @map("tshirt_size") @db.VarChar(10)
+  emergencyContactName  String   @map("emergency_contact_name") @db.VarChar(128)
+  emergencyContactPhone String   @map("emergency_contact_phone") @db.VarChar(20)
+  availability          Json?    @default("[]")
+  rolePreference        String   @map("role_preference") @db.VarChar(64)
+  languagesSpoken       String?  @map("languages_spoken") @db.VarChar(128)
+  dietaryRestrictions  String?  @map("dietary_restrictions") @db.VarChar(128)
+  medicalCertification Boolean? @default(false) @map("medical_certification")
+  waiverAgreed          Boolean  @default(true) @map("waiver_agreed")
+  status                String?  @default("pending") @db.VarChar(24)
+  submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@map("volunteers")
+}
+
+model Influencer {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName                  String   @map("full_name") @db.VarChar(128)
+  stageName                 String?  @map("stage_name") @db.VarChar(128)
+  email                     String   @db.VarChar(128)
+  phone                     String   @db.VarChar(20)
+  city                      String?  @db.VarChar(64)
+  country                   String?  @default("India") @db.VarChar(64)
+  primaryPlatform           String   @map("primary_platform") @db.VarChar(32)
+  profileUrl                String   @map("profile_url") @db.VarChar(255)
+  followerCount             String   @map("follower_count") @db.VarChar(32)
+  engagementRate            String?  @map("engagement_rate") @db.VarChar(32)
+  targetNiche               String   @map("target_niche") @db.VarChar(64)
+  collaborationDeliverables String   @map("collaboration_deliverables") @db.Text
+  status                    String?  @default("pending") @db.VarChar(24)
+  submittedAt               DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@map("influencers")
+}

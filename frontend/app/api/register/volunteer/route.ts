@@ -51,7 +51,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save into simulated db.json
+    // Try sending to NestJS Backend if configured
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      try {
+        const backendUrl = `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/volunteers/register`;
+        const res = await fetch(backendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          return NextResponse.json(
+            {
+              success: true,
+              message: "Your volunteer registration has been successfully submitted!",
+              data: json,
+            },
+            { status: 201 }
+          );
+        }
+      } catch (err) {
+        console.warn("NestJS volunteer registration failed, falling back to local storage:", err);
+      }
+    }
+
+    // Save into simulated db.json fallback
     const savedRecord = await saveSubmission("volunteer", formData);
 
     return NextResponse.json(
