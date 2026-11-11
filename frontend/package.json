@@ -1,5 +1,5 @@
 {
-  "name": "rajgir",
+  "name": "rajgir-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,8 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "build:css": "npx tailwindcss -i ./app/globals.css -o ./app/tailwind-built.css --minify",
-    "postinstall": "prisma skills sync || exit 0"
+    "build:css": "npx tailwindcss -i ./app/globals.css -o ./app/tailwind-built.css --minify"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -16,20 +15,17 @@
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-icons": "^5.7.0"
+    "react-icons": "^5.7.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@emnapi/core": "^1.11.3",
-    "@emnapi/runtime": "^1.11.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.6.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
-    "pg": "^8.23.1",
     "postcss": "^8.5.32",
-    "prisma": "^8.0.0-rc.33",
     "tailwindcss": "^3.4.19",
     "typescript": "^5"
   }

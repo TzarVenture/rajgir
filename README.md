@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rajgir Marathon Digital Platform
 
-## Getting Started
+Unified enterprise repository for the Rajgir Marathon platform, featuring a decoupled **Next.js 16 (Frontend)** and **NestJS (Backend REST API)** architecture.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture Overview
+
+```text
+rajgir/
+├── frontend/               # Next.js 16 (App Router, Tailwind, SSR, Coming Soon)
+│   ├── app/                # Public pages, runner registration wizard, admin UI
+│   ├── components/         # Shared UI components
+│   ├── lib/api.ts          # Type-safe API client targeting the NestJS backend
+│   ├── middleware.ts       # Coming Soon stealth mode & domain canonicalization
+│   └── Dockerfile          # Production multi-stage Docker build
+│
+├── backend/                # NestJS 10 (Core REST API & Microservice Transport)
+│   ├── src/                # Modules: runners, volunteers, influencers, admin, health
+│   ├── prisma/             # PostgreSQL Schema & Migrations (Supabase Cloud)
+│   └── Dockerfile          # Production multi-stage Docker build
+│
+└── docker-compose.yml      # Orchestration for local development & VPS Dokploy
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Getting Started Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Backend Service (NestJS API)
+```bash
+cd backend
+npm install
+npx prisma generate
+npm run start:dev
+```
+- **API Base:** `http://localhost:4000/api/v1`
+- **Swagger Documentation:** `http://localhost:4000/api/docs`
+- **Health Check:** `http://localhost:4000/api/v1/health`
 
-## Learn More
+### 2. Frontend Application (Next.js)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- **Web App:** `http://localhost:3000`
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Dokploy Deployment Configuration (Hostinger VPS)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+In your Dokploy Dashboard on the VPS, set up two independent applications from the `main` branch of this repository:
 
-## Deploy on Vercel
+1. **Frontend Service (`rajgir-frontend`):**
+   - **Base Directory:** `frontend`
+   - **Port:** `3000`
+   - **Domain:** `rajgirmarathon.com`, `www.rajgirmarathon.com`, `rajgir.org`
+   - **Environment:** `COMING_SOON=true`, `NEXT_PUBLIC_API_URL=https://api.rajgirmarathon.com`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. **Backend Service (`rajgir-backend`):**
+   - **Base Directory:** `backend`
+   - **Port:** `4000`
+   - **Domain:** `api.rajgirmarathon.com`
+   - **Environment:** `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
