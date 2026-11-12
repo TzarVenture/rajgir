@@ -99,5 +99,68 @@ export const api = {
       totalRevenue: number;
       categoryBreakdown: Array<{ distance: string; count: number }>;
     }>("admin/overview"),
+
+  // Users & Identity
+  syncUser: (payload: { email: string; phone?: string; fullName: string; supabaseAuthId?: string }) =>
+    request<any>("users/sync", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  checkUser: (email?: string, phone?: string) => {
+    const params = new URLSearchParams();
+    if (email) params.append("email", email);
+    if (phone) params.append("phone", phone);
+    return request<{ exists: boolean; userId?: string; email?: string; phone?: string; fullName?: string; role?: string; status?: string }>(
+      `users/check?${params.toString()}`
+    );
+  },
+
+  setUserRole: (userId: string, role: string) =>
+    request<any>(`users/${userId}/role`, {
+      method: "POST",
+      body: JSON.stringify({ role }),
+    }),
+
+  getUser: (userId: string) =>
+    request<any>(`users/${encodeURIComponent(userId)}`),
+
+  // Group Registrations
+  registerTeam: (payload: any) =>
+    request<{ success: boolean; profile: any; teamJoinCode: string }>("registrations/team", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  registerCorporate: (payload: any) =>
+    request<{ success: boolean; profile: any }>("registrations/corporate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  registerSchool: (payload: any) =>
+    request<{ success: boolean; profile: any }>("registrations/school", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  // Partner Registrations
+  registerSponsor: (payload: any) =>
+    request<{ success: boolean; profile: any }>("registrations/sponsor", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  registerVendor: (payload: any) =>
+    request<{ success: boolean; profile: any }>("registrations/vendor", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  registerTourism: (payload: any) =>
+    request<{ success: boolean; profile: any }>("registrations/tourism", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 

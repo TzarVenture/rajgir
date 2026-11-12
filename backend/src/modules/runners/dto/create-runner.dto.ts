@@ -10,6 +10,11 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRunnerDto {
+  @ApiPropertyOptional({ example: 'usr-uuid-here' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
   @ApiProperty({ example: '21.1 KM' })
   @IsString()
   @IsNotEmpty()

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveSubmission, getDb } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,6 +76,66 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.warn("NestJS volunteer registration failed, falling back to local storage:", err);
       }
+    }
+
+    // Direct Supabase Fallback
+    try {
+      if (formData.userId || formData.email) {
+        const { data: dbUser } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .or(`id.eq.${formData.userId || "00000000-0000-0000-0000-000000000000"},supabase_auth_id.eq.${formData.userId || "00000000-0000-0000-0000-000000000000"},email.eq.${formData.email}`)
+          .maybeSingle();
+
+        let resolvedId = dbUser?.id || null;
+
+        if (!resolvedId && formData.email) {
+          const { data: created } = await supabaseAdmin
+            .from("users")
+            .upsert(
+              {
+                email: formData.email.toLowerCase().trim(),
+                phone: formData.phone?.trim() || null,
+                full_name: formData.fullName?.trim() || formData.email.split("@")[0],
+                supabase_auth_id: formData.userId || null,
+                role: "VOLUNTEER",
+                status: "PENDING_APPROVAL",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "email" }
+            )
+            .select("id")
+            .single();
+
+          resolvedId = created?.id || null;
+        }
+
+        await supabaseAdmin.from("volunteers").insert({
+          user_id: resolvedId || null,
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          tshirt_size: formData.tShirtSize,
+          emergency_contact_name: formData.emergencyContactName,
+          emergency_contact_phone: formData.emergencyContactPhone,
+          availability: formData.availability,
+          role_preference: formData.rolePreference,
+          languages_spoken: formData.languagesSpoken || null,
+          dietary_restrictions: formData.dietaryRestrictions || null,
+          medical_certification: formData.medicalCertification || false,
+          waiver_agreed: formData.waiverAgreed,
+          status: "pending",
+        });
+
+        if (resolvedId) {
+          await supabaseAdmin
+            .from("users")
+            .update({ role: "VOLUNTEER", status: "PENDING_APPROVAL", updated_at: new Date().toISOString() })
+            .eq("id", resolvedId);
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Direct Supabase volunteer insert warning:", dbErr);
     }
 
     // Save into simulated db.json fallback

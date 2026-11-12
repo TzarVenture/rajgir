@@ -8,8 +8,59 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  RUNNER
+  VOLUNTEER
+  INFLUENCER
+  TEAM_CAPTAIN
+  CORPORATE_MANAGER
+  SCHOOL_COORDINATOR
+  SPONSOR
+  VENDOR
+  TOURISM_PARTNER
+  ORGANIZER
+  SUPER_ADMIN
+}
+
+enum AccountStatus {
+  PENDING_ONBOARDING
+  PENDING_APPROVAL
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String         @unique @db.VarChar(128)
+  phone          String?        @unique @db.VarChar(20)
+  fullName       String         @map("full_name") @db.VarChar(128)
+  role           Role?
+  status         AccountStatus  @default(PENDING_ONBOARDING)
+  supabaseAuthId String?        @unique @map("supabase_auth_id") @db.VarChar(64)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 1-to-1 Role Profile Relationships (Strict 1 User = 1 Role)
+  runnerRegistration RunnerRegistration?
+  volunteer          Volunteer?
+  influencer         Influencer?
+  teamProfile        TeamProfile?
+  corporateProfile   CorporateProfile?
+  schoolProfile      SchoolProfile?
+  sponsorProfile     SponsorProfile?
+  vendorProfile      VendorProfile?
+  tourismProfile     TourismProfile?
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
 model RunnerRegistration {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String?  @unique @map("user_id") @db.Uuid
+  user               User?    @relation(fields: [userId], references: [id])
+
   registrationNumber String   @unique @map("registration_number") @db.VarChar(32)
   
   // Race Info
@@ -67,6 +118,9 @@ model RunnerRegistration {
 
 model Volunteer {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String?  @unique @map("user_id") @db.Uuid
+  user                  User?    @relation(fields: [userId], references: [id])
+
   fullName              String   @map("full_name") @db.VarChar(128)
   email                 String   @db.VarChar(128)
   phone                 String   @db.VarChar(20)
@@ -88,6 +142,9 @@ model Volunteer {
 
 model Influencer {
   id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                    String?  @unique @map("user_id") @db.Uuid
+  user                      User?    @relation(fields: [userId], references: [id])
+
   fullName                  String   @map("full_name") @db.VarChar(128)
   stageName                 String?  @map("stage_name") @db.VarChar(128)
   email                     String   @db.VarChar(128)
@@ -105,4 +162,114 @@ model Influencer {
 
   @@index([email])
   @@map("influencers")
+}
+
+// ==========================================
+// GROUP TRACK MODELS
+// ==========================================
+
+model TeamProfile {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  teamName        String   @map("team_name") @db.VarChar(128)
+  clubAffiliation String?  @map("club_affiliation") @db.VarChar(128)
+  city            String   @db.VarChar(64)
+  teamJoinCode    String   @unique @map("team_join_code") @db.VarChar(16)
+  estimatedMembers Int     @default(5) @map("estimated_members")
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("team_profiles")
+}
+
+model CorporateProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName         String   @map("company_name") @db.VarChar(128)
+  gstin               String?  @db.VarChar(32)
+  officialEmailDomain String   @map("official_email_domain") @db.VarChar(64)
+  designation         String   @db.VarChar(64)
+  estimatedPasses     Int      @map("estimated_passes")
+  csrFocus            String?  @map("csr_focus") @db.VarChar(128)
+  billingAddress      String?  @map("billing_address") @db.Text
+  status              String   @default("pending") @db.VarChar(24) // pending, approved, rejected
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@map("corporate_profiles")
+}
+
+model SchoolProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  schoolName          String   @map("school_name") @db.VarChar(128)
+  boardAffiliation    String   @map("board_affiliation") @db.VarChar(64) // CBSE, ICSE, Bihar Board, State Board
+  city                String   @db.VarChar(64)
+  teacherInCharge     String   @map("teacher_in_charge") @db.VarChar(128)
+  teacherDesignation  String   @map("teacher_designation") @db.VarChar(64)
+  estimatedStudents   Int      @map("estimated_students")
+  parentalConsentAgreed Boolean @default(true) @map("parental_consent_agreed")
+  status              String   @default("pending") @db.VarChar(24) // pending, approved, rejected
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@map("school_profiles")
+}
+
+// ==========================================
+// PARTNER TRACK MODELS
+// ==========================================
+
+model SponsorProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  brandName           String   @map("brand_name") @db.VarChar(128)
+  industry            String   @db.VarChar(64)
+  tierInterest        String   @map("tier_interest") @db.VarChar(64) // Title, Powered By, Hydration, Recovery, Tech
+  budgetBand          String   @map("budget_band") @db.VarChar(32)
+  brandWebsite        String?  @map("brand_website") @db.VarChar(255)
+  proposalDeliverables String? @map("proposal_deliverables") @db.Text
+  status              String   @default("pending") @db.VarChar(24) // pending, discussion, approved
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@map("sponsor_profiles")
+}
+
+model VendorProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessName        String   @map("business_name") @db.VarChar(128)
+  stallCategory       String   @map("stall_category") @db.VarChar(64) // Food & Refreshments, Running Gear, Nutrition & Supplements, Bihar Handicrafts
+  stallSize           String   @map("stall_size") @db.VarChar(32) // Standard (3x3m), Premium (6x3m)
+  fssaiNumber         String?  @map("fssai_number") @db.VarChar(32)
+  electricPowerRequired Boolean @default(false) @map("electric_power_required")
+  status              String   @default("pending") @db.VarChar(24) // pending, approved, stall_allocated
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@map("vendor_profiles")
+}
+
+model TourismProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessName        String   @map("business_name") @db.VarChar(128)
+  serviceType         String   @map("service_type") @db.VarChar(64) // Hotel / Resort, Cab / Shuttle Fleet, Guided Heritage Tours
+  location            String   @db.VarChar(128)
+  distanceFromStartLine String? @map("distance_from_start_line") @db.VarChar(32)
+  inventoryCapacity   String   @map("inventory_capacity") @db.VarChar(64)
+  discountOffering    String?  @map("discount_offering") @db.VarChar(128)
+  status              String   @default("pending") @db.VarChar(24) // pending, approved, active_listing
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+
+  @@map("tourism_profiles")
 }

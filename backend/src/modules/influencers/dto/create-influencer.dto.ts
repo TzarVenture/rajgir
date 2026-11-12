@@ -7,6 +7,11 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInfluencerDto {
+  @ApiPropertyOptional({ example: 'usr-uuid-here' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
   @ApiProperty({ example: 'Pooja Verma' })
   @IsString()
   @IsNotEmpty()

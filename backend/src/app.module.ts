@@ -6,6 +6,8 @@ import { RunnersModule } from './modules/runners/runners.module';
 import { VolunteersModule } from './modules/volunteers/volunteers.module';
 import { InfluencersModule } from './modules/influencers/influencers.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { UsersModule } from './modules/users/users.module';
+import { RegistrationsModule } from './modules/registrations/registrations.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { AdminModule } from './modules/admin/admin.module';
     }),
     PrismaModule,
     HealthModule,
+    UsersModule,
+    RegistrationsModule,
     RunnersModule,
     VolunteersModule,
     InfluencersModule,

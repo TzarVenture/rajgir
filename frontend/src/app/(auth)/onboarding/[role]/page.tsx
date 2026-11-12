@@ -1,8 +1,16 @@
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
-import { homePath } from "@/lib/auth/paths";
-import { getRole } from "@/lib/roles";
-import OnboardingForm from "./OnboardingForm";
+import { redirect } from "next/navigation";
+
+const roleToRegisterPath: Record<string, string> = {
+  runner: "/register/runner",
+  volunteer: "/register/volunteer",
+  influencer: "/register/influencer",
+  team_captain: "/register/team",
+  corporate_manager: "/register/corporate",
+  school_coordinator: "/register/school",
+  sponsor: "/register/sponsor",
+  vendor: "/register/vendor",
+  tourism_partner: "/register/tourism",
+};
 
 export default async function OnboardingRolePage({
   params,
@@ -10,21 +18,6 @@ export default async function OnboardingRolePage({
   params: Promise<{ role: string }>;
 }) {
   const { role: roleId } = await params;
-
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const config = getRole(roleId);
-  const entry = user.roles.find((item) => item.role === roleId);
-  if (!config || !entry) notFound();
-
-  if (entry.onboarded) redirect(homePath(user));
-
-  return (
-    <OnboardingForm
-      roleId={config.id}
-      roleLabel={config.label}
-      fields={config.fields}
-    />
-  );
+  const target = roleToRegisterPath[roleId.toLowerCase()] || "/onboarding/intent";
+  redirect(target);
 }

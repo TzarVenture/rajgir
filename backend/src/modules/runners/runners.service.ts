@@ -27,6 +27,28 @@ export class RunnersService {
 
   async registerRunner(dto: CreateRunnerDto) {
     try {
+      if (dto.userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: dto.userId },
+          include: {
+            runnerRegistration: true,
+            volunteer: true,
+            influencer: true,
+            teamProfile: true,
+            corporateProfile: true,
+            schoolProfile: true,
+            sponsorProfile: true,
+            vendorProfile: true,
+            tourismProfile: true,
+          },
+        });
+        if (user && user.role && user.role !== 'RUNNER') {
+          throw new BadRequestException(
+            `This account is already registered as ${user.role}. Accounts are strictly limited to one role per phone/email.`,
+          );
+        }
+      }
+
       const registrationNumber = this.generateRegistrationNumber(dto.categoryDistance);
 
       const parsedDob = new Date(dto.dateOfBirth);
@@ -41,6 +63,7 @@ export class RunnersService {
 
       const record = await this.prisma.runnerRegistration.create({
         data: {
+          userId: dto.userId || null,
           registrationNumber,
           distance: dto.categoryDistance,
           raceTitle: dto.categoryTitle,
@@ -73,6 +96,13 @@ export class RunnersService {
           paymentStatus: 'CONFIRMED',
         },
       });
+
+      if (dto.userId) {
+        await this.prisma.user.update({
+          where: { id: dto.userId },
+          data: { role: 'RUNNER', status: 'ACTIVE' },
+        });
+      }
 
       this.logger.log(`Runner registered successfully: ${record.registrationNumber} (${record.email})`);
 

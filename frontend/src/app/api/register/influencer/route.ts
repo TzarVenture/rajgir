@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveSubmission, getDb } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +63,66 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.warn("NestJS influencer registration failed, falling back to local storage:", err);
       }
+    }
+
+    // Direct Supabase Fallback
+    try {
+      if (formData.userId || formData.email) {
+        const { data: dbUser } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .or(`id.eq.${formData.userId || "00000000-0000-0000-0000-000000000000"},supabase_auth_id.eq.${formData.userId || "00000000-0000-0000-0000-000000000000"},email.eq.${formData.email}`)
+          .maybeSingle();
+
+        let resolvedId = dbUser?.id || null;
+
+        if (!resolvedId && formData.email) {
+          const { data: created } = await supabaseAdmin
+            .from("users")
+            .upsert(
+              {
+                email: formData.email.toLowerCase().trim(),
+                phone: formData.phone?.trim() || null,
+                full_name: formData.fullName?.trim() || formData.email.split("@")[0],
+                supabase_auth_id: formData.userId || null,
+                role: "INFLUENCER",
+                status: "PENDING_APPROVAL",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "email" }
+            )
+            .select("id")
+            .single();
+
+          resolvedId = created?.id || null;
+        }
+
+        await supabaseAdmin.from("influencers").insert({
+          user_id: resolvedId || null,
+          full_name: formData.fullName,
+          stage_name: formData.stageName || null,
+          email: formData.email,
+          phone: formData.phone,
+          city: formData.city || null,
+          country: formData.country || "India",
+          primary_platform: formData.primaryPlatform,
+          profile_url: formData.profileUrl,
+          follower_count: formData.followerCount,
+          engagement_rate: formData.engagementRate || null,
+          target_niche: formData.targetNiche,
+          collaboration_deliverables: formData.collaborationDeliverables,
+          status: "pending",
+        });
+
+        if (resolvedId) {
+          await supabaseAdmin
+            .from("users")
+            .update({ role: "INFLUENCER", status: "PENDING_APPROVAL", updated_at: new Date().toISOString() })
+            .eq("id", resolvedId);
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Direct Supabase influencer insert warning:", dbErr);
     }
 
     // Save into simulated db.json fallback

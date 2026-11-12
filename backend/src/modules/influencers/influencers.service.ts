@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInfluencerDto } from './dto/create-influencer.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class InfluencersService {
@@ -9,8 +10,40 @@ export class InfluencersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async registerInfluencer(dto: CreateInfluencerDto) {
+    if (dto.userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: dto.userId },
+        include: {
+          runnerRegistration: true,
+          volunteer: true,
+          influencer: true,
+          teamProfile: true,
+          corporateProfile: true,
+          schoolProfile: true,
+          sponsorProfile: true,
+          vendorProfile: true,
+          tourismProfile: true,
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException(`User account with ID ${dto.userId} does not exist.`);
+      }
+
+      if (user.role && user.role !== Role.INFLUENCER) {
+        throw new BadRequestException(
+          `This account is already registered as ${user.role}. Accounts are strictly limited to one role per phone/email.`,
+        );
+      }
+
+      if (user.influencer) {
+        throw new BadRequestException('This account already has a registered influencer proposal.');
+      }
+    }
+
     const record = await this.prisma.influencer.create({
       data: {
+        userId: dto.userId || null,
         fullName: dto.fullName.trim(),
         stageName: dto.stageName?.trim() || null,
         email: dto.email.toLowerCase().trim(),
@@ -26,6 +59,16 @@ export class InfluencersService {
         status: 'pending',
       },
     });
+
+    if (dto.userId) {
+      await this.prisma.user.update({
+        where: { id: dto.userId },
+        data: {
+          role: Role.INFLUENCER,
+          status: 'PENDING_APPROVAL',
+        },
+      });
+    }
 
     this.logger.log(`Influencer registered: ${record.fullName} (${record.primaryPlatform}: ${record.profileUrl})`);
 

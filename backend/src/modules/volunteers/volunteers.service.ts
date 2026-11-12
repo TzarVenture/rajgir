@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVolunteerDto } from './dto/create-volunteer.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class VolunteersService {
@@ -9,8 +10,40 @@ export class VolunteersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async registerVolunteer(dto: CreateVolunteerDto) {
+    if (dto.userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: dto.userId },
+        include: {
+          runnerRegistration: true,
+          volunteer: true,
+          influencer: true,
+          teamProfile: true,
+          corporateProfile: true,
+          schoolProfile: true,
+          sponsorProfile: true,
+          vendorProfile: true,
+          tourismProfile: true,
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException(`User account with ID ${dto.userId} does not exist.`);
+      }
+
+      if (user.role && user.role !== Role.VOLUNTEER) {
+        throw new BadRequestException(
+          `This account is already registered as ${user.role}. Accounts are strictly limited to one role per phone/email.`,
+        );
+      }
+
+      if (user.volunteer) {
+        throw new BadRequestException('This account already has a registered volunteer application.');
+      }
+    }
+
     const record = await this.prisma.volunteer.create({
       data: {
+        userId: dto.userId || null,
         fullName: dto.fullName.trim(),
         email: dto.email.toLowerCase().trim(),
         phone: dto.phone.trim(),
@@ -26,6 +59,16 @@ export class VolunteersService {
         status: 'pending',
       },
     });
+
+    if (dto.userId) {
+      await this.prisma.user.update({
+        where: { id: dto.userId },
+        data: {
+          role: Role.VOLUNTEER,
+          status: 'PENDING_APPROVAL',
+        },
+      });
+    }
 
     this.logger.log(`Volunteer registered: ${record.fullName} (${record.email})`);
 

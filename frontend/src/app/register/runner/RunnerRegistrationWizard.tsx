@@ -23,6 +23,7 @@ import BibPreview from "./BibPreview";
 import TShirtSizeModal from "./TShirtSizeModal";
 import OrderSummaryCard from "./OrderSummaryCard";
 import { submitRunnerRegistration } from "@/app/actions/registerRunner";
+import { AppUser } from "@/lib/auth/session";
 
 const STEPS = [
   { id: 1, label: "Race Category", icon: FaRunning },
@@ -32,9 +33,19 @@ const STEPS = [
   { id: 5, label: "Waiver & Review", icon: FaFileContract },
 ];
 
-export default function RunnerRegistrationWizard() {
+interface RunnerRegistrationWizardProps {
+  user?: AppUser;
+}
+
+export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWizardProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const nameParts = user?.name ? user.name.trim().split(" ") : [];
+  const initialFirstName = nameParts[0] || "";
+  const initialLastName = nameParts.slice(1).join(" ") || "";
+  const initialEmail = user?.email || "";
+  const initialPhone = user?.phone || "";
 
   // Initial distance from URL query (e.g. ?distance=21.1 or ?distance=42.2)
   const queryDist = searchParams.get("distance") || searchParams.get("dist");
@@ -51,13 +62,13 @@ export default function RunnerRegistrationWizard() {
 
   // Form State
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
+    firstName: initialFirstName,
+    lastName: initialLastName,
+    email: initialEmail,
+    phone: initialPhone,
     dateOfBirth: "",
     gender: "Male" as "Male" | "Female" | "Other",
-    bibName: "",
+    bibName: initialFirstName ? initialFirstName.toUpperCase() : "",
     bloodGroup: "B+" as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-",
     tshirtSize: "L" as "XS" | "S" | "M" | "L" | "XL" | "XXL" | "3XL",
     emergencyName: "",

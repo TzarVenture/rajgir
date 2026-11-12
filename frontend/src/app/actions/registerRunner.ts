@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { runnerRegistrationSchema, raceCategories, availableAddons } from "@/lib/schemas/runnerRegistration";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export interface RegisterRunnerResult {
   success: boolean;
@@ -33,6 +34,15 @@ export async function submitRunnerRegistration(
     }
 
     const data = parsed.data;
+
+    // Check active user identity and 1-role constraint
+    const currentUser = await getCurrentUser();
+    if (currentUser && currentUser.role && currentUser.role !== "RUNNER") {
+      return {
+        success: false,
+        error: `Your account is already registered as ${currentUser.role}. Accounts are strictly limited to one role per phone/email.`,
+      };
+    }
 
     // 2. Cross-verify race distance and age eligibility
     const category = raceCategories.find((c) => c.distance === data.distance);
@@ -81,6 +91,7 @@ export async function submitRunnerRegistration(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: currentUser?.id,
             categoryDistance: data.distance,
             categoryTitle: category.title,
             registrationFee: category.fee,
@@ -135,10 +146,63 @@ export async function submitRunnerRegistration(
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const regNo = `RJG-2027-${prefix}-${randomSuffix}`;
 
+    // Resolve or sync public.users record to satisfy foreign key constraint
+    let resolvedUserId: string | null = null;
+    if (currentUser?.id || data.email) {
+      try {
+        const emailToCheck = data.email.toLowerCase().trim();
+        const authId = currentUser?.id;
+
+        // Check if user already exists in public.users
+        const { data: existingUser } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .or(`email.eq.${emailToCheck}${authId ? `,supabase_auth_id.eq.${authId},id.eq.${authId}` : ""}`)
+          .maybeSingle();
+
+        if (existingUser?.id) {
+          resolvedUserId = existingUser.id;
+        } else {
+          // If user exists in Supabase Auth but row is missing in public.users, create/upsert it
+          const { data: createdUser } = await supabaseAdmin
+            .from("users")
+            .upsert(
+              {
+                email: emailToCheck,
+                phone: data.phone?.trim() || null,
+                full_name: `${data.firstName} ${data.lastName}`.trim(),
+                supabase_auth_id: authId || null,
+                role: "RUNNER",
+                status: "ACTIVE",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "email" }
+            )
+            .select("id")
+            .single();
+
+          if (createdUser?.id) {
+            resolvedUserId = createdUser.id;
+          }
+        }
+
+        // Keep role updated to RUNNER & status ACTIVE
+        if (resolvedUserId) {
+          await supabaseAdmin
+            .from("users")
+            .update({ role: "RUNNER", status: "ACTIVE", updated_at: new Date().toISOString() })
+            .eq("id", resolvedUserId);
+        }
+      } catch (userResolveErr) {
+        console.warn("Could not resolve or sync public.users row:", userResolveErr);
+      }
+    }
+
     // 5. Insert directly into Supabase runner_registrations table
     const { data: inserted, error: dbError } = await supabaseAdmin
       .from("runner_registrations")
       .insert({
+        user_id: resolvedUserId || null,
         registration_number: regNo,
         distance: data.distance,
         race_title: category.title,

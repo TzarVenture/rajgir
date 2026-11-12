@@ -1,60 +1,87 @@
-import { cookies } from "next/headers";
-import { isMockAuthEnabled } from "@/lib/auth/config";
-import { findUserById, type MockUser } from "@/lib/auth/store";
+import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { api } from "@/lib/api";
 
-const SESSION_COOKIE = "rajgir_session";
-const VERIFY_COOKIE = "rajgir_verify";
-const TWO_FACTOR_COOKIE = "rajgir_2fa";
-
-const SEVEN_DAYS = 60 * 60 * 24 * 7;
-const TEN_MINUTES = 60 * 10;
-
-function options(maxAge: number) {
-  return {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge,
-  };
+export interface AppUser {
+  id: string;
+  email: string;
+  phone?: string;
+  name: string;
+  role?: string | null;
+  status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | string;
 }
 
-export async function getCurrentUser(): Promise<MockUser | null> {
-  if (!isMockAuthEnabled()) return null;
-  const jar = await cookies();
-  const id = jar.get(SESSION_COOKIE)?.value;
-  if (!id) return null;
-  return findUserById(id) ?? null;
-}
+export async function getCurrentUser(): Promise<AppUser | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-export async function startSession(userId: string): Promise<void> {
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, userId, options(SEVEN_DAYS));
-  jar.delete(VERIFY_COOKIE);
-  jar.delete(TWO_FACTOR_COOKIE);
+    if (error || !user) {
+      return null;
+    }
+
+    // 1. Try fetching user details from NestJS API
+    try {
+      const checkRes = await api.checkUser(user.email);
+      if (checkRes.success && checkRes.data?.exists) {
+        return {
+          id: checkRes.data.userId || user.id,
+          email: user.email || "",
+          phone: checkRes.data.phone || (user.user_metadata?.phone as string) || "",
+          name: checkRes.data.fullName || (user.user_metadata?.full_name as string) || user.email || "",
+          role: checkRes.data.role || (user.user_metadata?.role_intent as string) || null,
+          status: checkRes.data.status || "PENDING_ONBOARDING",
+        };
+      }
+    } catch {
+      // Proceed to direct Supabase query
+    }
+
+    // 2. Direct Supabase fallback: query users table
+    try {
+      const { data: dbUser } = await supabaseAdmin
+        .from("users")
+        .select("*")
+        .or(`email.eq.${user.email},supabase_auth_id.eq.${user.id}`)
+        .maybeSingle();
+
+      if (dbUser) {
+        return {
+          id: dbUser.id || user.id,
+          email: dbUser.email || user.email || "",
+          phone: dbUser.phone || (user.user_metadata?.phone as string) || "",
+          name: dbUser.full_name || (user.user_metadata?.full_name as string) || user.email || "",
+          role: dbUser.role || (user.user_metadata?.role_intent as string) || null,
+          status: dbUser.status || "PENDING_ONBOARDING",
+        };
+      }
+    } catch (dbErr) {
+      console.warn("Supabase direct query fallback error:", dbErr);
+    }
+
+    // 3. Fallback from Supabase Auth metadata
+    return {
+      id: user.id,
+      email: user.email || "",
+      phone: (user.user_metadata?.phone as string) || "",
+      name: (user.user_metadata?.full_name as string) || user.email || "",
+      role: (user.user_metadata?.role_intent as string) || null,
+      status: "PENDING_ONBOARDING",
+    };
+  } catch (err) {
+    console.error("getCurrentUser error:", err);
+    return null;
+  }
 }
 
 export async function endSession(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
-}
-
-export async function startVerify(userId: string): Promise<void> {
-  const jar = await cookies();
-  jar.set(VERIFY_COOKIE, userId, options(TEN_MINUTES));
-}
-
-export async function getVerifyUserId(): Promise<string | undefined> {
-  const jar = await cookies();
-  return jar.get(VERIFY_COOKIE)?.value;
-}
-
-export async function startTwoFactor(userId: string): Promise<void> {
-  const jar = await cookies();
-  jar.set(TWO_FACTOR_COOKIE, userId, options(TEN_MINUTES));
-}
-
-export async function getTwoFactorUserId(): Promise<string | undefined> {
-  const jar = await cookies();
-  return jar.get(TWO_FACTOR_COOKIE)?.value;
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error("endSession error:", err);
+  }
 }
