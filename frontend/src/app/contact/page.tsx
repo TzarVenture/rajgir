@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import ComingSoonHeader from "@/components/ComingSoonHeader";
-import ComingSoonFooter from "@/components/ComingSoonFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import {
   FaMapMarkerAlt,
   FaRunning,
@@ -697,7 +697,7 @@ export default function ComingSoonContactPage() {
       className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col overflow-x-hidden selection:bg-[#991b1b] selection:text-white"
     >
       {/* HEADER COMPONENT */}
-      <ComingSoonHeader isAbsolute={false} />
+      <SiteHeader />
 
       {/* BACKGROUND AMBIENT GLOWS */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[#d49a37]/5 rounded-full blur-[130px] pointer-events-none" />
@@ -736,7 +736,7 @@ export default function ComingSoonContactPage() {
       </main>
 
       {/* FOOTER COMPONENT */}
-      <ComingSoonFooter />
+      <SiteFooter />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import ComingSoonHeader from "@/components/ComingSoonHeader";
-import ComingSoonFooter from "@/components/ComingSoonFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import SuccessContent from "./SuccessContent";
 import { getRegistrationDetails } from "@/app/actions/registerRunner";
 
@@ -24,7 +24,7 @@ export default async function RegisterSuccessPage({
       style={{ fontFamily: "'Inter','Segoe UI',sans-serif" }}
       className="min-h-screen bg-[#080604] text-white flex flex-col selection:bg-[#cca043] selection:text-black overflow-x-hidden"
     >
-      <ComingSoonHeader isAbsolute={false} />
+      <SiteHeader />
 
       <main className="flex-1 w-full flex items-center justify-center py-10">
         {registration ? (
@@ -47,7 +47,7 @@ export default async function RegisterSuccessPage({
         )}
       </main>
 
-      <ComingSoonFooter />
+      <SiteFooter />
     </div>
   );
 }

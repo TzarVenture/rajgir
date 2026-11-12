@@ -2,8 +2,8 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import RunnerRegistrationWizard from "./RunnerRegistrationWizard";
-import ComingSoonHeader from "@/components/ComingSoonHeader";
-import ComingSoonFooter from "@/components/ComingSoonFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import { FaCalendarAlt, FaMapMarkerAlt, FaShieldAlt } from "react-icons/fa";
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export default function RunnerRegisterPage() {
       className="min-h-screen bg-[#080604] text-white flex flex-col selection:bg-[#cca043] selection:text-black overflow-x-clip"
     >
       {/* 1. HEADER */}
-      <ComingSoonHeader isAbsolute={false} />
+      <SiteHeader />
 
       {/* 2. HERO BANNER */}
       <section className="relative z-10 w-full pt-8 pb-4 text-center px-4">
@@ -51,7 +51,7 @@ export default function RunnerRegisterPage() {
       </main>
 
       {/* 5. FOOTER */}
-      <ComingSoonFooter />
+      <SiteFooter />
     </div>
   );
 }
