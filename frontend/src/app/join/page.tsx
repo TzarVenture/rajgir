@@ -1,17 +1,15 @@
 "use client";
 
 import React, { Suspense } from "react";
-import ComingSoonHeader from "@/components/ComingSoonHeader";
-import ComingSoonFooter from "@/components/ComingSoonFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import UnifiedRegistrationForm from "@/components/UnifiedRegistrationForm";
 
 export default function JoinPage() {
   return (
     <div className="min-h-screen bg-[#080604] text-white flex flex-col font-inter">
       {/* Header */}
-      <Suspense fallback={<div className="h-20 bg-black/50" />}>
-        <ComingSoonHeader isAbsolute={false} />
-      </Suspense>
+      <SiteHeader />
 
       {/* Main Content */}
       <main className="flex-1 py-14 px-4 sm:px-6 lg:px-8">
@@ -32,7 +30,7 @@ export default function JoinPage() {
       </main>
 
       {/* Footer */}
-      <ComingSoonFooter />
+      <SiteFooter />
     </div>
   );
 }

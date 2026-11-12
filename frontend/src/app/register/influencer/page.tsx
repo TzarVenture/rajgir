@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import ComingSoonHeader from "@/components/ComingSoonHeader";
-import ComingSoonFooter from "@/components/ComingSoonFooter";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import {
   FaMapMarkerAlt,
   FaBullhorn,
@@ -85,7 +85,7 @@ export default function InfluencerRegisterPage() {
       className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col overflow-x-hidden selection:bg-[#991b1b] selection:text-white"
     >
       {/* HEADER COMPONENT */}
-      <ComingSoonHeader isAbsolute={false} />
+      <SiteHeader />
 
       {/* BACKGROUND AMBIENT GLOWS (Matching CONTACT US) */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[#d49a37]/5 rounded-full blur-[130px] pointer-events-none" />
@@ -429,7 +429,7 @@ export default function InfluencerRegisterPage() {
       </main>
 
       {/* FOOTER COMPONENT */}
-      <ComingSoonFooter />
+      <SiteFooter />
     </div>
   );
 }
