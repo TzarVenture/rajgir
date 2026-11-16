@@ -5,6 +5,7 @@ import Link from "next/link";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import PreviewBanner from "@/components/layout/PreviewBanner";
+import { usePreviewMode } from "@/components/layout/PreviewContext";
 import {
   FaRunning,
   FaMedal,
@@ -276,6 +277,7 @@ const editorialStories = [
 ];
 
 export default function RealMarathonHomePage() {
+  const isPreview = usePreviewMode();
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
 
@@ -289,10 +291,10 @@ export default function RealMarathonHomePage() {
   return (
     <div className="min-h-screen bg-white text-[#111827] flex flex-col font-manrope selection:bg-[#E31B23] selection:text-white">
       {/* TOP PREVIEW BANNER */}
-      <PreviewBanner />
+      {isPreview && <PreviewBanner />}
 
       {/* OFFICIAL HEADER NAVIGATION */}
-      <SiteHeader hasPreviewBanner={true} />
+      <SiteHeader hasPreviewBanner={isPreview} />
 
       {/* =========================================================================
           SECTION 1: HERO ATHLETIC BENTO GRID ("5 Stakeholder Gateways")

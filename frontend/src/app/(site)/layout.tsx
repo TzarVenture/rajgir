@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./site-theme.css";
+import { isGateActive } from "@/lib/gate";
+import { PreviewProvider } from "@/components/layout/PreviewContext";
 
 /**
  * Layout for the REAL site only (everything behind the Coming Soon gate).
@@ -20,7 +22,7 @@ export default function SiteLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="site-root flex flex-1 flex-col bg-white text-[#111827] font-manrope antialiased">
-      {children}
+      <PreviewProvider isPreview={isGateActive()}>{children}</PreviewProvider>
     </div>
   );
 }
