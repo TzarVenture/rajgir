@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700;800&display=swap');
+
+/*
+ * Real-site theme. Scoped to .site-root so the Coming Soon pages
+ * (which share the root layout and globals.css) are never affected.
+ */
+
+/* Light page background only when a real-site page is mounted. */
+body:has(.site-root) {
+  background: #ffffff;
+  color: #111827;
+}
+
+/* The shared globals.css forces Montserrat on every element (`*`).
+   Re-assert Manrope as the default inside the real site. :where() keeps
+   specificity at 0 so explicit font-* utility classes still win. */
+:where(.site-root),
+:where(.site-root) * {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.site-root .font-barlow {
+  font-family: 'Barlow Condensed', sans-serif !important;
+}
+
+.site-root .font-manrope {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.site-root .font-devanagari {
+  font-family: 'Noto Sans Devanagari', -apple-system, sans-serif !important;
+}
