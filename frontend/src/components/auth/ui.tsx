@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 
 export const cardClass =
-  "rounded-2xl border border-[#cca043]/35 bg-[#0f0c09]/95 p-6 sm:p-8 shadow-2xl";
+  "rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-xl shadow-gray-200/50";
 
 export const inputClass =
-  "w-full rounded-lg border border-white/15 bg-black/40 px-4 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-[#cca043]";
+  "w-full h-[48px] rounded-lg border border-[#D1D5DB] bg-white px-4 text-sm text-[#111827] placeholder-[#9CA3AF] outline-none transition focus:border-[#E31B23] focus:ring-2 focus:ring-[#E31B23]/15";
 
 export const primaryButtonClass =
-  "w-full rounded-full bg-[#cca043] py-3 text-sm font-bold uppercase tracking-wide text-black transition hover:bg-[#d49a37] disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full h-[48px] rounded-lg bg-[#E31B23] text-sm font-bold uppercase tracking-wider text-white transition hover:bg-[#B5121B] disabled:cursor-not-allowed disabled:opacity-60 shadow-md shadow-red-500/20 active:scale-[0.99]";
 
-export const headingClass = "font-graduate text-3xl text-white";
+export const headingClass = "font-barlow text-3xl sm:text-4xl font-black uppercase text-[#111827] tracking-tight";
 
 export function Field({
   label,
@@ -32,7 +32,7 @@ export function Field({
 }) {
   return (
     <label className="block text-left">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/70">
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
         {label}
       </span>
       <input
@@ -53,9 +53,9 @@ export function Field({
 export function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs sm:text-sm font-medium text-red-700">
       {message}
-    </p>
+    </div>
   );
 }
 
@@ -63,7 +63,7 @@ export function AuthHeading({ title, subtitle }: { title: string; subtitle?: Rea
   return (
     <div className="mb-6 text-center">
       <h1 className={headingClass}>{title}</h1>
-      {subtitle ? <p className="mt-2 text-sm text-white/70">{subtitle}</p> : null}
+      {subtitle ? <p className="mt-1.5 text-xs sm:text-sm text-[#4B5563] font-manrope">{subtitle}</p> : null}
     </div>
   );
 }

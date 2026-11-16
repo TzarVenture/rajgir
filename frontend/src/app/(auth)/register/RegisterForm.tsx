@@ -16,8 +16,8 @@ function RegisterFormInner() {
   return (
     <div className={cardClass}>
       {redirectTo ? (
-        <div className="mb-4 p-2.5 rounded-lg bg-[#cca043]/15 border border-[#cca043]/30 text-center">
-          <p className="text-xs text-[#d49a37] font-semibold tracking-wide">
+        <div className="mb-5 p-3 rounded-lg bg-blue-50 border border-blue-200 text-center">
+          <p className="text-xs text-blue-700 font-semibold tracking-wide">
             Create an account to complete your registration
           </p>
         </div>
@@ -75,18 +75,18 @@ function RegisterFormInner() {
         <SubmitButton label="Continue to Role Selection" pendingLabel="Creating your account..." />
       </form>
 
-      <div className="mt-6 pt-5 border-t border-white/10 text-center space-y-2">
-        <p className="text-sm text-neutral-300">
+      <div className="mt-6 pt-5 border-t border-[#E5E7EB] text-center space-y-2">
+        <p className="text-sm text-[#4B5563]">
           Already have an account?{" "}
           <Link
             href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
-            className="font-bold text-[#cca043] hover:underline"
+            className="font-bold text-[#E31B23] hover:underline"
           >
             Sign in
           </Link>
         </p>
 
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-[#6B7280]">
           Strict policy: 1 User = 1 Permanent Role per email/mobile.
         </p>
       </div>

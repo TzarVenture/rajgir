@@ -57,8 +57,8 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
         hasPreviewBanner ? "sticky top-9" : "sticky top-0"
       } ${
         scrolled
-          ? "bg-[#0a0705]/95 backdrop-blur-md shadow-xl border-b border-white/10"
-          : "bg-[#0c0906]/90 backdrop-blur-sm border-b border-white/10"
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E7EB]"
+          : "bg-white/90 backdrop-blur-sm border-b border-[#E5E7EB]"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,20 +69,20 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
             <img
               src="/images/mainLogo.png"
               alt="Rajgir Marathon Logo"
-              className="h-10 sm:h-12 md:h-14 w-auto object-contain drop-shadow transition-transform duration-200 group-hover:scale-105"
+              className="h-10 sm:h-12 md:h-14 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
             <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm sm:text-base lg:text-lg tracking-wider text-white font-graduate leading-tight">
+              <span className="font-extrabold text-sm sm:text-base lg:text-lg tracking-wider text-[#111827] font-graduate leading-tight">
                 RAJGIR MARATHON
               </span>
-              <span className="text-[9.5px] sm:text-[10px] tracking-widest uppercase text-[#cca043] font-bold">
+              <span className="text-[9.5px] sm:text-[10px] tracking-widest uppercase text-[#C78A12] font-bold">
                 Run Through History • 2027
               </span>
             </div>
           </Link>
 
           {/* 2. DESKTOP NAVIGATION */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold uppercase tracking-wider">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold uppercase tracking-wider font-manrope">
             {navLinks.map((item) => {
               const active = isLinkActive(item.href);
               return (
@@ -90,12 +90,12 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
                   key={item.label}
                   href={item.href}
                   className={`transition-colors duration-200 py-1 relative group ${
-                    active ? "text-[#cca043]" : "text-neutral-300 hover:text-white"
+                    active ? "text-[#E31B23]" : "text-[#4B5563] hover:text-[#111827]"
                   }`}
                 >
                   {item.label}
                   <span
-                    className={`absolute bottom-0 left-0 h-[2px] bg-[#cca043] transition-all duration-200 ${
+                    className={`absolute bottom-0 left-0 h-[2px] bg-[#E31B23] transition-all duration-200 ${
                       active ? "w-full" : "w-0 group-hover:w-full"
                     }`}
                   />
@@ -108,15 +108,15 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
           <div className="hidden sm:flex items-center gap-3">
             <Link
               href="/admin"
-              className="px-3.5 py-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 font-manrope shadow-sm"
             >
-              <FaUserCircle className="text-sm text-[#cca043]" />
+              <FaUserCircle className="text-sm text-[#C78A12]" />
               <span>Portal</span>
             </Link>
 
             <Link
               href="/register/runner"
-              className="py-2.5 px-5 sm:px-6 rounded-full bg-gradient-to-r from-[#e51b24] via-[#dc2626] to-[#b91c1c] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-950/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+              className="py-2.5 px-5 sm:px-6 rounded-lg bg-[#E31B23] hover:bg-[#B5121B] text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-red-500/20 active:scale-95 transition-all flex items-center gap-2 font-manrope"
             >
               <span>Register Now</span>
               <FaArrowRight className="text-[10px]" />
@@ -127,7 +127,7 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
           <div className="flex items-center gap-2 lg:hidden">
             <Link
               href="/register/runner"
-              className="sm:hidden py-1.5 px-3.5 rounded-full bg-[#e51b24] text-white font-extrabold text-[11px] uppercase tracking-wider shadow"
+              className="sm:hidden py-1.5 px-3.5 rounded-lg bg-[#E31B23] text-white font-extrabold text-[11px] uppercase tracking-wider shadow font-manrope"
             >
               Register
             </Link>
@@ -135,7 +135,7 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:text-[#cca043] focus:outline-none transition-colors"
+              className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-[#111827] hover:text-[#E31B23] focus:outline-none transition-colors"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <FaTimes className="text-lg" /> : <FaBars className="text-lg" />}
@@ -146,8 +146,8 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
 
       {/* 5. MOBILE DRAWER */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-[#0c0906]/98 backdrop-blur-xl px-5 pt-4 pb-6 space-y-3 animate-fadeIn">
-          <div className="flex flex-col space-y-2">
+        <div className="lg:hidden border-t border-[#E5E7EB] bg-white/98 backdrop-blur-xl px-5 pt-4 pb-6 space-y-3 animate-fadeIn shadow-lg">
+          <div className="flex flex-col space-y-1.5">
             {navLinks.map((item) => {
               const active = isLinkActive(item.href);
               return (
@@ -155,10 +155,10 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
                   key={item.label}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`px-3 py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all ${
+                  className={`px-3 py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all font-manrope ${
                     active
-                      ? "bg-[#cca043]/15 text-[#cca043] border border-[#cca043]/30"
-                      : "text-neutral-300 hover:bg-white/5 hover:text-white"
+                      ? "bg-red-50 text-[#E31B23] border border-red-100"
+                      : "text-[#4B5563] hover:bg-gray-50 hover:text-[#111827]"
                   }`}
                 >
                   {item.label}
@@ -167,11 +167,11 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
             })}
           </div>
 
-          <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
+          <div className="pt-3 border-t border-[#E5E7EB] flex flex-col gap-2.5">
             <Link
               href="/register/runner"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#e51b24] to-[#b91c1c] text-white font-extrabold text-xs uppercase tracking-wider text-center shadow-lg shadow-red-950/40 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-[#E31B23] hover:bg-[#B5121B] text-white font-extrabold text-xs uppercase tracking-wider text-center shadow-md shadow-red-500/20 flex items-center justify-center gap-2 font-manrope"
             >
               <FaRunning />
               <span>Register As Runner</span>
@@ -181,14 +181,14 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
               <Link
                 href="/join"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 rounded-lg bg-white/5 border border-white/10 text-neutral-300 text-xs font-bold uppercase tracking-wider text-center hover:bg-white/10"
+                className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
               >
                 Volunteer / Creator
               </Link>
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 rounded-lg bg-white/5 border border-white/10 text-neutral-300 text-xs font-bold uppercase tracking-wider text-center hover:bg-white/10"
+                className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
               >
                 Portal Login
               </Link>

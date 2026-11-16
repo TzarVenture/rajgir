@@ -1,29 +1,48 @@
 import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa";
 
 export const dynamic = "force-dynamic";
 
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 bg-[#080604] text-white selection:bg-[#cca043] selection:text-black relative overflow-hidden">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 bg-[#F8F8F6] text-[#111827] selection:bg-[#E31B23] selection:text-white relative overflow-hidden font-manrope">
       {/* Background ambient lighting */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#cca043]/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-10 w-[400px] h-[400px] bg-[#991b1b]/8 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-80 bg-gradient-to-b from-[#F5A623]/10 to-transparent pointer-events-none blur-3xl" />
+      <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
+        {/* Back Link */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#E31B23] transition-colors"
+          >
+            <FaArrowLeft className="text-[10px]" />
+            <span>Back to Rajgir Marathon Home</span>
+          </Link>
+        </div>
+
+        {/* Brand Header */}
         <Link href="/" className="mb-8 flex flex-col items-center group">
           <img
             src="/images/mainLogo.png"
             alt="Rajgir Marathon"
-            className="h-14 sm:h-16 w-auto object-contain drop-shadow transition-transform duration-200 group-hover:scale-105"
+            className="h-14 sm:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
           />
-          <span className="font-extrabold text-sm sm:text-base tracking-wider text-white font-graduate mt-2">
+          <span className="font-extrabold text-base tracking-wider text-[#111827] font-graduate mt-2.5">
             RAJGIR MARATHON
           </span>
-          <span className="text-[10px] tracking-widest uppercase text-[#cca043] font-bold">
+          <span className="text-[10px] tracking-widest uppercase text-[#C78A12] font-bold">
             Run Through History • 2027
           </span>
         </Link>
+
         {children}
+
+        {/* Footer Support */}
+        <div className="mt-8 text-center text-xs text-[#9CA3AF]">
+          <p>© 2027 Rajgir Marathon Digital Platform. All rights reserved.</p>
+        </div>
       </div>
     </div>
   );

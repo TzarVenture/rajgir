@@ -37,17 +37,17 @@ export default function SiteFooter() {
   ];
 
   return (
-    <footer className="w-full bg-[#070503] border-t border-white/10 text-neutral-400 text-xs">
+    <footer className="w-full bg-[#F8F8F6] border-t border-[#E5E7EB] text-[#4B5563] text-xs font-manrope">
       {/* 1. TOP HIGHLIGHT BANNER */}
-      <div className="border-b border-white/5 bg-[#0b0805] py-4 px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-[#E5E7EB] bg-white py-3 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-white text-xs uppercase tracking-wider">
+            <span className="font-bold text-[#111827] text-xs uppercase tracking-wider">
               Rajgir Marathon • November 2027
             </span>
-            <span className="text-neutral-500 hidden sm:inline">|</span>
-            <span className="text-neutral-400 hidden sm:inline">
+            <span className="text-[#D1D5DB] hidden sm:inline">|</span>
+            <span className="text-[#6B7280] hidden sm:inline">
               AIMS Certified Course • Run Through 2,500 Years of Living History
             </span>
           </div>
@@ -55,7 +55,7 @@ export default function SiteFooter() {
           <div className="flex items-center gap-3">
             <Link
               href="/register/runner"
-              className="text-[#d49a37] hover:text-[#e0a845] font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-colors"
+              className="text-[#E31B23] hover:text-[#B5121B] font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-colors"
             >
               <FaRunning />
               <span>Register Now →</span>
@@ -74,47 +74,47 @@ export default function SiteFooter() {
               <img
                 src="/images/mainLogo.png"
                 alt="Rajgir Marathon Logo"
-                className="h-12 w-auto object-contain drop-shadow"
+                className="h-12 w-auto object-contain"
               />
               <div className="flex flex-col text-left">
-                <span className="font-extrabold text-base tracking-wider text-white font-graduate">
+                <span className="font-extrabold text-base tracking-wider text-[#111827] font-graduate">
                   RAJGIR MARATHON
                 </span>
-                <span className="text-[10px] tracking-widest uppercase text-[#cca043] font-bold">
+                <span className="text-[10px] tracking-widest uppercase text-[#C78A12] font-bold">
                   Run Through History • 2027
                 </span>
               </div>
             </Link>
 
-            <p className="text-neutral-400 leading-relaxed text-xs max-w-sm">
+            <p className="text-[#4B5563] leading-relaxed text-xs max-w-sm">
               India’s premier cultural and heritage marathon through the ancient capital of Magadha.
               Traverse rolling valley roads, forested hill trails, and timeless sacred monuments in Nalanda, Bihar.
             </p>
 
-            <div className="pt-2 flex items-center gap-2 text-[11px] text-neutral-300">
-              <FaShieldAlt className="text-[#cca043] text-sm shrink-0" />
+            <div className="pt-2 flex items-center gap-2 text-[11px] text-[#374151]">
+              <FaShieldAlt className="text-[#C78A12] text-sm shrink-0" />
               <span>Athletics Federation & International Course Standards</span>
             </div>
           </div>
 
           {/* COLUMN 2: RACE CATEGORIES (Cols 5-6) */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-white font-graduate">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
               Race Categories
             </h4>
-            <div className="w-8 h-[2px] bg-[#cca043]" />
+            <div className="w-8 h-[2px] bg-[#E31B23]" />
 
             <ul className="space-y-2 pt-1">
               {raceDistances.map((race) => (
                 <li key={race.distance}>
                   <Link
                     href={`/register/runner?distance=${encodeURIComponent(race.distance)}`}
-                    className="group flex items-center justify-between text-neutral-400 hover:text-white transition-colors"
+                    className="group flex items-center justify-between text-[#4B5563] hover:text-[#E31B23] transition-colors"
                   >
                     <span className="group-hover:translate-x-1 transition-transform">
                       {race.label}
                     </span>
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[#cca043]">
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[#C78A12]">
                       {race.tag}
                     </span>
                   </Link>
@@ -125,17 +125,17 @@ export default function SiteFooter() {
 
           {/* COLUMN 3: ECOSYSTEM & PORTALS (Cols 7-9) */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-white font-graduate">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
               Ecosystem & Portals
             </h4>
-            <div className="w-8 h-[2px] bg-[#cca043]" />
+            <div className="w-8 h-[2px] bg-[#E31B23]" />
 
             <ul className="space-y-2 pt-1">
               {portalLinks.map((item) => (
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-neutral-400 hover:text-[#cca043] transition-colors inline-block hover:translate-x-1 duration-150"
+                    className="text-[#4B5563] hover:text-[#E31B23] transition-colors inline-block hover:translate-x-1 duration-150"
                   >
                     {item.label}
                   </Link>
@@ -146,22 +146,22 @@ export default function SiteFooter() {
 
           {/* COLUMN 4: HOST CITY & SUPPORT (Cols 10-12) */}
           <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-white font-graduate">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
               Event Helpdesk
             </h4>
-            <div className="w-8 h-[2px] bg-[#cca043]" />
+            <div className="w-8 h-[2px] bg-[#E31B23]" />
 
             <div className="space-y-2.5 pt-1 text-xs">
-              <div className="flex items-start gap-2 text-neutral-400">
-                <FaMapMarkerAlt className="text-[#e51b24] text-sm shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <FaMapMarkerAlt className="text-[#E31B23] text-sm shrink-0 mt-0.5" />
                 <span>Rajgir, Nalanda District, Bihar, India</span>
               </div>
 
-              <div className="flex items-start gap-2 text-neutral-400">
-                <FaEnvelope className="text-[#cca043] text-sm shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-[#4B5563]">
+                <FaEnvelope className="text-[#C78A12] text-sm shrink-0 mt-0.5" />
                 <a
                   href="mailto:rajgirmarathon@gmail.com"
-                  className="hover:text-white transition-colors break-all"
+                  className="hover:text-[#E31B23] transition-colors break-all"
                 >
                   rajgirmarathon@gmail.com
                 </a>
@@ -170,7 +170,7 @@ export default function SiteFooter() {
               <div className="pt-2">
                 <Link
                   href="/contact"
-                  className="inline-block px-3.5 py-1.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-white font-bold text-[11px] uppercase tracking-wider transition-all"
+                  className="inline-block px-3.5 py-1.5 rounded-lg border border-[#D1D5DB] bg-white hover:bg-gray-50 text-[#111827] font-bold text-[11px] uppercase tracking-wider transition-all shadow-sm"
                 >
                   Contact Organizers
                 </Link>
@@ -182,22 +182,22 @@ export default function SiteFooter() {
       </div>
 
       {/* 3. BOTTOM COPYRIGHT & SOCIAL STRIP */}
-      <div className="border-t border-white/10 bg-[#050402] py-6 px-4 sm:px-6 lg:px-8">
+      <div className="border-t border-[#E5E7EB] bg-white py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
-          <p className="text-neutral-500 text-center sm:text-left">
+          <p className="text-[#6B7280] text-center sm:text-left">
             © {currentYear} Rajgir Marathon Digital Platform. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-4 text-neutral-400">
-            <Link href="/contact" className="hover:text-white transition-colors">
+          <div className="flex items-center gap-4 text-[#6B7280]">
+            <Link href="/contact" className="hover:text-[#111827] transition-colors">
               Support
             </Link>
             <span>•</span>
-            <Link href="/register/runner" className="hover:text-white transition-colors">
+            <Link href="/register/runner" className="hover:text-[#111827] transition-colors">
               Runner Registration
             </Link>
             <span>•</span>
-            <Link href="/coming-soon" className="text-[#cca043] hover:underline">
+            <Link href="/coming-soon" className="text-[#C78A12] hover:underline">
               Public Coming Soon
             </Link>
           </div>
@@ -209,7 +209,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#cca043] hover:text-black flex items-center justify-center text-neutral-300 transition-all"
+              className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#E31B23] hover:text-white flex items-center justify-center text-[#4B5563] transition-all"
             >
               <FaInstagram />
             </a>
@@ -218,7 +218,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noreferrer"
               aria-label="Facebook"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#cca043] hover:text-black flex items-center justify-center text-neutral-300 transition-all"
+              className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#E31B23] hover:text-white flex items-center justify-center text-[#4B5563] transition-all"
             >
               <FaFacebookF />
             </a>
@@ -227,7 +227,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noreferrer"
               aria-label="X (Twitter)"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#cca043] hover:text-black flex items-center justify-center text-neutral-300 transition-all"
+              className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#E31B23] hover:text-white flex items-center justify-center text-[#4B5563] transition-all"
             >
               <FaXTwitter />
             </a>
@@ -236,7 +236,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noreferrer"
               aria-label="YouTube"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#cca043] hover:text-black flex items-center justify-center text-neutral-300 transition-all"
+              className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#E31B23] hover:text-white flex items-center justify-center text-[#4B5563] transition-all"
             >
               <FaYoutube />
             </a>
