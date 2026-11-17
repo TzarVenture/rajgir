@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  FaShieldAlt,
-  FaCheckCircle,
-  FaTag,
-  FaArrowRight,
-  FaTimes,
-  FaMedal,
-  FaTshirt,
-  FaClock,
-} from "react-icons/fa";
+import { LuArrowRight, LuAward, LuCircleCheck, LuClock, LuFileCheck, LuShieldCheck, LuShirt, LuTag, LuX } from "react-icons/lu";
+import { Button, Card, TextInput } from "@/components/ui";
 import { availableAddons } from "@/lib/schemas/runnerRegistration";
 
 interface OrderSummaryCardProps {
@@ -49,9 +41,7 @@ export default function OrderSummaryCard({
   const [couponInput, setCouponInput] = useState("");
   const [couponMsg, setCouponMsg] = useState("");
 
-  const selectedAddonsList = availableAddons.filter((a) =>
-    selectedAddonIds.includes(a.id)
-  );
+  const selectedAddonsList = availableAddons.filter((a) => selectedAddonIds.includes(a.id));
 
   const addonsTotal = selectedAddonsList.reduce((acc, curr) => acc + curr.price, 0);
   const grossTotal = baseFee + addonsTotal;
@@ -70,178 +60,153 @@ export default function OrderSummaryCard({
     }
   };
 
+  const couponIsError = couponMsg === "Invalid coupon code.";
+
   return (
-    <div className="w-full rounded-2xl border border-[#cca043]/35 bg-[#0e0b08] p-5 sm:p-6 text-left relative flex flex-col justify-between">
-      {/* Top Banner */}
-      <div>
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#cca043] block">
-              ORDER SUMMARY
+    <Card className="text-left">
+      <div className="mb-4 flex items-start justify-between gap-3 border-b border-charcoal-200 pb-4">
+        <div>
+          <p className="text-xs font-semibold text-charcoal-500">Order summary</p>
+          <h3 className="mt-0.5 text-base font-bold text-charcoal-900">{categoryTitle}</h3>
+        </div>
+        <span className="font-barlow text-3xl font-bold leading-none text-charcoal-900">{distance}</span>
+      </div>
+
+      {/* Pricing breakdown */}
+      <div className="space-y-2.5 text-sm">
+        <div className="flex items-center justify-between text-charcoal-700">
+          <span>Base registration ({distance})</span>
+          <span className="font-semibold text-charcoal-900">₹{baseFee.toLocaleString()}</span>
+        </div>
+
+        {selectedAddonsList.map((addon) => (
+          <div key={addon.id} className="flex items-center justify-between gap-3 rounded-btn bg-surface-soft px-3 py-2 text-charcoal-700">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="truncate">{addon.title}</span>
+              {onRemoveAddon && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveAddon(addon.id)}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-btn text-charcoal-500 hover:bg-charcoal-100 hover:text-charcoal-900"
+                  title="Remove add-on"
+                  aria-label={`Remove add-on ${addon.title}`}
+                >
+                  <LuX className="h-4 w-4" aria-hidden />
+                </button>
+              )}
+            </div>
+            <span className="shrink-0 font-semibold text-charcoal-900">+₹{addon.price.toLocaleString()}</span>
+          </div>
+        ))}
+
+        {discountAmount > 0 && (
+          <div className="flex items-center justify-between rounded-btn bg-[#DCFCE7] px-3 py-2 font-semibold text-[#15803D]">
+            <span className="flex items-center gap-1.5">
+              <LuTag className="h-4 w-4" aria-hidden />
+              <span>Coupon ({couponCode})</span>
             </span>
-            <h3 className="text-base font-black uppercase text-white font-graduate">
-              {categoryTitle}
-            </h3>
+            <span>-₹{discountAmount.toLocaleString()}</span>
           </div>
-          <span className="text-xs font-mono font-bold bg-[#cca043]/20 border border-[#cca043]/40 text-[#cca043] px-2.5 py-1 rounded-full">
-            {distance}
-          </span>
+        )}
+
+        <div className="flex items-baseline justify-between border-t border-charcoal-200 pt-3">
+          <div>
+            <span className="block text-sm font-bold text-charcoal-900">Total payable</span>
+            <span className="text-xs text-charcoal-500">Includes all taxes and timing chip</span>
+          </div>
+          <div className="font-barlow text-[32px] font-bold leading-none text-charcoal-900">₹{netTotal.toLocaleString()}</div>
         </div>
+      </div>
 
-        {/* Pricing Breakdown */}
-        <div className="space-y-2.5 text-xs">
-          <div className="flex justify-between items-center text-neutral-300">
-            <span>Base Registration ({distance})</span>
-            <span className="font-mono font-bold text-white">₹{baseFee.toLocaleString()}</span>
-          </div>
-
-          {/* Add-ons list */}
-          {selectedAddonsList.map((addon) => (
-            <div
-              key={addon.id}
-              className="flex justify-between items-center text-neutral-300 bg-white/5 px-2.5 py-1.5 rounded-lg"
+      {/* Coupon */}
+      <div className="mt-5 border-t border-charcoal-200 pt-4">
+        {couponCode ? (
+          <div className="flex items-center justify-between gap-3 rounded-btn border border-[#86EFAC] bg-[#DCFCE7] px-3 py-2 text-sm text-[#14532D]">
+            <span className="flex items-center gap-1.5 font-semibold">
+              <LuCircleCheck className="h-4 w-4" aria-hidden />
+              <span>Applied: {couponCode}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onRemoveCoupon();
+                setCouponInput("");
+                setCouponMsg("");
+              }}
+              className="min-h-[36px] cursor-pointer text-sm font-semibold underline"
             >
-              <div className="flex items-center gap-2 truncate pr-2">
-                <span className="truncate">{addon.title}</span>
-                {onRemoveAddon && (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveAddon(addon.id)}
-                    className="text-neutral-500 hover:text-red-400 text-xs shrink-0"
-                    title="Remove add-on"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
-              </div>
-              <span className="font-mono font-bold text-white shrink-0">
-                +₹{addon.price.toLocaleString()}
-              </span>
-            </div>
-          ))}
-
-          {/* Discount if present */}
-          {discountAmount > 0 && (
-            <div className="flex justify-between items-center text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg font-bold">
-              <span className="flex items-center gap-1.5">
-                <FaTag className="text-[10px]" />
-                <span>Coupon ({couponCode})</span>
-              </span>
-              <span className="font-mono">-₹{discountAmount.toLocaleString()}</span>
-            </div>
-          )}
-
-          <div className="border-t border-white/10 pt-3 flex justify-between items-baseline">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block">
-                Total Payable
-              </span>
-              <span className="text-[10px] text-neutral-500">Includes all taxes & timing chip</span>
-            </div>
-            <div className="font-graduate text-2xl font-black text-[#cca043]">
-              ₹{netTotal.toLocaleString()}
-            </div>
+              Remove
+            </button>
           </div>
-        </div>
-
-        {/* Coupon Code Input */}
-        <div className="mt-5 pt-4 border-t border-white/10">
-          {couponCode ? (
-            <div className="flex items-center justify-between p-2 rounded-lg bg-[#cca043]/15 border border-[#cca043]/30 text-xs text-[#cca043]">
-              <span className="font-bold flex items-center gap-1.5">
-                <FaCheckCircle className="text-emerald-400" />
-                <span>Applied: {couponCode}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  onRemoveCoupon();
-                  setCouponInput("");
-                  setCouponMsg("");
-                }}
-                className="text-neutral-400 hover:text-white text-xs underline cursor-pointer"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleApply} className="flex gap-2">
-              <input
+        ) : (
+          <form onSubmit={handleApply}>
+            <label htmlFor="coupon-code" className="mb-1.5 block text-sm font-semibold text-charcoal-800">
+              Coupon code
+            </label>
+            <div className="flex gap-2">
+              <TextInput
+                id="coupon-code"
                 type="text"
-                placeholder="Coupon code (e.g. RAJGIR100)"
+                placeholder="e.g. RAJGIR100"
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value)}
-                className="flex-1 bg-white/5 border border-white/15 focus:border-[#cca043] rounded-lg px-3 py-1.5 text-xs text-white uppercase placeholder:normal-case placeholder:text-neutral-500 outline-none"
+                className="h-11 flex-1 uppercase placeholder:normal-case"
               />
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
-              >
+              <Button type="submit" variant="secondary" size="md" className="shrink-0">
                 Apply
-              </button>
-            </form>
-          )}
+              </Button>
+            </div>
+          </form>
+        )}
 
-          {couponMsg && (
-            <p className="text-[10.5px] mt-1 text-neutral-400">{couponMsg}</p>
-          )}
-        </div>
-
-        {/* Included Race Inclusions Checklist */}
-        <div className="mt-6 pt-4 border-t border-white/10 space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-2">
-            Every Registration Includes:
-          </span>
-          <div className="grid grid-cols-2 gap-2 text-[11px] text-neutral-300">
-            <span className="flex items-center gap-1.5">
-              <FaClock className="text-[#cca043] shrink-0 text-[10px]" />
-              <span>RFID Bib Chip</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <FaTshirt className="text-[#cca043] shrink-0 text-[10px]" />
-              <span>Dry-Fit Jersey</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <FaMedal className="text-[#cca043] shrink-0 text-[10px]" />
-              <span>Finishers Medal</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <FaCheckCircle className="text-[#cca043] shrink-0 text-[10px]" />
-              <span>E-Certificate</span>
-            </span>
-          </div>
-        </div>
+        {couponMsg && (
+          <p role="status" className={`mt-1.5 text-xs font-medium ${couponIsError ? "text-[#DC2626]" : "text-charcoal-600"}`}>
+            {couponMsg}
+          </p>
+        )}
       </div>
 
-      {/* Action CTA */}
-      <div className="mt-6 pt-4 border-t border-white/10">
-        <button
+      {/* Inclusions */}
+      <div className="mt-5 border-t border-charcoal-200 pt-4">
+        <p className="mb-2.5 text-sm font-bold text-charcoal-900">Every registration includes</p>
+        <ul className="grid grid-cols-2 gap-2 text-sm text-charcoal-700">
+          <li className="flex items-center gap-2">
+            <LuClock className="h-4 w-4 shrink-0 text-brand-red" aria-hidden />
+            <span>RFID bib chip</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <LuShirt className="h-4 w-4 shrink-0 text-brand-red" aria-hidden />
+            <span>Dry-fit jersey</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <LuAward className="h-4 w-4 shrink-0 text-brand-red" aria-hidden />
+            <span>Finisher medal</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <LuFileCheck className="h-4 w-4 shrink-0 text-brand-red" aria-hidden />
+            <span>E-certificate</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* CTA */}
+      <div className="mt-5 border-t border-charcoal-200 pt-4">
+        <Button
           type="button"
+          size="lg"
+          fullWidth
           onClick={onNextStep}
           disabled={!canProceed || isSubmitting}
-          className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#d49a37] via-[#e0a845] to-[#cca043] text-black font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-105 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          iconRight={currentStep < totalSteps ? LuArrowRight : LuCircleCheck}
         >
-          {isSubmitting ? (
-            <span>CONFIRMING REGISTRATION...</span>
-          ) : currentStep < totalSteps ? (
-            <>
-              <span>CONTINUE TO NEXT STEP</span>
-              <FaArrowRight className="text-xs" />
-            </>
-          ) : (
-            <>
-              <span>COMPLETE REGISTRATION</span>
-              <FaCheckCircle className="text-sm" />
-            </>
-          )}
-        </button>
+          {isSubmitting ? "Confirming registration" : currentStep < totalSteps ? "Continue to next step" : "Complete registration"}
+        </Button>
 
-        <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-400 mt-3">
-          <FaShieldAlt className="text-emerald-400 text-xs" />
-          <span>256-Bit SSL Encrypted • Supabase Verified</span>
-        </div>
+        <p className="mt-3 flex items-center justify-center gap-2 text-xs text-charcoal-500">
+          <LuShieldCheck className="h-4 w-4 text-[#15803D]" aria-hidden />
+          <span>Secure, encrypted registration</span>
+        </p>
       </div>
-    </div>
+    </Card>
   );
 }
-

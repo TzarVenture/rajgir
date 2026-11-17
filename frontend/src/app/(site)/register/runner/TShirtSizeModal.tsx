@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { FiX } from "react-icons/fi";
-import { FaTshirt } from "react-icons/fa";
+import { Button, Modal } from "@/components/ui";
 
 interface TShirtSizeModalProps {
   isOpen: boolean;
@@ -21,96 +20,69 @@ const sizeChart = [
   { size: "3XL", chestInches: '46"', chestCm: "117 cm", lengthInches: '32"', lengthCm: "81 cm" },
 ] as const;
 
-export default function TShirtSizeModal({
-  isOpen,
-  onClose,
-  selectedSize,
-  onSelectSize,
-}: TShirtSizeModalProps) {
-  if (!isOpen) return null;
-
+export default function TShirtSizeModal({ isOpen, onClose, selectedSize, onSelectSize }: TShirtSizeModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-fadeIn">
-      <div className="relative w-full max-w-lg rounded-2xl border border-[#cca043]/40 bg-[#0f0c09] p-6 text-white">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-neutral-400 hover:text-white text-lg p-1"
-          aria-label="Close size chart modal"
-        >
-          <FiX />
-        </button>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title="Official race jersey sizing chart"
+      footer={
+        <Button type="button" variant="secondary" size="md" fullWidth onClick={onClose}>
+          Close sizing chart
+        </Button>
+      }
+    >
+      <p className="mb-4 text-sm leading-relaxed text-charcoal-600">
+        The official Rajgir Marathon dry-fit technical running tee is crafted from moisture-wicking fabric. Measure around the fullest part
+        of your chest.
+      </p>
 
-        <div className="flex items-center gap-2.5 text-[#cca043] mb-2">
-          <FaTshirt className="text-xl" />
-          <h3 className="text-lg font-black uppercase font-graduate tracking-wide">
-            Official Race Jersey Sizing Chart
-          </h3>
-        </div>
-        <p className="text-xs text-neutral-400 mb-5 leading-relaxed">
-          The official Rajgir Marathon dry-fit technical running tee is crafted from moisture-wicking aerodynamic fabric. Measure around the fullest part of your chest.
-        </p>
-
-        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/40">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#1a140e] text-[#cca043] font-bold uppercase tracking-wider border-b border-white/10 text-[11px]">
-              <tr>
-                <th className="py-2.5 px-3">Size</th>
-                <th className="py-2.5 px-3">Chest (Inches)</th>
-                <th className="py-2.5 px-3">Chest (CM)</th>
-                <th className="py-2.5 px-3">Length</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {sizeChart.map((row) => {
-                const isSelected = selectedSize === row.size;
-                return (
-                  <tr
-                    key={row.size}
-                    className={`hover:bg-white/5 transition-colors ${
-                      isSelected ? "bg-[#cca043]/15 font-bold" : ""
-                    }`}
-                  >
-                    <td className="py-2.5 px-3 font-black text-white">{row.size}</td>
-                    <td className="py-2.5 px-3 text-neutral-300">{row.chestInches}</td>
-                    <td className="py-2.5 px-3 text-neutral-300">{row.chestCm}</td>
-                    <td className="py-2.5 px-3 text-neutral-300">{row.lengthInches} ({row.lengthCm})</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectSize(row.size as "XS" | "S" | "M" | "L" | "XL" | "XXL" | "3XL");
-                          onClose();
-                        }}
-                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
-                          isSelected
-                            ? "bg-[#cca043] text-black"
-                            : "bg-white/10 text-white hover:bg-[#cca043] hover:text-black"
-                        }`}
-                      >
-                        {isSelected ? "Selected" : "Select"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <p className="text-[10px] text-neutral-500 mt-4 text-center">
-          * Unisex athletic fit. If you prefer a looser running jersey, we recommend ordering one size larger.
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-5 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs uppercase tracking-wider transition-all"
-        >
-          Close Sizing Chart
-        </button>
+      <div className="overflow-x-auto rounded-card border border-charcoal-200">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-charcoal-200 bg-surface-soft text-xs font-semibold text-charcoal-600">
+            <tr>
+              <th scope="col" className="px-3 py-2.5">Size</th>
+              <th scope="col" className="px-3 py-2.5">Chest (in)</th>
+              <th scope="col" className="px-3 py-2.5">Chest (cm)</th>
+              <th scope="col" className="px-3 py-2.5">Length</th>
+              <th scope="col" className="px-3 py-2.5 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-charcoal-200">
+            {sizeChart.map((row) => {
+              const isSelected = selectedSize === row.size;
+              return (
+                <tr key={row.size} className={isSelected ? "bg-brand-red-light" : "bg-white"}>
+                  <td className="px-3 py-2 font-bold text-charcoal-900">{row.size}</td>
+                  <td className="px-3 py-2 text-charcoal-700">{row.chestInches}</td>
+                  <td className="px-3 py-2 text-charcoal-700">{row.chestCm}</td>
+                  <td className="px-3 py-2 text-charcoal-700">
+                    {row.lengthInches} ({row.lengthCm})
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={isSelected ? "primary" : "secondary"}
+                      aria-label={`${isSelected ? "Selected size" : "Select size"} ${row.size}`}
+                      onClick={() => {
+                        onSelectSize(row.size as "XS" | "S" | "M" | "L" | "XL" | "XXL" | "3XL");
+                        onClose();
+                      }}
+                    >
+                      {isSelected ? "Selected" : "Select"}
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      <p className="mt-4 text-center text-xs text-charcoal-500">
+        Unisex athletic fit. If you prefer a looser running jersey, we recommend ordering one size larger.
+      </p>
+    </Modal>
   );
 }
-

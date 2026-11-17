@@ -1,40 +1,75 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  FaCheckCircle,
-  FaRunning,
-  FaUser,
-  FaHeartbeat,
-  FaMapMarkerAlt,
-  FaFileContract,
-  FaArrowLeft,
-  FaArrowRight,
-  FaExclamationTriangle,
-  FaTshirt,
-  FaPlus,
-  FaCheck,
-  FaCalendarAlt,
-} from "react-icons/fa";
+  LuArrowLeft,
+  LuArrowRight,
+  LuCircleCheck,
+  LuClipboardCheck,
+  LuHeartPulse,
+  LuMapPin,
+  LuShirt,
+  LuUser,
+} from "react-icons/lu";
 import { raceCategories, availableAddons } from "@/lib/schemas/runnerRegistration";
 import BibPreview from "./BibPreview";
 import TShirtSizeModal from "./TShirtSizeModal";
 import OrderSummaryCard from "./OrderSummaryCard";
 import { submitRunnerRegistration } from "@/app/actions/registerRunner";
 import { AppUser } from "@/lib/auth/session";
+import {
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  ChoiceCard,
+  ChoiceChip,
+  Field,
+  FieldMessage,
+  Label,
+  Notice,
+  Select,
+  StepProgress,
+  TextInput,
+  Textarea,
+} from "@/components/ui";
 
 const STEPS = [
-  { id: 1, label: "Race Category", icon: FaRunning },
-  { id: 2, label: "Runner & Bib", icon: FaUser },
-  { id: 3, label: "Emergency & Health", icon: FaHeartbeat },
-  { id: 4, label: "Logistics & Add-ons", icon: FaMapMarkerAlt },
-  { id: 5, label: "Waiver & Review", icon: FaFileContract },
+  { id: 1, label: "Race Category" },
+  { id: 2, label: "Runner & Bib" },
+  { id: 3, label: "Emergency & Health" },
+  { id: 4, label: "Logistics & Add-ons" },
+  { id: 5, label: "Waiver & Review" },
 ];
 
 interface RunnerRegistrationWizardProps {
   user?: AppUser;
+}
+
+/** Step heading block: icon tile, title, description. */
+function StepHeader({ icon: Icon, title, description }: { icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>; title: string; description: string }) {
+  return (
+    <div className="flex items-start gap-3 border-b border-charcoal-200 pb-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-red-light text-brand-red">
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <div>
+        <h2 className="text-lg font-bold text-charcoal-900">{title}</h2>
+        <p className="mt-0.5 text-sm text-charcoal-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <div className={`flex flex-col gap-0.5 py-2.5 sm:flex-row sm:justify-between sm:gap-4 ${last ? "" : "border-b border-charcoal-200"}`}>
+      <dt className="text-charcoal-500">{label}</dt>
+      <dd className="font-semibold text-charcoal-900 sm:text-right">{children}</dd>
+    </div>
+  );
 }
 
 export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWizardProps = {}) {
@@ -278,212 +313,111 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
     }
   };
 
+  /** Shared accessibility props: ties an input to its inline error text. */
+  const a11y = (name: string) => ({
+    id: `rr-${name}`,
+    "aria-invalid": fieldErrors[name] ? (true as const) : undefined,
+    "aria-describedby": fieldErrors[name] ? `rr-${name}-message` : undefined,
+  });
+
+  const netPayable = Math.max(0, grossAmount - discountAmount);
+
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      {/* 1. TOP STEPPER PROGRESS BAR */}
-      <div className="mb-8">
-        <div className="hidden sm:grid grid-cols-5 relative items-start">
-          {/* Background Track - perfectly bounded between Step 1 center (10%) and Step 5 center (90%) */}
-          <div
-            className="absolute top-5 h-0.5 bg-white/10 -translate-y-1/2 z-0"
-            style={{ left: "10%", right: "10%" }}
-          />
+    <div className="w-full">
+      {/* Step progress */}
+      <Card className="mb-6">
+        <StepProgress steps={STEPS.map((s) => s.label)} current={currentStep} />
+      </Card>
 
-          {/* Active Progress Fill */}
-          <div
-            className="absolute top-5 h-0.5 -translate-y-1/2 z-0 overflow-hidden pointer-events-none"
-            style={{ left: "10%", right: "10%" }}
-          >
-            <div
-              className="h-full bg-[#cca043] transition-all duration-300"
-              style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
-            />
-          </div>
-
-          {STEPS.map((step) => {
-            const Icon = step.icon;
-            const isCompleted = currentStep > step.id;
-            const isCurrent = currentStep === step.id;
-
-            return (
-              <div
-                key={step.id}
-                onClick={() => {
-                  if (step.id < currentStep) setCurrentStep(step.id);
-                }}
-                className={`relative z-10 flex flex-col items-center cursor-pointer group px-1 text-center ${
-                  step.id < currentStep ? "cursor-pointer" : "cursor-default"
-                }`}
-              >
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border-2 ${
-                    isCompleted
-                      ? "bg-[#cca043] text-black border-[#cca043]"
-                      : isCurrent
-                      ? "bg-black text-[#cca043] border-[#cca043] scale-110"
-                      : "bg-[#14100c] text-white/50 border-white/20"
-                  }`}
-                >
-                  {isCompleted ? <FaCheck className="text-xs" /> : <Icon />}
-                </div>
-                <span
-                  className={`text-[11px] font-bold uppercase tracking-wider mt-2 transition-colors text-center ${
-                    isCurrent ? "text-[#cca043]" : isCompleted ? "text-white" : "text-white/40"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Mobile Step Indicator */}
-        <div className="sm:hidden flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#cca043] text-black font-black text-xs flex items-center justify-center">
-              {currentStep}
-            </span>
-            <span className="text-xs font-bold uppercase text-white tracking-wider">
-              {STEPS[currentStep - 1].label}
-            </span>
-          </div>
-          <span className="text-[11px] text-neutral-400 font-mono">
-            Step {currentStep} of {STEPS.length}
-          </span>
-        </div>
-      </div>
-
-      {/* GLOBAL ERROR BANNER */}
+      {/* Global error banner */}
       {globalError && (
-        <div className="mb-6 p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs sm:text-sm flex items-center gap-3 animate-fadeIn">
-          <FaExclamationTriangle className="text-red-400 text-lg shrink-0" />
-          <span>{globalError}</span>
-        </div>
+        <Notice tone="error" className="mb-6">
+          {globalError}
+        </Notice>
       )}
 
-      {/* 2. MAIN 2-COLUMN LAYOUT: FORM WIZARD (LEFT) + STICKY ORDER SUMMARY (RIGHT) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start w-full">
-        {/* LEFT COLUMN: ACTIVE STEP FORM */}
-        <div className="md:col-span-7 lg:col-span-8 w-full bg-[#0d0906] border border-[#cca043]/30 rounded-2xl p-5 sm:p-7 lg:p-8 text-left">
-          
-          {/* Mobile-only Quick Summary Banner */}
-          <div className="md:hidden mb-5 p-3 rounded-xl bg-[#cca043]/10 border border-[#cca043]/30 flex items-center justify-between text-left">
+      {/* Two-column layout: active step (left) + sticky order summary (right) */}
+      <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
+        {/* LEFT: active step */}
+        <Card className="min-w-0 text-left sm:p-7">
+          {/* Mobile-only compact summary */}
+          <div className="mb-5 flex items-center justify-between rounded-card border border-charcoal-200 bg-surface-soft p-3 lg:hidden">
             <div>
-              <span className="text-[10px] uppercase font-bold text-[#cca043] block">
+              <span className="block text-xs font-semibold text-charcoal-500">
                 Selected: {selectedDistance} ({currentCategory.title})
               </span>
-              <span className="text-sm font-black text-white font-graduate">
-                Total: ₹{Math.max(0, grossAmount - discountAmount).toLocaleString()}
-              </span>
+              <span className="text-sm font-bold text-charcoal-900">Total: ₹{netPayable.toLocaleString()}</span>
             </div>
-            <span className="text-[10px] font-mono font-bold text-neutral-300 bg-black/40 px-2 py-1 rounded">
-              Step {currentStep}/5
-            </span>
+            <Badge tone="neutral">Step {currentStep}/5</Badge>
           </div>
-          
+
           {/* STEP 1: CATEGORY SELECTION */}
           {currentStep === 1 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#cca043]">
-                  Step 1 of 5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase text-white font-graduate mt-1">
-                  Choose Your Race Category
-                </h2>
-                <p className="text-xs text-neutral-400 mt-1">
-                  Select your preferred challenge. All timed categories include official RFID bib chips and verified e-certificates.
-                </p>
-              </div>
+            <div className="space-y-5">
+              <StepHeader
+                icon={LuUser}
+                title="Choose your race category"
+                description="Select your preferred challenge. All timed categories include official RFID bib chips and verified e-certificates."
+              />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="group" aria-label="Race category">
                 {raceCategories.map((cat) => {
                   const isSelected = selectedDistance === cat.distance;
                   return (
-                    <div
-                      key={cat.distance}
-                      onClick={() => setSelectedDistance(cat.distance)}
-                      className={`relative rounded-xl border p-5 cursor-pointer transition-all duration-200 flex flex-col justify-between ${
-                        isSelected
-                          ? "border-[#cca043] bg-[#cca043]/10 ring-1 ring-[#cca043]"
-                          : "border-white/10 bg-black/40 hover:border-white/30 hover:bg-white/[0.02]"
-                      }`}
-                    >
+                    <ChoiceCard key={cat.distance} selected={isSelected} onClick={() => setSelectedDistance(cat.distance)} className="flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              isSelected
-                                ? "bg-[#cca043] text-black"
-                                : "bg-white/10 text-neutral-300"
-                            }`}
-                          >
-                            {cat.badge}
-                          </span>
-                          <span className="text-xs font-mono font-bold text-neutral-400">
-                            Min Age: {cat.minAge}y
-                          </span>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <Badge tone={isSelected ? "brand" : "neutral"}>{cat.badge}</Badge>
+                          <span className="text-xs font-semibold text-charcoal-500">Min age: {cat.minAge}y</span>
                         </div>
 
-                        <div className="flex items-baseline justify-between mb-1">
-                          <h3 className="text-2xl font-black text-white font-graduate">
-                            {cat.distance}
-                          </h3>
-                          <span className="text-lg font-mono font-bold text-[#cca043]">
-                            ₹{cat.fee.toLocaleString()}
-                          </span>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-barlow text-[44px] font-bold leading-none text-charcoal-900">{cat.distance}</span>
+                          <span className="text-lg font-bold text-charcoal-900">₹{cat.fee.toLocaleString()}</span>
                         </div>
-                        <p className="text-xs font-bold text-neutral-300 mb-3">{cat.title}</p>
+                        <p className="mb-3 mt-1 text-sm font-bold text-charcoal-700">{cat.title}</p>
 
-                        <div className="border-t border-white/10 pt-3 space-y-1 text-[11px] text-neutral-400">
+                        <ul className="space-y-1.5 border-t border-charcoal-200 pt-3 text-sm text-charcoal-600">
                           {cat.inclusions.slice(0, 3).map((inc, i) => (
-                            <div key={i} className="flex items-center gap-1.5">
-                              <FaCheckCircle className="text-[10px] text-[#cca043] shrink-0" />
-                              <span className="truncate">{inc}</span>
-                            </div>
+                            <li key={i} className="flex items-start gap-2">
+                              <LuCircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#15803D]" aria-hidden />
+                              <span>{inc}</span>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold">
-                        <span className="text-neutral-500">Cutoff: {cat.cutoff}</span>
-                        <span className={isSelected ? "text-[#cca043]" : "text-white/60"}>
-                          {isSelected ? "Selected ✓" : "Select Category →"}
+                      <div className="mt-4 flex items-center justify-between border-t border-charcoal-200 pt-3 text-sm font-semibold">
+                        <span className="text-charcoal-500">Cutoff: {cat.cutoff}</span>
+                        <span className={isSelected ? "text-brand-red" : "text-charcoal-600"}>
+                          {isSelected ? "Selected" : "Select category"}
                         </span>
                       </div>
-                    </div>
+                    </ChoiceCard>
                   );
                 })}
               </div>
+              <FieldMessage error={fieldErrors.distance} />
             </div>
           )}
 
           {/* STEP 2: RUNNER DETAILS & BIB CUSTOMIZATION */}
           {currentStep === 2 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#cca043]">
-                  Step 2 of 5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase text-white font-graduate mt-1">
-                  Participant & Bib Personalization
-                </h2>
-                <p className="text-xs text-neutral-400 mt-1">
-                  Your custom name will be printed directly onto your official race bib timing chip.
-                </p>
-              </div>
+            <div className="space-y-5">
+              <StepHeader
+                icon={LuUser}
+                title="Participant and bib personalization"
+                description="Your custom name will be printed directly onto your official race bib timing chip."
+              />
 
-              {/* Name Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="First name" htmlFor="rr-firstName" required error={fieldErrors.firstName}>
+                  <TextInput
+                    {...a11y("firstName")}
                     type="text"
                     name="firstName"
                     required
+                    autoComplete="given-name"
                     value={formData.firstName}
                     onChange={(e) => {
                       handleInputChange(e);
@@ -495,58 +429,43 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                       }
                     }}
                     placeholder="Enter first name"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.firstName && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.firstName}</p>
-                  )}
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Last name" htmlFor="rr-lastName" required error={fieldErrors.lastName}>
+                  <TextInput
+                    {...a11y("lastName")}
                     type="text"
                     name="lastName"
                     required
+                    autoComplete="family-name"
                     value={formData.lastName}
                     onChange={handleInputChange}
                     placeholder="Enter last name"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.lastName && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.lastName}</p>
-                  )}
-                </div>
+                </Field>
               </div>
 
-              {/* Contact Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Email address" htmlFor="rr-email" required error={fieldErrors.email}>
+                  <TextInput
+                    {...a11y("email")}
                     type="email"
                     name="email"
                     required
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="runner@example.com"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.email && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.email}</p>
-                  )}
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Mobile Number (+91) <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Mobile number (+91)" htmlFor="rr-phone" required error={fieldErrors.phone}>
+                  <TextInput
+                    {...a11y("phone")}
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
                     name="phone"
                     required
                     maxLength={10}
@@ -556,75 +475,66 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                       setFormData((p) => ({ ...p, phone: num }));
                     }}
                     placeholder="10-digit mobile"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.phone && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.phone}</p>
-                  )}
-                </div>
+                </Field>
               </div>
 
-              {/* DOB & Gender */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Date of Birth <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field
+                  label="Date of birth"
+                  htmlFor="rr-dateOfBirth"
+                  required
+                  error={fieldErrors.dateOfBirth}
+                  hint={
+                    formData.dateOfBirth ? (
+                      <>
+                        Age on race day (Nov 2027): <strong>{calculatedAge} years</strong> (min {currentCategory.minAge}y)
+                      </>
+                    ) : undefined
+                  }
+                >
+                  <TextInput
+                    {...a11y("dateOfBirth")}
                     type="date"
                     name="dateOfBirth"
                     required
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none [color-scheme:dark]"
                   />
-                  {formData.dateOfBirth && (
-                    <p className="text-[10.5px] text-[#cca043] mt-1">
-                      Age on Race Day (Nov 2027): <strong>{calculatedAge} Years</strong> (Min: {currentCategory.minAge}y)
-                    </p>
-                  )}
-                  {fieldErrors.dateOfBirth && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.dateOfBirth}</p>
-                  )}
-                </div>
+                </Field>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Gender <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <p id="rr-gender-label" className="mb-1.5 text-sm font-semibold text-charcoal-800">
+                    Gender <span aria-hidden className="text-brand-red">*</span>
+                  </p>
+                  <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="rr-gender-label">
                     {["Male", "Female", "Other"].map((g) => (
-                      <button
+                      <ChoiceChip
                         key={g}
-                        type="button"
+                        selected={formData.gender === g}
                         onClick={() => setFormData((p) => ({ ...p, gender: g as "Male" | "Female" | "Other" }))}
-                        className={`py-2.5 px-2 rounded-lg border text-xs font-bold uppercase transition-all ${
-                          formData.gender === g
-                            ? "bg-[#cca043] text-black border-[#cca043]"
-                            : "bg-white/5 border-white/15 text-neutral-300 hover:bg-white/10"
-                        }`}
+                        className="h-12 px-2"
                       >
                         {g}
-                      </button>
+                      </ChoiceChip>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Bib Customization + Live Bib Card Component */}
-              <div className="border-t border-white/10 pt-5">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                  <div className="lg:col-span-7 space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300">
-                          Name on Race Bib <span className="text-red-500">*</span>
-                        </label>
-                        <span className="text-[10px] font-mono text-neutral-400">
-                          {formData.bibName.length}/16 Max
-                        </span>
-                      </div>
-                      <input
+              {/* Bib customization + live bib */}
+              <div className="border-t border-charcoal-200 pt-5">
+                <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+                  <div className="space-y-4 lg:col-span-7">
+                    <Field
+                      label="Name on race bib"
+                      htmlFor="rr-bibName"
+                      required
+                      error={fieldErrors.bibName}
+                      hint={`${formData.bibName.length}/16 characters max`}
+                    >
+                      <TextInput
+                        {...a11y("bibName")}
                         type="text"
                         name="bibName"
                         required
@@ -637,64 +547,47 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                           }))
                         }
                         placeholder="e.g. RAHUL K"
-                        className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm uppercase font-mono font-bold outline-none"
+                        className="font-mono font-bold uppercase"
                       />
-                      {fieldErrors.bibName && (
-                        <p className="text-[10px] text-red-400 mt-1">{fieldErrors.bibName}</p>
-                      )}
-                    </div>
+                    </Field>
 
-                    {/* Blood Group & T-Shirt Size */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                          Blood Group <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          name="bloodGroup"
-                          value={formData.bloodGroup}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 rounded-lg bg-neutral-900 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
-                        >
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Field label="Blood group" htmlFor="rr-bloodGroup" required>
+                        <Select id="rr-bloodGroup" name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange}>
                           {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
                             <option key={bg} value={bg}>
                               {bg}
                             </option>
                           ))}
-                        </select>
-                      </div>
+                        </Select>
+                      </Field>
 
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300">
-                            T-Shirt Size <span className="text-red-500">*</span>
-                          </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="rr-tshirtSize" required>
+                            T-shirt size
+                          </Label>
                           <button
                             type="button"
                             onClick={() => setSizeModalOpen(true)}
-                            className="text-[10px] text-[#cca043] hover:underline font-bold"
+                            className="mb-1.5 inline-flex min-h-[24px] items-center gap-1 rounded-btn text-sm font-semibold text-brand-red hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red"
                           >
-                            Size Chart
+                            <LuShirt className="h-4 w-4" aria-hidden />
+                            Size chart
                           </button>
                         </div>
-                        <select
-                          name="tshirtSize"
-                          value={formData.tshirtSize}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 rounded-lg bg-neutral-900 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none font-bold"
-                        >
+                        <Select id="rr-tshirtSize" name="tshirtSize" value={formData.tshirtSize} onChange={handleInputChange}>
                           {["XS", "S", "M", "L", "XL", "XXL", "3XL"].map((sz) => (
                             <option key={sz} value={sz}>
                               Size {sz}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </div>
                   </div>
 
-                  {/* Interactive Bib Graphic Preview */}
-                  <div className="lg:col-span-5 flex justify-center">
+                  <div className="flex justify-center lg:col-span-5">
                     <BibPreview bibName={formData.bibName} distance={selectedDistance} />
                   </div>
                 </div>
@@ -704,64 +597,41 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
 
           {/* STEP 3: EMERGENCY & HEALTH */}
           {currentStep === 3 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#cca043]">
-                  Step 3 of 5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase text-white font-graduate mt-1">
-                  Emergency Contact & Medical Information
-                </h2>
-                <p className="text-xs text-neutral-400 mt-1">
-                  Required by race medical marshals for emergency assistance on the course.
-                </p>
-              </div>
+            <div className="space-y-5">
+              <StepHeader
+                icon={LuHeartPulse}
+                title="Emergency contact and medical information"
+                description="Required by race medical marshals for emergency assistance on the course."
+              />
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Emergency Contact Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label="Emergency contact name" htmlFor="rr-emergencyName" required error={fieldErrors.emergencyName}>
+                  <TextInput
+                    {...a11y("emergencyName")}
                     type="text"
                     name="emergencyName"
                     required
                     value={formData.emergencyName}
                     onChange={handleInputChange}
                     placeholder="Contact person"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.emergencyName && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.emergencyName}</p>
-                  )}
-                </div>
+                </Field>
 
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Relationship <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="emergencyRelation"
-                    value={formData.emergencyRelation}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2.5 rounded-lg bg-neutral-900 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
-                  >
-                    {["Parent", "Spouse", "Sibling", "Relative", "Friend", "Coach", "Other"].map(
-                      (rel) => (
-                        <option key={rel} value={rel}>
-                          {rel}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
+                <Field label="Relationship" htmlFor="rr-emergencyRelation" required>
+                  <Select id="rr-emergencyRelation" name="emergencyRelation" value={formData.emergencyRelation} onChange={handleInputChange}>
+                    {["Parent", "Spouse", "Sibling", "Relative", "Friend", "Coach", "Other"].map((rel) => (
+                      <option key={rel} value={rel}>
+                        {rel}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
 
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Emergency Mobile (+91) <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Emergency mobile (+91)" htmlFor="rr-emergencyPhone" required error={fieldErrors.emergencyPhone}>
+                  <TextInput
+                    {...a11y("emergencyPhone")}
                     type="tel"
+                    inputMode="tel"
                     name="emergencyPhone"
                     required
                     maxLength={10}
@@ -771,89 +641,66 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                       setFormData((p) => ({ ...p, emergencyPhone: num }));
                     }}
                     placeholder="10-digit mobile"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.emergencyPhone && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.emergencyPhone}</p>
-                  )}
-                </div>
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Medical Notes, Drug Allergies, or Pre-existing Conditions (Optional)
-                </label>
-                <textarea
+              <Field label="Medical notes, drug allergies or pre-existing conditions (optional)" htmlFor="rr-medicalNotes">
+                <Textarea
+                  id="rr-medicalNotes"
                   name="medicalNotes"
                   rows={3}
                   value={formData.medicalNotes}
                   onChange={handleInputChange}
                   placeholder="e.g. Asthma, Penicillin allergy, Hypertension, etc. Leave blank if none."
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none resize-none"
+                  className="resize-none"
                 />
-              </div>
+              </Field>
             </div>
           )}
 
           {/* STEP 4: LOGISTICS & ADD-ONS */}
           {currentStep === 4 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#cca043]">
-                  Step 4 of 5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase text-white font-graduate mt-1">
-                  Location & Optional Event Add-ons
-                </h2>
-                <p className="text-xs text-neutral-400 mt-1">
-                  Kit collection details and optional athlete shuttles or souvenir merchandise.
-                </p>
-              </div>
+            <div className="space-y-5">
+              <StepHeader
+                icon={LuMapPin}
+                title="Location and optional event add-ons"
+                description="Kit collection details and optional athlete shuttles or souvenir merchandise."
+              />
 
-              {/* Address details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    City <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label="City" htmlFor="rr-city" required error={fieldErrors.city}>
+                  <TextInput
+                    {...a11y("city")}
                     type="text"
                     name="city"
                     required
+                    autoComplete="address-level2"
                     value={formData.city}
                     onChange={handleInputChange}
                     placeholder="e.g. Patna, Nalanda, Delhi"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.city && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.city}</p>
-                  )}
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    State <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="State" htmlFor="rr-state" required error={fieldErrors.state}>
+                  <TextInput
+                    {...a11y("state")}
                     type="text"
                     name="state"
                     required
+                    autoComplete="address-level1"
                     value={formData.state}
                     onChange={handleInputChange}
                     placeholder="e.g. Bihar"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.state && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.state}</p>
-                  )}
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                    Pincode <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <Field label="Pincode" htmlFor="rr-pincode" required error={fieldErrors.pincode}>
+                  <TextInput
+                    {...a11y("pincode")}
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
                     name="pincode"
                     required
                     maxLength={6}
@@ -863,68 +710,48 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                       setFormData((p) => ({ ...p, pincode: pin }));
                     }}
                     placeholder="6-digit pincode"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                   />
-                  {fieldErrors.pincode && (
-                    <p className="text-[10px] text-red-400 mt-1">{fieldErrors.pincode}</p>
-                  )}
-                </div>
+                </Field>
               </div>
 
-              {/* Running Club Optional */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
-                  Running Club / Corporate Team (Optional)
-                </label>
-                <input
+              <Field label="Running club / corporate team (optional)" htmlFor="rr-runningClub">
+                <TextInput
+                  id="rr-runningClub"
                   type="text"
                   name="runningClub"
                   value={formData.runningClub}
                   onChange={handleInputChange}
                   placeholder="e.g. Patna Striders, Bihar Police, TCS FitClub"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/15 focus:border-[#cca043] text-white text-xs sm:text-sm outline-none"
                 />
-              </div>
+              </Field>
 
-              {/* Event Add-ons */}
-              <div className="border-t border-white/10 pt-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#cca043] block mb-3">
-                  Enhance Your Marathon Experience (Optional Add-ons)
-                </span>
+              <div className="border-t border-charcoal-200 pt-5">
+                <p id="rr-addons-label" className="mb-3 text-sm font-bold text-charcoal-900">
+                  Enhance your marathon experience (optional add-ons)
+                </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-labelledby="rr-addons-label">
                   {availableAddons.map((addon) => {
                     const isChecked = formData.selectedAddons.includes(addon.id);
                     return (
-                      <div
-                        key={addon.id}
-                        onClick={() => toggleAddon(addon.id)}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                          isChecked
-                            ? "bg-[#cca043]/15 border-[#cca043]"
-                            : "bg-white/5 border-white/10 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <h4 className="text-xs font-bold text-white">{addon.title}</h4>
-                          <p className="text-[11px] text-neutral-400 leading-snug">
-                            {addon.description}
-                          </p>
-                          <span className="text-xs font-mono font-bold text-[#cca043] block mt-1">
-                            +₹{addon.price}
+                      <ChoiceCard key={addon.id} selected={isChecked} onClick={() => toggleAddon(addon.id)}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-bold text-charcoal-900">{addon.title}</h3>
+                            <p className="text-sm leading-snug text-charcoal-600">{addon.description}</p>
+                            <span className="mt-1 block text-sm font-bold text-charcoal-900">+₹{addon.price}</span>
+                          </div>
+
+                          <span
+                            aria-hidden
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${
+                              isChecked ? "border-brand-red bg-brand-red text-white" : "border-charcoal-300 bg-white"
+                            }`}
+                          >
+                            {isChecked && <LuCircleCheck className="h-3.5 w-3.5" />}
                           </span>
                         </div>
-
-                        <div
-                          className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border transition-all ${
-                            isChecked
-                              ? "bg-[#cca043] border-[#cca043] text-black"
-                              : "border-white/30 bg-black/40"
-                          }`}
-                        >
-                          {isChecked && <FaCheck className="text-[10px]" />}
-                        </div>
-                      </div>
+                      </ChoiceCard>
                     );
                   })}
                 </div>
@@ -934,135 +761,94 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
 
           {/* STEP 5: WAIVER & FINAL REVIEW */}
           {currentStep === 5 && (
-            <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-5">
+              <StepHeader
+                icon={LuClipboardCheck}
+                title="Waiver, declaration and final review"
+                description="Please review your registration details and agree to the event liability disclaimer."
+              />
+
+              <dl className="rounded-card border border-charcoal-200 bg-surface-soft px-4 text-sm">
+                <ReviewRow label="Runner">
+                  {formData.firstName} {formData.lastName} ({formData.gender}, {calculatedAge}y)
+                </ReviewRow>
+                <ReviewRow label="Category">
+                  {currentCategory.distance} ({currentCategory.title})
+                </ReviewRow>
+                <ReviewRow label="Name on bib">
+                  <span className="font-mono">{formData.bibName}</span>
+                </ReviewRow>
+                <ReviewRow label="Contact">
+                  {formData.email} | +91 {formData.phone}
+                </ReviewRow>
+                <ReviewRow label="Emergency">
+                  {formData.emergencyName} ({formData.emergencyRelation}) | +91 {formData.emergencyPhone}
+                </ReviewRow>
+                <ReviewRow label="Apparel size" last>
+                  Size {formData.tshirtSize} (Dry-Fit)
+                </ReviewRow>
+              </dl>
+
+              <div
+                className="max-h-44 space-y-2 overflow-y-auto rounded-card border border-charcoal-200 bg-white p-4 text-sm leading-relaxed text-charcoal-700"
+                tabIndex={0}
+                role="region"
+                aria-label="Participant declaration and assumption of risk"
+              >
+                <p className="font-bold text-charcoal-900">Participant declaration and assumption of risk</p>
+                <p>1. I declare that I am physically fit and have sufficiently trained for participating in the Rajgir Marathon 2027.</p>
+                <p>
+                  2. I understand that running long distances involves inherent risk of physical injury. I hereby release the event organizers,
+                  sponsors, volunteers, and the State of Bihar from any claims resulting from my participation.
+                </p>
+                <p>3. I authorize the medical team to administer emergency treatment if required.</p>
+                <p>4. I agree that the registration fee is non-transferable and non-refundable.</p>
+              </div>
+
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#cca043]">
-                  Step 5 of 5
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black uppercase text-white font-graduate mt-1">
-                  Waiver, Declaration & Final Review
-                </h2>
-                <p className="text-xs text-neutral-400 mt-1">
-                  Please review your registration details and agree to the event liability disclaimer.
-                </p>
-              </div>
-
-              {/* Review Card */}
-              <div className="p-4 rounded-xl border border-white/10 bg-black/40 text-xs space-y-3">
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-neutral-400">Runner:</span>
-                  <span className="font-bold text-white">
-                    {formData.firstName} {formData.lastName} ({formData.gender}, {calculatedAge}y)
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-neutral-400">Category:</span>
-                  <span className="font-bold text-[#cca043]">
-                    {currentCategory.distance} ({currentCategory.title})
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-neutral-400">Name on Bib:</span>
-                  <span className="font-mono font-bold text-white">{formData.bibName}</span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-neutral-400">Contact:</span>
-                  <span className="text-neutral-300">
-                    {formData.email} • +91 {formData.phone}
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span className="text-neutral-400">Emergency:</span>
-                  <span className="text-neutral-300">
-                    {formData.emergencyName} ({formData.emergencyRelation}) • +91 {formData.emergencyPhone}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-400">Apparel Size:</span>
-                  <span className="font-bold text-white">Size {formData.tshirtSize} (Dry-Fit)</span>
-                </div>
-              </div>
-
-              {/* Event Liability Waiver */}
-              <div className="p-4 rounded-xl border border-white/15 bg-white/[0.02] text-neutral-300 text-[11px] leading-relaxed max-h-40 overflow-y-auto space-y-2 select-none">
-                <p className="font-bold text-white uppercase">Participant Declaration & Assumption of Risk:</p>
-                <p>
-                  1. I declare that I am physically fit and have sufficiently trained for participating in the Rajgir Marathon 2027.
-                </p>
-                <p>
-                  2. I understand that running long distances involves inherent risk of physical injury. I hereby release the event organizers, sponsors, volunteers, and the State of Bihar from any claims resulting from my participation.
-                </p>
-                <p>
-                  3. I authorize the medical team to administer emergency treatment if required.
-                </p>
-                <p>
-                  4. I agree that the registration fee is non-transferable and non-refundable.
-                </p>
-              </div>
-
-              <label className="flex items-start gap-3 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
+                <Checkbox
                   name="waiverAgreed"
                   checked={formData.waiverAgreed}
                   onChange={(e) => setFormData((p) => ({ ...p, waiverAgreed: e.target.checked }))}
-                  className="mt-0.5 h-4 w-4 accent-[#cca043] rounded"
-                />
-                <span className="text-xs text-neutral-200 font-medium">
-                  I have read, understood, and accept the event rules, terms & conditions, and medical liability waiver. <span className="text-red-500">*</span>
-                </span>
-              </label>
-              {fieldErrors.waiverAgreed && (
-                <p className="text-[10px] text-red-400 mt-1">{fieldErrors.waiverAgreed}</p>
-              )}
+                  aria-invalid={fieldErrors.waiverAgreed ? true : undefined}
+                  aria-describedby={fieldErrors.waiverAgreed ? "rr-waiverAgreed-message" : undefined}
+                >
+                  I have read, understood, and accept the event rules, terms and conditions, and medical liability waiver.{" "}
+                  <span aria-hidden className="text-brand-red">*</span>
+                </Checkbox>
+                <FieldMessage id="rr-waiverAgreed-message" error={fieldErrors.waiverAgreed} />
+              </div>
             </div>
           )}
 
-          {/* PREVIOUS / NEXT STEP BUTTONS */}
-          <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between">
+          {/* PREVIOUS / NEXT */}
+          <div className="mt-8 flex items-center justify-between gap-3 border-t border-charcoal-200 pt-5">
             {currentStep > 1 ? (
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
-              >
-                <FaArrowLeft className="text-xs" />
-                <span>Previous Step</span>
-              </button>
+              <Button type="button" variant="secondary" size="lg" icon={LuArrowLeft} onClick={handlePrev}>
+                Previous step
+              </Button>
             ) : (
-              <Link
-                href="/"
-                className="text-xs text-neutral-400 hover:text-white transition-colors"
-              >
-                ← Back to Home
+              <Link href="/" className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-charcoal-600 hover:text-charcoal-900">
+                <LuArrowLeft className="h-4 w-4" aria-hidden />
+                Back to home
               </Link>
             )}
 
-            <button
+            <Button
               type="button"
+              size="lg"
               onClick={handleNext}
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d49a37] via-[#e0a845] to-[#cca043] text-black font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 hover:brightness-105 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
+              loading={isSubmitting}
+              iconRight={currentStep < 5 ? LuArrowRight : LuCircleCheck}
             >
-              {isSubmitting ? (
-                <span>Registering...</span>
-              ) : currentStep < 5 ? (
-                <>
-                  <span>Next: {STEPS[currentStep]?.label || "Next"}</span>
-                  <FaArrowRight className="text-xs" />
-                </>
-              ) : (
-                <>
-                  <span>Confirm & Register</span>
-                  <FaCheckCircle />
-                </>
-              )}
-            </button>
+              {isSubmitting ? "Registering" : currentStep < 5 ? `Next: ${STEPS[currentStep]?.label || "Next"}` : "Confirm and register"}
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        {/* RIGHT COLUMN: STICKY ORDER SUMMARY PANEL */}
-        <aside className="md:col-span-5 lg:col-span-4 w-full md:sticky md:top-24 z-20">
+        {/* RIGHT: sticky order summary (below the form on mobile) */}
+        <aside className="w-full lg:sticky lg:top-24">
           <OrderSummaryCard
             categoryTitle={currentCategory.title}
             distance={selectedDistance}
@@ -1082,7 +868,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
         </aside>
       </div>
 
-      {/* SIZING CHART MODAL */}
+      {/* Sizing chart modal */}
       <TShirtSizeModal
         isOpen={sizeModalOpen}
         onClose={() => setSizeModalOpen(false)}
@@ -1092,4 +878,3 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
     </div>
   );
 }
-
