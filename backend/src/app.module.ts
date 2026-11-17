@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -8,6 +10,8 @@ import { InfluencersModule } from './modules/influencers/influencers.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { UsersModule } from './modules/users/users.module';
 import { RegistrationsModule } from './modules/registrations/registrations.module';
+import { SupabaseModule } from './modules/supabase/supabase.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -15,15 +19,20 @@ import { RegistrationsModule } from './modules/registrations/registrations.modul
       isGlobal: true,
       envFilePath: '.env',
     }),
+    // Default rate limit for every route; auth routes set stricter limits.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    SupabaseModule,
     HealthModule,
     UsersModule,
+    AuthModule,
     RegistrationsModule,
     RunnersModule,
     VolunteersModule,
     InfluencersModule,
     AdminModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
 

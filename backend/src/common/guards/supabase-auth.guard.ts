@@ -1,51 +1,48 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { SupabaseService } from '../../modules/supabase/supabase.service';
+import { UsersService } from '../../modules/users/users.service';
+import type { AuthContext } from '../decorators/current-user.decorator';
 
+/**
+ * Requires `Authorization: Bearer <supabase access token>`.
+ * Verifies the token with Supabase, loads (or creates) the matching platform user,
+ * and attaches `request.auth` for the @CurrentUser() decorator.
+ */
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  private supabase: SupabaseClient;
-
-  constructor(private configService: ConfigService) {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
-
-    if (supabaseUrl && supabaseAnonKey) {
-      this.supabase = createClient(supabaseUrl, supabaseAnonKey);
-    }
-  }
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly prisma: PrismaService,
+    private readonly users: UsersService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers['authorization'];
+    const header: string | undefined = request.headers['authorization'];
+    const accessToken = header?.match(/^Bearer\s+(.+)$/i)?.[1];
 
-    if (!authHeader) {
-      throw new UnauthorizedException('Authorization header is required');
+    if (!accessToken) {
+      throw new UnauthorizedException('Authentication required');
     }
 
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    if (!token) {
-      throw new UnauthorizedException('Bearer token missing');
+    const { data, error } = await this.supabase.anon.auth.getUser(accessToken);
+    if (error || !data.user) {
+      throw new UnauthorizedException('Your session has expired. Please sign in again.');
     }
 
-    try {
-      const { data, error } = await this.supabase.auth.getUser(token);
+    const authUser = data.user;
+    const dbUser =
+      (await this.prisma.user.findFirst({
+        where: { OR: [{ supabaseAuthId: authUser.id }, { email: (authUser.email ?? '').toLowerCase() }] },
+      })) ?? (await this.users.createFromAuthUser(authUser));
 
-      if (error || !data.user) {
-        throw new UnauthorizedException('Invalid or expired Supabase token');
-      }
-
-      // Attach authenticated user to request
-      request.user = data.user;
-      return true;
-    } catch (err) {
-      throw new UnauthorizedException(err.message || 'Authentication failed');
+    if (dbUser.status === 'SUSPENDED') {
+      throw new UnauthorizedException('This account is suspended. Please contact support.');
     }
+
+    const auth: AuthContext = { authUser, dbUser, accessToken };
+    request.auth = auth;
+    return true;
   }
 }
-
