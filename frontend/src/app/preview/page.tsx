@@ -2,9 +2,8 @@
 
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import { FaLock, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
+import { LuArrowRight, LuEye, LuEyeOff, LuLoaderCircle, LuLock } from "react-icons/lu";
 
 function PreviewLoginContent() {
   const router = useRouter();
@@ -44,62 +43,57 @@ function PreviewLoginContent() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <div className="rounded-2xl border border-[#cca043]/35 bg-[#0f0c09]/95 backdrop-blur-md p-6 sm:p-8 shadow-2xl text-center relative overflow-hidden">
-        {/* Ambient Top Glow */}
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#cca043]/20 rounded-full blur-2xl pointer-events-none" />
-
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          <img
-            src="/images/rajgir_new_logo.png"
-            alt="Rajgir Marathon"
-            className="h-16 w-auto object-contain drop-shadow"
-          />
+    <div className="mx-auto w-full max-w-md p-4">
+      <div className="rounded-card border border-charcoal-200 bg-white p-6 text-center sm:p-8">
+        <div className="mb-4 flex justify-center">
+          <img src="/images/rajgir_new_logo.png" alt="Rajgir Marathon" className="h-16 w-auto object-contain" />
         </div>
 
-        {/* Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#cca043]/40 bg-[#cca043]/10 text-[#d49a37] text-[10px] font-black tracking-widest uppercase mb-3">
-          <FaLock className="text-[9px]" />
-          <span>DEVELOPMENT PREVIEW ACCESS</span>
-        </div>
+        <span className="mb-3 inline-flex items-center gap-1.5 rounded-[6px] bg-charcoal-100 px-2.5 py-1 text-xs font-semibold text-charcoal-700">
+          <LuLock className="h-3.5 w-3.5" aria-hidden />
+          Development preview access
+        </span>
 
-        <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight mb-2">
-          AUTHORIZED ACCESS ONLY
-        </h1>
+        <h1 className="mb-2 font-barlow text-3xl font-bold uppercase leading-none text-charcoal-900">Authorized access only</h1>
 
-        <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
+        <p className="mb-6 text-sm leading-relaxed text-charcoal-600">
           Please enter the client / stakeholder preview password to inspect the work-in-progress platform.
         </p>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
           <div>
-            <label className="block text-xs font-bold text-neutral-300 mb-1.5">
-              Preview Password
+            <label htmlFor="preview-password" className="mb-1.5 block text-sm font-semibold text-charcoal-800">
+              Preview password
             </label>
             <div className="relative">
               <input
+                id="preview-password"
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 pr-10 text-white placeholder:text-neutral-500 text-sm focus:outline-none focus:border-[#cca043] transition-colors"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "preview-error" : undefined}
+                className="h-12 w-full rounded-btn border border-charcoal-300 bg-white px-4 pr-12 text-sm text-charcoal-900 outline-none transition-colors placeholder:text-charcoal-400 focus:border-brand-red focus:ring-2 focus:ring-brand-red/20 aria-[invalid=true]:border-[#DC2626]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white text-xs cursor-pointer"
-                aria-label="Toggle password visibility"
+                className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-btn text-charcoal-500 hover:text-charcoal-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? <LuEyeOff className="h-5 w-5" aria-hidden /> : <LuEye className="h-5 w-5" aria-hidden />}
               </button>
             </div>
           </div>
 
           {error && (
-            <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs text-center font-medium">
+            <div
+              id="preview-error"
+              role="alert"
+              className="rounded-card border border-[#FCA5A5] bg-[#FEE2E2] px-4 py-3 text-center text-sm font-medium text-[#7F1D1D]"
+            >
               {error}
             </div>
           )}
@@ -107,25 +101,26 @@ function PreviewLoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[#b47a1f] via-[#d49a37] to-[#e0a845] text-white font-extrabold tracking-widest text-xs uppercase flex items-center justify-center gap-2 shadow-lg shadow-amber-950/25 hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60"
+            aria-busy={loading || undefined}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-btn bg-brand-red px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-red-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
-              <span>VERIFYING...</span>
+              <>
+                <LuLoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+                <span>Verifying...</span>
+              </>
             ) : (
               <>
-                <span>ENTER PREVIEW</span>
-                <FaArrowRight className="text-xs" />
+                <span>Enter preview</span>
+                <LuArrowRight className="h-4 w-4" aria-hidden />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-white/10 text-center">
-          <Link
-            href="/"
-            className="text-[11px] text-neutral-400 hover:text-[#d49a37] transition-colors font-medium inline-block"
-          >
-            ← Back to Public Coming Soon Page
+        <div className="mt-6 border-t border-charcoal-200 pt-4 text-center">
+          <Link href="/" className="inline-block text-sm font-semibold text-brand-red hover:underline">
+            Back to public Coming Soon page
           </Link>
         </div>
       </div>
@@ -135,16 +130,10 @@ function PreviewLoginContent() {
 
 export default function PreviewLoginPage() {
   return (
-    <div
-      style={{ fontFamily: "'Inter','Segoe UI',sans-serif" }}
-      className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col justify-center items-center overflow-x-hidden p-4"
-    >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-[#d49a37]/5 rounded-full blur-[140px] pointer-events-none" />
-
-      <Suspense fallback={<div className="text-neutral-400 text-xs">Loading...</div>}>
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-surface-soft font-manrope text-charcoal-900">
+      <Suspense fallback={<div className="text-sm text-charcoal-500">Loading...</div>}>
         <PreviewLoginContent />
       </Suspense>
     </div>
   );
 }
-

@@ -1,37 +1,27 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React from "react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import UnifiedRegistrationForm from "@/components/UnifiedRegistrationForm";
+import { Breadcrumb, PageHero } from "@/components/ui";
 
 export default function JoinPage() {
   return (
-    <div className="min-h-screen bg-[#080604] text-white flex flex-col font-inter">
-      {/* Header */}
+    <div className="flex min-h-screen w-full flex-col bg-white font-manrope text-charcoal-900">
       <SiteHeader />
-
-      {/* Main Content */}
-      <main className="flex-1 py-14 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto mb-10 text-center">
-          <div className="inline-block px-4 py-1.5 rounded-full bg-red-950/40 border border-[#e51b24]/40 text-[#e51b24] text-xs font-bold uppercase tracking-widest mb-4">
-            Official Community Hub
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white mb-4">
-            Join The <span className="text-[#e51b24]">Rajgir Marathon</span>
-          </h1>
-          <p className="text-neutral-400 max-w-2xl mx-auto text-sm sm:text-base">
-            Select your participation path below. Join our on-ground volunteer crew or partner with us as an influencer & media creator to inspire thousands.
-          </p>
+      <main className="flex-1 bg-surface-soft">
+        <div className="mx-auto w-full max-w-[824px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Community" }]} />
+          <PageHero
+            eyebrow={<span className="text-sm font-semibold text-charcoal-500">Official community hub</span>}
+            title="Join the Rajgir Marathon"
+            subtitle="Select your participation path below. Join our on-ground volunteer crew or partner with us as an influencer or media creator."
+          />
+          <UnifiedRegistrationForm />
         </div>
-
-        {/* Unified Form */}
-        <UnifiedRegistrationForm />
       </main>
-
-      {/* Footer */}
       <SiteFooter />
     </div>
   );
 }
-

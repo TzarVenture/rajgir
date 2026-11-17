@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FaEye, FaSignOutAlt } from "react-icons/fa";
+import { LuEye, LuLogOut } from "react-icons/lu";
 
 export default function PreviewBanner() {
   const router = useRouter();
@@ -21,46 +21,35 @@ export default function PreviewBanner() {
   };
 
   return (
-    <div className="w-full bg-gradient-to-r from-neutral-900 via-[#18120a] to-neutral-900 border-b border-[#cca043]/30 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 backdrop-blur-md">
+    <div className="sticky top-0 z-50 flex w-full flex-wrap items-center justify-between gap-3 border-b border-[#FCD34D] bg-[#FEF3C7] px-4 py-2 text-xs text-[#78350F]">
       <div className="flex items-center gap-2">
-        <span className="flex h-2 w-2 relative">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span className="font-bold uppercase tracking-wider text-[#d49a37]">
-          Stakeholder Preview Environment
-        </span>
-        <span className="hidden md:inline text-neutral-400">|</span>
-        <span className="hidden md:inline text-neutral-300">
-          Public visitors see the Coming Soon page
-        </span>
+        <span aria-hidden className="h-2 w-2 rounded-full bg-[#B45309]" />
+        <span className="font-semibold">Stakeholder preview environment</span>
+        <span aria-hidden className="hidden md:inline">|</span>
+        <span className="hidden md:inline">Public visitors see the Coming Soon page</span>
       </div>
 
       <div className="flex items-center gap-2">
         <Link
           href="/coming-soon"
-          className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors flex items-center gap-1.5"
+          className="flex items-center gap-1.5 rounded-btn px-2.5 py-1 font-semibold hover:bg-[#FDE68A]"
         >
-          <FaEye className="text-[10px]" />
+          <LuEye className="h-3.5 w-3.5" aria-hidden />
           <span>View Public Coming Soon</span>
         </Link>
-        <Link
-          href="/wip"
-          className="px-2.5 py-1 rounded bg-[#cca043]/20 hover:bg-[#cca043]/30 text-[#e0a845] font-semibold transition-colors"
-        >
+        <Link href="/wip" className="rounded-btn px-2.5 py-1 font-semibold hover:bg-[#FDE68A]">
           Modules Roadmap
         </Link>
         <button
           type="button"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="px-2.5 py-1 rounded bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          className="flex cursor-pointer items-center gap-1.5 rounded-btn border border-[#B45309] px-2.5 py-1 font-semibold hover:bg-[#FDE68A] disabled:opacity-50"
         >
-          <FaSignOutAlt className="text-[10px]" />
+          <LuLogOut className="h-3.5 w-3.5" aria-hidden />
           <span>{loggingOut ? "Exiting..." : "Lock & Exit"}</span>
         </button>
       </div>
     </div>
   );
 }
-

@@ -4,28 +4,21 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import {
-  FaMapMarkerAlt,
-  FaRunning,
-  FaHandsHelping,
-  FaBriefcase,
-  FaCommentDots,
-  FaCheckCircle,
-  FaArrowRight,
-} from "react-icons/fa";
+import { LuActivity, LuArrowRight, LuBriefcase, LuCircleCheck, LuHandHeart, LuMessageSquare } from "react-icons/lu";
+import { Breadcrumb, Button, Card, ChoiceChip, Field, Notice, PageHero, Textarea, TextInput } from "@/components/ui";
 
 const roleOptions = [
-  { id: "runner", label: "Runner", icon: FaRunning },
-  { id: "volunteer", label: "Volunteer", icon: FaHandsHelping },
-  { id: "sponsor", label: "Sponsor / Partner", icon: FaBriefcase },
-  { id: "general", label: "General Enquiry", icon: FaCommentDots },
+  { id: "runner", label: "Runner", icon: LuActivity },
+  { id: "volunteer", label: "Volunteer", icon: LuHandHeart },
+  { id: "sponsor", label: "Sponsor / Partner", icon: LuBriefcase },
+  { id: "general", label: "General Enquiry", icon: LuMessageSquare },
 ];
 
 const roleHeadings: Record<string, string> = {
-  runner: "BECOME A RUNNER",
-  volunteer: "BECOME A VOLUNTEER",
-  sponsor: "BECOME A SPONSOR",
-  general: "GENERAL ENQUIRY",
+  runner: "Become a runner",
+  volunteer: "Become a volunteer",
+  sponsor: "Become a sponsor",
+  general: "General enquiry",
 };
 
 const getValidRole = (tab?: string | null) => {
@@ -348,394 +341,254 @@ function ContactFormContent() {
     });
   };
 
+  const errInvalid = (k: string) => Boolean(touched[k] && errors[k]);
+
   return (
-    <div className="w-full max-w-[585px] mx-auto">
-      <div className="w-full rounded-2xl border border-[#cca043]/35 bg-[#0f0c09]/95 backdrop-blur-md p-5 sm:p-6 lg:p-7 shadow-xl relative">
-        {/* Form Heading */}
-        <div className="text-left mb-4">
-          <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#d49a37]">
-            CONNECT WITH US
-          </span>
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-white uppercase tracking-tight mt-0.5 font-graduate">
-            {roleHeadings[activeRole] || "BECOME A RUNNER"}
-          </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Please select your category and fill in the required fields below.
-          </p>
-        </div>
-
-        {/* SUCCESS CONFIRMATION STATE */}
-        {submitted ? (
-          <div className="py-8 flex flex-col items-center justify-center text-center animate-fadeIn">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-emerald-950/40">
-              <FaCheckCircle />
-            </div>
-            <h3 className="text-lg sm:text-xl font-black uppercase text-white font-graduate">
-              MESSAGE RECEIVED!
-            </h3>
-            <p className="text-xs text-neutral-300 mt-2 max-w-md leading-relaxed">
-              Thank you, <strong className="text-white">{formData.name}</strong>! Your
-              enquiry regarding{" "}
-              <strong className="text-[#d49a37]">
-                {roleOptions.find((r) => r.id === activeRole)?.label}
-              </strong>{" "}
-              has been delivered. Our team will get back to you at{" "}
-              <strong className="text-white">{formData.email}</strong>.
-            </p>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="mt-5 px-5 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
-            >
-              SEND ANOTHER MESSAGE
-            </button>
-          </div>
-        ) : (
-          /* FORM BODY */
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 text-left">
-            {/* ROLE SELECTION TABS */}
-            <div>
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1.5">
-                I AM CONTACTING AS <span className="text-[#e51b24]">*</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {roleOptions.map((role) => {
-                  const Icon = role.icon;
-                  const isSelected = activeRole === role.id;
-                  return (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => handleRoleSelect(role.id)}
-                      className={`py-2 px-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[#cca043]/20 border-[#cca043] text-white shadow-sm shadow-amber-950/40"
-                          : "bg-white/[0.02] border-white/10 text-neutral-400 hover:text-white hover:border-white/25 hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <Icon
-                        className={`text-sm ${
-                          isSelected ? "text-[#d49a37]" : "text-neutral-400"
-                        }`}
-                      />
-                      <span className="text-[11px] sm:text-xs font-bold uppercase tracking-tight text-center leading-tight">
-                        {role.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ROW 1: FULL NAME & EMAIL (REQUIRED) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {/* Full Name */}
-              <div>
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                  FULL NAME <span className="text-[#e51b24]">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Name"
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                />
-              </div>
-
-              {/* Email Address */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300">
-                    EMAIL ADDRESS <span className="text-[#e51b24]">*</span>
-                  </label>
-                  {touched.email && errors.email && (
-                    <span className="text-[10px] text-red-400 font-semibold animate-fadeIn">
-                      Invalid
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  maxLength={80}
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="Email"
-                  className={`w-full px-3 py-2 rounded-lg bg-white/[0.05] border text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all ${
-                    touched.email && errors.email
-                      ? "border-red-500/80 bg-red-500/[0.05] focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                      : "border-white/15 focus:border-[#cca043] focus:bg-white/[0.08]"
-                  }`}
-                />
-                {touched.email && errors.email && (
-                  <p className="text-[10.5px] text-red-400 font-medium mt-1 animate-fadeIn">
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* ROW 2: PHONE & ROLE-SPECIFIC FIELD (LOCATION OR ORGANIZATION) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {/* Phone Number */}
-              <div
-                className={
-                  activeRole === "general" ? "sm:col-span-2" : "sm:col-span-1"
-                }
-              >
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                  PHONE NUMBER <span className="text-[#e51b24]">*</span>
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  inputMode="numeric"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="Phone"
-                  className={`w-full px-3 py-2 rounded-lg bg-white/[0.05] border text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all ${
-                    touched.phone && errors.phone
-                      ? "border-red-500/80 bg-red-500/[0.05] focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                      : "border-white/15 focus:border-[#cca043] focus:bg-white/[0.08]"
-                  }`}
-                />
-                {touched.phone && errors.phone && (
-                  <p className="text-[10.5px] text-red-400 font-medium mt-1 animate-fadeIn">
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
-
-              {/* Location Field (Runner & Volunteer) */}
-              {(activeRole === "runner" || activeRole === "volunteer") && (
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                    LOCATION <span className="text-[#e51b24]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    required
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="Location"
-                    className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Sponsor Organization Name (Required) */}
-              {activeRole === "sponsor" && (
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                    ORGANIZATION / BRAND NAME <span className="text-[#e51b24]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="organization"
-                    required
-                    value={formData.organization}
-                    onChange={handleChange}
-                    placeholder="Organization / Brand Name"
-                    className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* VOLUNTEER PROFESSION FIELD */}
-            {activeRole === "volunteer" && (
-              <div>
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                  PROFESSION / OCCUPATION
-                </label>
-                <input
-                  type="text"
-                  name="profession"
-                  value={formData.profession}
-                  onChange={handleChange}
-                  placeholder="Profession"
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                />
-              </div>
-            )}
-
-            {/* SPONSOR FIELDS: DESIGNATION & BUDGET */}
-            {activeRole === "sponsor" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {/* Designation */}
-                <div>
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                    DESIGNATION / ROLE
-                  </label>
-                  <input
-                    type="text"
-                    name="designation"
-                    value={formData.designation}
-                    onChange={handleChange}
-                    placeholder="Designation"
-                    className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                  />
-                </div>
-
-                {/* Budget */}
-                <div>
-                  <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                    BUDGET
-                  </label>
-                  <input
-                    type="text"
-                    name="budget"
-                    value={formData.budget}
-                    onChange={handleChange}
-                    placeholder="Budget"
-                    className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* RUNNER PREFERRED DISTANCE PILLS */}
-            {activeRole === "runner" && (
-              <div>
-                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                  PREFERRED DISTANCE
-                </label>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {["42.2 KM", "21.1 KM", "10 KM", "5 KM", "3 KM"].map((dist) => (
-                    <button
-                      key={dist}
-                      type="button"
-                      onClick={() =>
-                        setFormData((p) => ({ ...p, preferredDistance: dist }))
-                      }
-                      className={`px-3 py-1 rounded-md text-[11.5px] font-bold transition-all cursor-pointer ${
-                        formData.preferredDistance === dist
-                          ? "bg-[#b91c1c] text-white shadow-sm"
-                          : "bg-white/[0.04] text-neutral-400 hover:text-white border border-white/10"
-                      }`}
-                    >
-                      {dist}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* MESSAGE (REQUIRED) */}
-            <div>
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-300 mb-1">
-                MESSAGE <span className="text-[#e51b24]">*</span>
-              </label>
-              <textarea
-                name="message"
-                required
-                rows={3}
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Message"
-                className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/15 focus:border-[#cca043] focus:bg-white/[0.08] text-white placeholder:text-neutral-500 text-xs sm:text-[13px] outline-none transition-all resize-none"
-              />
-            </div>
-
-            {/* ERROR NOTIFICATION IF SUBMIT FAILS */}
-            {submitError && (
-              <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs flex items-center justify-between animate-fadeIn">
-                <span>{submitError}</span>
-                <button
-                  type="button"
-                  onClick={() => setSubmitError("")}
-                  className="text-neutral-400 hover:text-white text-base leading-none font-bold ml-2 cursor-pointer"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            {/* SUBMIT BUTTON */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 sm:py-3 px-5 rounded-lg bg-gradient-to-r from-[#991b1b] via-[#b91c1c] to-[#dc2626] hover:brightness-115 active:scale-[0.99] text-white font-black tracking-wider text-xs sm:text-[13px] uppercase flex items-center justify-center gap-2 shadow-md shadow-red-950/40 transition-all cursor-pointer disabled:opacity-50 mt-1"
-            >
-              {isSubmitting ? (
-                <span>SENDING MESSAGE...</span>
-              ) : (
-                <>
-                  <span>SUBMIT ENQUIRY</span>
-                  <FaArrowRight className="text-xs" />
-                </>
-              )}
-            </button>
-
-            <p className="text-[10.5px] text-neutral-400 text-center mt-0.5">
-              * All fields marked with an asterisk are required. We respect your
-              privacy.
-            </p>
-          </form>
-        )}
+    <Card className="mx-auto w-full max-w-[680px]">
+      <div className="mb-5 border-b border-charcoal-200 pb-4 text-left">
+        <p className="text-xs font-semibold text-charcoal-500">Connect with us</p>
+        <h2 className="mt-0.5 font-barlow text-2xl font-bold uppercase text-charcoal-900">
+          {roleHeadings[activeRole] || "Become a runner"}
+        </h2>
+        <p className="mt-1 text-sm text-charcoal-500">
+          Please select your category and fill in the required fields below.
+        </p>
       </div>
-    </div>
+
+      {submitted ? (
+        <div className="flex flex-col items-center py-6 text-center">
+          <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D]">
+            <LuCircleCheck className="h-8 w-8" aria-hidden />
+          </span>
+          <h3 className="font-barlow text-3xl font-bold uppercase text-charcoal-900">Message received</h3>
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-charcoal-600">
+            Thank you, <strong className="text-charcoal-900">{formData.name}</strong>! Your enquiry regarding{" "}
+            <strong className="text-charcoal-900">{roleOptions.find((r) => r.id === activeRole)?.label}</strong> has been
+            delivered. Our team will get back to you at <strong className="text-charcoal-900">{formData.email}</strong>.
+          </p>
+          <Button type="button" variant="secondary" onClick={handleReset} className="mt-6">
+            Send another message
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+          <div>
+            <p id="contact-role-label" className="mb-1.5 text-sm font-semibold text-charcoal-800">
+              I am contacting as <span aria-hidden className="text-brand-red">*</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-labelledby="contact-role-label">
+              {roleOptions.map((role) => {
+                const Icon = role.icon;
+                return (
+                  <ChoiceChip
+                    key={role.id}
+                    selected={activeRole === role.id}
+                    onClick={() => handleRoleSelect(role.id)}
+                    className="h-auto min-h-[44px] flex-col gap-1 px-2 py-2.5 text-center text-xs"
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    <span className="leading-tight">{role.label}</span>
+                  </ChoiceChip>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Full name" htmlFor="contact-name" required>
+              <TextInput
+                id="contact-name"
+                type="text"
+                name="name"
+                required
+                autoComplete="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Your name"
+              />
+            </Field>
+
+            <Field label="Email address" htmlFor="contact-email" required error={errInvalid("email") ? errors.email : undefined}>
+              <TextInput
+                id="contact-email"
+                type="email"
+                name="email"
+                required
+                maxLength={80}
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="you@example.com"
+                aria-invalid={errInvalid("email") || undefined}
+                aria-describedby={errInvalid("email") ? "contact-email-message" : undefined}
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field
+              label="Phone number"
+              htmlFor="contact-phone"
+              required
+              error={errInvalid("phone") ? errors.phone : undefined}
+              className={activeRole === "general" ? "sm:col-span-2" : "sm:col-span-1"}
+            >
+              <TextInput
+                id="contact-phone"
+                type="tel"
+                name="phone"
+                required
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                autoComplete="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="10-digit mobile number"
+                aria-invalid={errInvalid("phone") || undefined}
+                aria-describedby={errInvalid("phone") ? "contact-phone-message" : undefined}
+              />
+            </Field>
+
+            {(activeRole === "runner" || activeRole === "volunteer") && (
+              <Field label="Location" htmlFor="contact-location" required className="sm:col-span-1">
+                <TextInput
+                  id="contact-location"
+                  type="text"
+                  name="location"
+                  required
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="City or town"
+                />
+              </Field>
+            )}
+
+            {activeRole === "sponsor" && (
+              <Field label="Organization / brand name" htmlFor="contact-organization" required className="sm:col-span-1">
+                <TextInput
+                  id="contact-organization"
+                  type="text"
+                  name="organization"
+                  required
+                  value={formData.organization}
+                  onChange={handleChange}
+                  placeholder="Organization or brand"
+                />
+              </Field>
+            )}
+          </div>
+
+          {activeRole === "volunteer" && (
+            <Field label="Profession / occupation" htmlFor="contact-profession">
+              <TextInput
+                id="contact-profession"
+                type="text"
+                name="profession"
+                value={formData.profession}
+                onChange={handleChange}
+                placeholder="Profession"
+              />
+            </Field>
+          )}
+
+          {activeRole === "sponsor" && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Designation / role" htmlFor="contact-designation">
+                <TextInput
+                  id="contact-designation"
+                  type="text"
+                  name="designation"
+                  value={formData.designation}
+                  onChange={handleChange}
+                  placeholder="Designation"
+                />
+              </Field>
+              <Field label="Budget" htmlFor="contact-budget">
+                <TextInput
+                  id="contact-budget"
+                  type="text"
+                  name="budget"
+                  value={formData.budget}
+                  onChange={handleChange}
+                  placeholder="Budget"
+                />
+              </Field>
+            </div>
+          )}
+
+          {activeRole === "runner" && (
+            <div>
+              <p className="mb-1.5 text-sm font-semibold text-charcoal-800">Preferred distance</p>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Preferred distance">
+                {["42.2 KM", "21.1 KM", "10 KM", "5 KM", "3 KM"].map((dist) => (
+                  <ChoiceChip
+                    key={dist}
+                    selected={formData.preferredDistance === dist}
+                    onClick={() => setFormData((p) => ({ ...p, preferredDistance: dist }))}
+                  >
+                    {dist}
+                  </ChoiceChip>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Field label="Message" htmlFor="contact-message" required>
+            <Textarea
+              id="contact-message"
+              name="message"
+              required
+              rows={4}
+              value={formData.message}
+              onChange={handleChange}
+              placeholder="How can we help?"
+            />
+          </Field>
+
+          {submitError && (
+            <div className="flex items-start gap-2">
+              <Notice tone="error" className="flex-1">
+                {submitError}
+              </Notice>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setSubmitError("")}>
+                Dismiss
+              </Button>
+            </div>
+          )}
+
+          <Button type="submit" size="xl" fullWidth loading={isSubmitting} iconRight={LuArrowRight}>
+            {isSubmitting ? "Sending message" : "Submit enquiry"}
+          </Button>
+
+          <p className="text-center text-xs text-charcoal-500">
+            * Fields marked with an asterisk are required. We respect your privacy.
+          </p>
+        </form>
+      )}
+    </Card>
   );
 }
 
-export default function ComingSoonContactPage() {
+export default function ContactPage() {
   return (
-    <div
-      style={{ fontFamily: "'Inter','Segoe UI',sans-serif" }}
-      className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col overflow-x-hidden selection:bg-[#991b1b] selection:text-white"
-    >
-      {/* HEADER COMPONENT */}
+    <div className="flex min-h-screen w-full flex-col bg-white font-manrope text-charcoal-900">
       <SiteHeader />
-
-      {/* BACKGROUND AMBIENT GLOWS */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[#d49a37]/5 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute top-80 right-0 w-[450px] h-[450px] bg-[#991b1b]/8 rounded-full blur-[150px] pointer-events-none" />
-
-      {/* COMPACT HERO SECTION */}
-      <section className="relative z-10 w-full pt-6 sm:pt-9 pb-4 sm:pb-6 px-4 sm:px-6 text-center">
-        {/* Heritage Subtitle Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-[#cca043]/40 bg-[#cca043]/10 text-[#d49a37] text-[10.5px] sm:text-[11px] font-black tracking-[0.18em] uppercase mb-2 shadow-sm">
-          <FaMapMarkerAlt className="text-[10px]" />
-          <span>RAJGIR, BIHAR, INDIA | 2027</span>
+      <main className="flex-1 bg-surface-soft">
+        <div className="mx-auto w-full max-w-[824px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
+          <PageHero
+            title="Contact us"
+            subtitle="Have questions about the marathon, volunteer registration, or sponsorship opportunities? Reach out directly to our team. We are here to assist you."
+            eyebrow={<span className="text-sm font-semibold text-charcoal-500">Rajgir, Bihar, India | 2027</span>}
+          />
+          <Suspense fallback={<p className="py-8 text-sm text-charcoal-500">Loading form...</p>}>
+            <ContactFormContent />
+          </Suspense>
         </div>
-
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase leading-tight font-graduate">
-          CONTACT <span className="text-[#d49a37]">US</span>
-        </h1>
-
-        <p className="mt-1.5 text-neutral-300 text-xs sm:text-sm max-w-lg mx-auto leading-relaxed font-medium">
-          Have questions about the marathon, volunteer registration, or
-          sponsorship opportunities? Reach out directly to our team — we are
-          here to assist you.
-        </p>
-      </section>
-
-      {/* COMPACT MAIN SECTION */}
-      <main className="relative z-10 w-full px-4 sm:px-6 md:px-8 pb-12 sm:pb-16 flex-1 flex justify-center">
-        <Suspense
-          fallback={
-            <div className="text-neutral-400 text-xs py-8">
-              Loading form...
-            </div>
-          }
-        >
-          <ContactFormContent />
-        </Suspense>
       </main>
-
-      {/* FOOTER COMPONENT */}
       <SiteFooter />
     </div>
   );
