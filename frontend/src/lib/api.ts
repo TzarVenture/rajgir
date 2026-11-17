@@ -2,7 +2,12 @@
  * Rajgir Marathon - Frontend API Client for NestJS Backend Service
  */
 
+/**
+ * Server-side calls prefer API_URL (internal address, e.g. http://backend:4000/api/v1).
+ * Falls back to NEXT_PUBLIC_API_URL, then localhost.
+ */
 const BACKEND_URL =
+  process.env.API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== "undefined" ? "http://localhost:4000/api/v1" : "http://127.0.0.1:4000/api/v1");
 
@@ -10,7 +15,63 @@ export interface ApiClientResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  /** Machine-readable code from the backend, e.g. EMAIL_NOT_VERIFIED. */
+  code?: string;
   statusCode?: number;
+}
+
+export type ApiRole =
+  | "RUNNER"
+  | "VOLUNTEER"
+  | "INFLUENCER"
+  | "TEAM_CAPTAIN"
+  | "CORPORATE_MANAGER"
+  | "SCHOOL_COORDINATOR"
+  | "SPONSOR"
+  | "VENDOR"
+  | "TOURISM_PARTNER"
+  | "ORGANIZER"
+  | "SUPER_ADMIN";
+
+export interface ApiUser {
+  id: string;
+  email: string;
+  phone: string | null;
+  fullName: string;
+  role: ApiRole | null;
+  status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED";
+  emailVerified: boolean;
+}
+
+export interface ApiSession {
+  accessToken: string;
+  refreshToken: string;
+  /** Unix seconds. */
+  expiresAt: number;
+}
+
+/** Options for calls made on behalf of a signed-in user / visitor. */
+export interface CallContext {
+  /** Session access token, sent as Authorization: Bearer. */
+  token?: string;
+  /** Real visitor IP so the backend can rate-limit per person, not per Next.js server. */
+  clientIp?: string;
+}
+
+function contextHeaders(ctx?: CallContext): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (ctx?.token) headers.Authorization = `Bearer ${ctx.token}`;
+  if (ctx?.clientIp) headers["x-forwarded-for"] = ctx.clientIp;
+  return headers;
+}
+
+function post<T>(endpoint: string, body: unknown, ctx?: CallContext) {
+  return request<T>(endpoint, {
+    method: "POST",
+    headers: contextHeaders(ctx),
+    body: JSON.stringify(body ?? {}),
+    cache: "no-store",
+  });
 }
 
 async function request<T>(
@@ -37,7 +98,12 @@ async function request<T>(
         (Array.isArray(body?.message) ? body?.message.join(", ") : body?.message) ||
         body?.error ||
         `Request failed with status ${res.status}`;
-      return { success: false, error: message, statusCode: res.status };
+      return {
+        success: false,
+        error: message,
+        code: typeof body?.code === "string" ? body.code : undefined,
+        statusCode: res.status,
+      };
     }
 
     return { success: true, data: body as T, statusCode: res.status };
@@ -100,30 +166,46 @@ export const api = {
       categoryBreakdown: Array<{ distance: string; count: number }>;
     }>("admin/overview"),
 
-  // Users & Identity
-  syncUser: (payload: { email: string; phone?: string; fullName: string; supabaseAuthId?: string }) =>
-    request<any>("users/sync", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  // Authentication & identity (all logic lives in NestJS)
+  auth: {
+    signup: (
+      payload: { name: string; email: string; mobile: string; password: string },
+      ctx?: CallContext
+    ) =>
+      post<{
+        needsVerification: boolean;
+        email: string;
+        session: ApiSession | null;
+        user: ApiUser;
+      }>("auth/signup", payload, ctx),
 
-  checkUser: (email?: string, phone?: string) => {
-    const params = new URLSearchParams();
-    if (email) params.append("email", email);
-    if (phone) params.append("phone", phone);
-    return request<{ exists: boolean; userId?: string; email?: string; phone?: string; fullName?: string; role?: string; status?: string }>(
-      `users/check?${params.toString()}`
-    );
+    login: (payload: { identifier: string; password: string }, ctx?: CallContext) =>
+      post<{ session: ApiSession; user: ApiUser }>("auth/login", payload, ctx),
+
+    refresh: (refreshToken: string, ctx?: CallContext) =>
+      post<{ session: ApiSession }>("auth/refresh", { refreshToken }, ctx),
+
+    logout: (ctx: CallContext) => post<{ success: boolean }>("auth/logout", {}, ctx),
+
+    resendVerification: (email: string, ctx?: CallContext) =>
+      post<{ success: boolean }>("auth/resend-verification", { email }, ctx),
+
+    verifyEmail: (tokenHash: string, type: "signup" | "email", ctx?: CallContext) =>
+      post<{ session: ApiSession; user: ApiUser }>("auth/verify-email", { tokenHash, type }, ctx),
+
+    forgotPassword: (email: string, ctx?: CallContext) =>
+      post<{ success: boolean }>("auth/forgot-password", { email }, ctx),
+
+    resetPassword: (payload: { tokenHash: string; password: string }, ctx?: CallContext) =>
+      post<{ success: boolean }>("auth/reset-password", payload, ctx),
+
+    me: (ctx: CallContext) =>
+      request<ApiUser>("auth/me", { headers: contextHeaders(ctx), cache: "no-store" }),
   },
 
-  setUserRole: (userId: string, role: string) =>
-    request<any>(`users/${userId}/role`, {
-      method: "POST",
-      body: JSON.stringify({ role }),
-    }),
-
-  getUser: (userId: string) =>
-    request<any>(`users/${encodeURIComponent(userId)}`),
+  users: {
+    setMyRole: (role: ApiRole, ctx: CallContext) => post<ApiUser>("users/me/role", { role }, ctx),
+  },
 
   // Group Registrations
   registerTeam: (payload: any) =>

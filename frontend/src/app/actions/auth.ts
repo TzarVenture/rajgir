@@ -1,12 +1,34 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import { api } from "@/lib/api";
-import { getCurrentUser, endSession } from "@/lib/auth/session";
+import { api, type ApiRole } from "@/lib/api";
+import { homePath } from "@/lib/auth/paths";
+import { safeRedirect } from "@/lib/auth/redirect";
+import { isSelfSignupRole, registerPathForRole } from "@/lib/auth/roles";
+import {
+  authContext,
+  clientContext,
+  endSession,
+  rememberNext,
+  requireUser,
+  saveSession,
+} from "@/lib/auth/session";
 
-export type FormState = { error?: string } | undefined;
+/**
+ * Thin server actions: validate lightly, call the NestJS API, store the session cookie, redirect.
+ * No database or Supabase access happens in Next.js.
+ */
+export type FormState =
+  | {
+      error?: string;
+      /** Per-field messages, keyed by input name. */
+      fieldErrors?: Record<string, string>;
+      /** Submitted values (never passwords) so the form keeps what the user typed. */
+      values?: Record<string, string>;
+      /** Positive confirmation, e.g. "Email sent". */
+      notice?: string;
+    }
+  | undefined;
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -16,163 +38,76 @@ function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+/** Accepts 10 digits, optionally prefixed with +91 / 91 / 0. */
+function tenDigitMobile(value: string): string | null {
+  let digits = digitsOnly(value);
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
+
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
   const name = text(formData, "name");
   const email = text(formData, "email").toLowerCase();
-  const mobile = digitsOnly(text(formData, "mobile"));
-  const password = text(formData, "password");
-  const confirm = text(formData, "confirm");
-  const redirectTo = text(formData, "redirectTo");
+  const mobileInput = text(formData, "mobile");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  const next = safeRedirect(text(formData, "redirect"));
+  const values = { name, email, mobile: mobileInput, redirect: next ?? "" };
 
-  if (name.length < 2) return { error: "Enter your full name." };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address." };
-  if (mobile.length !== 10) return { error: "Enter a valid 10-digit mobile number." };
-  if (password.length < 8) return { error: "Password must be at least 8 characters long." };
-  if (password !== confirm) return { error: "Passwords do not match." };
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 2) fieldErrors.name = "Enter your full name.";
+  if (!EMAIL_PATTERN.test(email)) fieldErrors.email = "Enter a valid email address.";
+  const mobile = tenDigitMobile(mobileInput);
+  if (!mobile) fieldErrors.mobile = "Enter a valid 10-digit mobile number.";
+  if (password.length < 8) fieldErrors.password = "Use at least 8 characters.";
+  else if (password.length > 72) fieldErrors.password = "Use at most 72 characters.";
+  if (!fieldErrors.password && password !== confirm) fieldErrors.confirm = "Passwords do not match.";
 
-  try {
-    // 1. Strict 1 User = 1 Role pre-check
-    const checkRes = await api.checkUser(email, mobile);
-    if (checkRes.success && checkRes.data?.exists) {
-      const existingRole = checkRes.data.role;
-      if (existingRole) {
-        return {
-          error: `An account with this email/mobile is already registered as ${existingRole}. An account can only hold one role.`,
-        };
-      }
-    }
-
-    // 2. Create account in Supabase Auth
-    const supabase = await createClient();
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          phone: mobile,
-        },
-      },
-    });
-
-    if (authError) {
-      return { error: authError.message || "Failed to create account. Please try again." };
-    }
-
-    // 3. Sync into PostgreSQL Database (Try NestJS + Direct Supabase upsert)
-    try {
-      await api.syncUser({
-        email,
-        phone: mobile,
-        fullName: name,
-        supabaseAuthId: data.user?.id,
-      });
-    } catch (apiSyncErr) {
-      console.warn("NestJS api.syncUser skipped/unreachable:", apiSyncErr);
-    }
-
-    try {
-      await supabaseAdmin.from("users").upsert({
-        email,
-        phone: mobile,
-        full_name: name,
-        supabase_auth_id: data.user?.id,
-        status: "PENDING_ONBOARDING",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "email" });
-    } catch (upsertErr) {
-      console.warn("Direct Supabase users upsert warning:", upsertErr);
-    }
-
-    // 4. Redirect to destination or intent screen
-    if (redirectTo && redirectTo.startsWith("/register/")) {
-      redirect(redirectTo);
-    }
-
-    redirect("/onboarding/intent");
-  } catch (err: any) {
-    if (err?.digest?.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    console.error("signUp error:", err);
-    return { error: err.message || "An unexpected error occurred during sign up." };
+  if (Object.keys(fieldErrors).length > 0 || !mobile) {
+    return { error: "Please fix the highlighted fields.", fieldErrors, values };
   }
+
+  const res = await api.auth.signup({ name, email, mobile, password }, await clientContext());
+  if (!res.success || !res.data) {
+    return { error: res.error ?? "We could not create your account. Please try again.", values };
+  }
+
+  await rememberNext(next);
+
+  if (res.data.session) {
+    // Project has email confirmation switched off: signed in straight away.
+    await saveSession(res.data.session);
+    redirect(homePath(res.data.user));
+  }
+
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const identifier = text(formData, "identifier");
-  const password = text(formData, "password");
-  const redirectTo = text(formData, "redirectTo");
+  const password = String(formData.get("password") ?? "");
+  const next = safeRedirect(text(formData, "redirect"));
+  const values = { identifier, redirect: next ?? "" };
 
-  if (!identifier) return { error: "Please enter your email or 10-digit mobile number." };
-  if (!password) return { error: "Please enter your password." };
+  if (!identifier) return { error: "Enter your email or 10-digit mobile number.", fieldErrors: { identifier: "Required." }, values };
+  if (!password) return { error: "Enter your password.", fieldErrors: { password: "Required." }, values };
 
-  try {
-    let emailToUse = identifier.toLowerCase();
+  const res = await api.auth.login({ identifier, password }, await clientContext());
 
-    // If identifier is mobile number (no @), look up email from database
-    if (!identifier.includes("@")) {
-      const cleanPhone = digitsOnly(identifier);
-      if (cleanPhone.length !== 10) {
-        return { error: "Please enter a valid 10-digit mobile number or email address." };
-      }
-
-      const lookup = await api.checkUser(undefined, cleanPhone);
-      if (lookup.success && lookup.data?.exists && lookup.data.email) {
-        emailToUse = lookup.data.email.toLowerCase();
-      } else {
-        const { data: dbUser } = await supabaseAdmin
-          .from("users")
-          .select("email")
-          .eq("phone", cleanPhone)
-          .maybeSingle();
-
-        if (dbUser?.email) {
-          emailToUse = dbUser.email.toLowerCase();
-        } else {
-          return { error: "No account found matching this mobile number." };
-        }
-      }
+  if (!res.success || !res.data) {
+    if (res.code === "EMAIL_NOT_VERIFIED") {
+      await rememberNext(next);
+      const email = identifier.includes("@") ? identifier.toLowerCase() : "";
+      redirect(`/verify-email?from=login${email ? `&email=${encodeURIComponent(email)}` : ""}`);
     }
-
-    // Authenticate with Supabase
-    const supabase = await createClient();
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email: emailToUse,
-      password,
-    });
-
-    if (authError || !data.user) {
-      return { error: "Incorrect email/mobile or password." };
-    }
-
-    // Sync / refresh user details from NestJS API
-    const userRes = await api.checkUser(data.user.email);
-    const role = userRes.data?.role;
-    const status = userRes.data?.status;
-
-    // Follow redirect if specified
-    if (redirectTo && redirectTo.startsWith("/register/")) {
-      redirect(redirectTo);
-    }
-
-    // Dynamic routing according to role status
-    if (!role || status === "PENDING_ONBOARDING") {
-      redirect("/onboarding/intent");
-    }
-
-    if (status === "PENDING_APPROVAL") {
-      redirect("/pending");
-    }
-
-    redirect("/dashboard");
-  } catch (err: any) {
-    if (err?.digest?.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    console.error("login error:", err);
-    return { error: err.message || "An unexpected error occurred during login." };
+    return { error: res.error ?? "We could not sign you in. Please try again.", values };
   }
+
+  await saveSession(res.data.session);
+  redirect(next ?? homePath(res.data.user));
 }
 
 export async function logout(): Promise<void> {
@@ -180,78 +115,58 @@ export async function logout(): Promise<void> {
   redirect("/login");
 }
 
-export async function selectRoleIntent(formData: FormData): Promise<void> {
-  const role = text(formData, "role");
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
+export async function resendVerification(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = text(formData, "email").toLowerCase();
+  if (!EMAIL_PATTERN.test(email)) {
+    return { error: "Enter the email address you signed up with.", fieldErrors: { email: "Enter a valid email address." }, values: { email } };
   }
 
-  // 1. Record role intent in Supabase Auth metadata
-  try {
-    const supabase = await createClient();
-    await supabase.auth.updateUser({
-      data: { role_intent: role },
-    });
-  } catch (authErr) {
-    console.warn("Could not update auth user metadata:", authErr);
+  const res = await api.auth.resendVerification(email, await clientContext());
+  if (!res.success) return { error: res.error ?? "We could not send the email. Please try again.", values: { email } };
+  return { notice: "If this email has an unverified account, a new verification link is on its way.", values: { email } };
+}
+
+export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = text(formData, "email").toLowerCase();
+  if (!EMAIL_PATTERN.test(email)) {
+    return { error: "Enter a valid email address.", fieldErrors: { email: "Enter a valid email address." }, values: { email } };
   }
 
-  // 2. Direct Supabase Database: ensure user exists and update role
-  try {
-    await supabaseAdmin
-      .from("users")
-      .update({ role, updated_at: new Date().toISOString() })
-      .or(`id.eq.${user.id},supabase_auth_id.eq.${user.id},email.eq.${user.email}`);
-  } catch (dbErr) {
-    console.warn("Could not update users table directly:", dbErr);
-  }
-
-  // 3. Sync to NestJS API if running/deployed
-  try {
-    const res = await api.setUserRole(user.id, role);
-    if (!res.success) {
-      console.warn("NestJS API setUserRole skipped/unreachable:", res.error);
-    }
-  } catch (apiErr) {
-    console.warn("NestJS API setUserRole error:", apiErr);
-  }
-
-  // 4. Route to the dedicated registration URL
-  const roleRouteMap: Record<string, string> = {
-    RUNNER: "/register/runner",
-    VOLUNTEER: "/register/volunteer",
-    INFLUENCER: "/register/influencer",
-    TEAM_CAPTAIN: "/register/team",
-    CORPORATE_MANAGER: "/register/corporate",
-    SCHOOL_COORDINATOR: "/register/school",
-    SPONSOR: "/register/sponsor",
-    VENDOR: "/register/vendor",
-    TOURISM_PARTNER: "/register/tourism",
+  const res = await api.auth.forgotPassword(email, await clientContext());
+  if (!res.success) return { error: res.error ?? "We could not send the email. Please try again.", values: { email } };
+  return {
+    notice: "If an account exists for this email, we have sent a link to reset your password. It can take a minute to arrive.",
+    values: { email },
   };
-
-  const targetUrl = roleRouteMap[role] || "/dashboard";
-  redirect(targetUrl);
 }
 
-export async function verifyOtp(_prev: FormState, formData: FormData): Promise<FormState> {
-  const code = text(formData, "code");
-  if (code.length < 6) return { error: "Enter the complete 6-digit verification code." };
-  redirect("/onboarding/intent");
+export async function resetPassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tokenHash = text(formData, "tokenHash");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (!tokenHash) return { error: "This reset link is incomplete. Please request a new one." };
+  if (password.length < 8) return { error: "Use at least 8 characters.", fieldErrors: { password: "Use at least 8 characters." } };
+  if (password.length > 72) return { error: "Use at most 72 characters.", fieldErrors: { password: "Use at most 72 characters." } };
+  if (password !== confirm) return { error: "Passwords do not match.", fieldErrors: { confirm: "Passwords do not match." } };
+
+  const res = await api.auth.resetPassword({ tokenHash, password }, await clientContext());
+  if (!res.success) return { error: res.error ?? "We could not update your password. Please request a new link." };
+
+  redirect("/login?reset=1");
 }
 
-export async function verifyTwoFactor(_prev: FormState, formData: FormData): Promise<FormState> {
-  const code = text(formData, "code");
-  if (code.length < 6) return { error: "Enter the complete 6-digit verification code." };
-  redirect("/dashboard");
-}
+export async function selectRole(_prev: FormState, formData: FormData): Promise<FormState> {
+  const role = text(formData, "role");
+  await requireUser("/onboarding/intent");
 
-export async function saveOnboarding(_prev: FormState, _formData: FormData): Promise<FormState> {
-  redirect("/dashboard");
-}
+  if (!isSelfSignupRole(role)) return { error: "Please choose one of the options to continue." };
 
-export async function approveRole(_formData: FormData): Promise<void> {
-  // Administrative approval action placeholder
-}
+  const ctx = await authContext();
+  if (!ctx) redirect("/login?redirect=%2Fonboarding%2Fintent");
 
+  const res = await api.users.setMyRole(role as ApiRole, ctx);
+  if (!res.success) return { error: res.error ?? "We could not save your choice. Please try again." };
+
+  redirect(registerPathForRole(role));
+}

@@ -1,29 +1,13 @@
 import React from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { logout } from "@/app/actions/auth";
-import { getCurrentUser } from "@/lib/auth/session";
+import { roleLabel as getRoleLabel } from "@/lib/auth/roles";
+import { requireUser } from "@/lib/auth/session";
 import { FaUserCircle, FaSignOutAlt, FaShieldAlt } from "react-icons/fa";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const roleLabels: Record<string, string> = {
-    RUNNER: "Marathon Runner",
-    VOLUNTEER: "Event Volunteer",
-    INFLUENCER: "Influencer Ambassador",
-    TEAM_CAPTAIN: "Team Captain",
-    CORPORATE_MANAGER: "Corporate Manager",
-    SCHOOL_COORDINATOR: "School Coordinator",
-    SPONSOR: "Official Sponsor",
-    VENDOR: "Expo Vendor",
-    TOURISM_PARTNER: "Tourism Partner",
-    ORGANIZER: "Race Organizer",
-    SUPER_ADMIN: "Super Administrator",
-  };
-
-  const roleLabel = user.role ? roleLabels[user.role] || user.role.replace(/_/g, " ") : "Participant";
+  const user = await requireUser("/dashboard");
+  const roleLabel = getRoleLabel(user.role);
 
   return (
     <div className="min-h-screen bg-[#080604] text-white flex flex-col">

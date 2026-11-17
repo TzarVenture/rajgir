@@ -1,93 +1,49 @@
 "use client";
 
-import { useActionState, Suspense } from "react";
+import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signUp, type FormState } from "@/app/actions/auth";
+import PasswordField from "@/components/auth/PasswordField";
 import SubmitButton from "@/components/auth/SubmitButton";
-import { Field, FormError, cardClass, AuthHeading } from "@/components/auth/ui";
+import { AuthHeading, Field, FormError, StepIndicator, cardClass, linkClass } from "@/components/auth/ui";
 
 function RegisterFormInner() {
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "";
-
+  const params = useSearchParams();
+  const redirectTo = params.get("redirect") || params.get("redirectTo") || "";
   const [state, action] = useActionState<FormState, FormData>(signUp, undefined);
+  const errors = state?.fieldErrors ?? {};
+  const query = redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
 
   return (
     <div className={cardClass}>
-      {redirectTo ? (
-        <div className="mb-5 p-3 rounded-lg bg-blue-50 border border-blue-200 text-center">
-          <p className="text-xs text-blue-700 font-semibold tracking-wide">
-            Create an account to complete your registration
-          </p>
-        </div>
-      ) : null}
-      <AuthHeading
-        title="Create Account"
-        subtitle="One unified account for all Rajgir Marathon roles"
-      />
+      <StepIndicator current={1} />
+      <AuthHeading title="Create your account" subtitle="One account for everything you do at the Rajgir Marathon." />
 
       <form action={action} className="space-y-4">
-        <input type="hidden" name="redirectTo" value={redirectTo} />
+        <input type="hidden" name="redirect" value={redirectTo} />
 
-        <Field
-          label="Full Name"
-          name="name"
-          autoComplete="name"
-          placeholder="e.g. Rahul Verma"
-        />
-
-        <Field
-          label="Email Address"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-        />
-
-        <Field
-          label="Mobile Number (10 Digits)"
-          name="mobile"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="10-digit mobile number"
-        />
-
-        <Field
-          label="Password (min. 8 characters)"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-        />
-
-        <Field
-          label="Confirm Password"
-          name="confirm"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Repeat password"
-        />
+        <Field label="Full name" name="name" autoComplete="name" placeholder="e.g. Rahul Verma" defaultValue={state?.values?.name} error={errors.name} autoFocus />
+        <Field label="Email address" name="email" type="email" autoComplete="email" placeholder="you@example.com" defaultValue={state?.values?.email} error={errors.email} hint="We will send a verification link here." />
+        <Field label="Mobile number" name="mobile" type="tel" inputMode="tel" autoComplete="tel" placeholder="10-digit mobile number" defaultValue={state?.values?.mobile} error={errors.mobile} />
+        <PasswordField label="Password" name="password" autoComplete="new-password" placeholder="At least 8 characters" error={errors.password} hint="Use at least 8 characters." />
+        <PasswordField label="Confirm password" name="confirm" autoComplete="new-password" placeholder="Repeat your password" error={errors.confirm} />
 
         <FormError message={state?.error} />
 
-        <SubmitButton label="Continue to Role Selection" pendingLabel="Creating your account..." />
+        <SubmitButton label="Create account" pendingLabel="Creating your account..." />
+
+        <p className="text-center text-[11px] leading-relaxed text-[#6B7280]">
+          By creating an account you agree to receive race updates by email and SMS.
+        </p>
       </form>
 
-      <div className="mt-6 pt-5 border-t border-[#E5E7EB] text-center space-y-2">
+      <div className="mt-6 border-t border-[#E5E7EB] pt-5 text-center">
         <p className="text-sm text-[#4B5563]">
           Already have an account?{" "}
-          <Link
-            href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
-            className="font-bold text-[#E31B23] hover:underline"
-          >
+          <Link href={`/login${query}`} className={linkClass}>
             Sign in
           </Link>
-        </p>
-
-        <p className="text-[11px] text-[#6B7280]">
-          Strict policy: 1 User = 1 Permanent Role per email/mobile.
         </p>
       </div>
     </div>
@@ -96,7 +52,7 @@ function RegisterFormInner() {
 
 export default function RegisterForm() {
   return (
-    <Suspense fallback={<div className="text-neutral-400 text-xs text-center py-10">Loading registration...</div>}>
+    <Suspense fallback={<div className="py-10 text-center text-xs text-neutral-400">Loading...</div>}>
       <RegisterFormInner />
     </Suspense>
   );

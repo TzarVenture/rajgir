@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { api } from "@/lib/api";
+import {
+  SESSION_COOKIE,
+  decodeSession,
+  encodeSession,
+  needsRefresh,
+  sessionCookieOptions,
+} from "@/lib/auth/cookie";
 import { isGateActive } from "@/lib/gate";
 import {
   PREVIEW_COOKIE,
@@ -52,6 +60,36 @@ function isLegacyPublic(pathname: string): boolean {
   );
 }
 
+/**
+ * Response for real-site requests. Keeps a signed-in user's session fresh: when the access token
+ * is about to expire, exchange the refresh token through the NestJS API and update the cookie for
+ * this request and the browser. Never used for the public Coming Soon pages.
+ */
+async function realSiteResponse(request: NextRequest): Promise<NextResponse> {
+  const session = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!session || !needsRefresh(session)) return NextResponse.next();
+
+  const refreshed = await api.auth.refresh(session.refreshToken);
+
+  if (refreshed.success && refreshed.data) {
+    const value = encodeSession(refreshed.data.session);
+    request.cookies.set(SESSION_COOKIE, value);
+    const response = NextResponse.next({ request: { headers: request.headers } });
+    response.cookies.set(SESSION_COOKIE, value, sessionCookieOptions);
+    return response;
+  }
+
+  // Only drop the session when the backend says it is no longer valid (not on a temporary outage).
+  if (refreshed.statusCode === 401) {
+    request.cookies.delete(SESSION_COOKIE);
+    const response = NextResponse.next({ request: { headers: request.headers } });
+    response.cookies.delete(SESSION_COOKIE);
+    return response;
+  }
+
+  return NextResponse.next();
+}
+
 export async function middleware(request: NextRequest) {
   // 0. Canonical Domain Redirection: Force all traffic from rajgir.org (and www variants) -> rajgirmarathon.com
   const host = (request.headers.get("host") || request.nextUrl.host || "").toLowerCase();
@@ -74,7 +112,8 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/coming-soon/contact") {
       return NextResponse.redirect(new URL("/contact", request.url));
     }
-    return NextResponse.next();
+    if (isStaticAsset(pathname)) return NextResponse.next();
+    return realSiteResponse(request);
   }
 
   // 2. Always allow static files and Next.js internals.
@@ -103,7 +142,7 @@ export async function middleware(request: NextRequest) {
 
   // 4. Authorized users (developers & client) get the real site.
   if (await verifyPreviewToken(request.cookies.get(PREVIEW_COOKIE)?.value)) {
-    return NextResponse.next();
+    return realSiteResponse(request);
   }
 
   // 5. Public / unauthorized visitors: stealth Coming Soon gating.
@@ -119,6 +158,12 @@ export async function middleware(request: NextRequest) {
 
   // Preview login screen and its API.
   if (pathname === "/preview" || pathname === "/api/preview") {
+    return NextResponse.next();
+  }
+
+  // Email links (verify email / reset password) open in the user's mail app, which has no preview
+  // cookie. The handler only exchanges a one-time token with the API and redirects.
+  if (pathname === "/auth/callback") {
     return NextResponse.next();
   }
 

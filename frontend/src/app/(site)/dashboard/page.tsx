@@ -1,43 +1,14 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { homePath } from "@/lib/auth/paths";
+import { dashboardPathForRole } from "@/lib/auth/roles";
+import { requireUser } from "@/lib/auth/session";
 
+/** Sends each signed-in user to the right place: verify, choose role, registration, approval wait, or their dashboard. */
 export default async function DashboardDispatcher() {
-  const user = await getCurrentUser();
+  const user = await requireUser("/dashboard");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const next = homePath(user);
+  if (next !== "/dashboard") redirect(next);
 
-  // If user has not picked a role yet
-  if (!user.role || user.status === "PENDING_ONBOARDING") {
-    redirect("/onboarding/intent");
-  }
-
-  // If user application is under review
-  if (user.status === "PENDING_APPROVAL") {
-    redirect("/pending");
-  }
-
-  // 1. Individual Roles Track (Runner, Volunteer, Influencer)
-  if (["RUNNER", "VOLUNTEER", "INFLUENCER"].includes(user.role)) {
-    redirect("/dashboard/individual");
-  }
-
-  // 2. Group & Institutional Delegations Track (Team Captain, Corporate Manager, School Coordinator)
-  if (["TEAM_CAPTAIN", "CORPORATE_MANAGER", "SCHOOL_COORDINATOR"].includes(user.role)) {
-    redirect("/dashboard/group");
-  }
-
-  // 3. Commercial Partners Track (Sponsor, Vendor, Tourism Partner)
-  if (["SPONSOR", "VENDOR", "TOURISM_PARTNER"].includes(user.role)) {
-    redirect("/dashboard/partner");
-  }
-
-  // Admin / Organizer Track
-  if (["SUPER_ADMIN", "ORGANIZER"].includes(user.role)) {
-    redirect("/admin");
-  }
-
-  // Fallback
-  redirect("/dashboard/individual");
+  redirect(dashboardPathForRole(user.role));
 }
