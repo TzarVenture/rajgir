@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveSubmission, getDb } from "@/lib/db";
+import { saveSubmission } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
@@ -116,26 +116,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-export async function GET() {
-  try {
-    const db = await getDb();
-    return NextResponse.json({
-      success: true,
-      summary: {
-        totalVolunteers: db.volunteers.length,
-        totalInfluencers: db.influencers.length,
-      },
-      data: {
-        volunteers: db.volunteers,
-        influencers: db.influencers,
-      },
-    });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: "Failed to retrieve form submissions." },
-      { status: 500 }
-    );
-  }
-}
-
