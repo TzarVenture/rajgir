@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { login, type FormState } from "@/app/actions/auth";
 import PasswordField from "@/components/auth/PasswordField";
 import SubmitButton from "@/components/auth/SubmitButton";
-import { AuthHeading, Field, FormError, FormNotice, cardClass, linkClass } from "@/components/auth/ui";
+import { AuthHeading, ContextBanner, Field, FormError, FormNotice, cardClass, linkClass } from "@/components/auth/ui";
+import { registrationTitleForPath } from "@/lib/auth/roles";
 
 function describeIdentifier(value: string): string {
   const v = value.trim();
@@ -38,9 +39,15 @@ function LoginFormInner() {
           <FormNotice message="Password updated. Sign in with your new password." />
         ) : null}
         {redirectTo && !state?.error && !justReset ? (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-700">
-            Sign in to continue where you left off.
-          </div>
+          <ContextBanner>
+            {registrationTitleForPath(redirectTo) ? (
+              <>
+                Sign in to continue your <strong>{registrationTitleForPath(redirectTo)}</strong> registration.
+              </>
+            ) : (
+              "Sign in to continue where you left off."
+            )}
+          </ContextBanner>
         ) : null}
 
         <Field
@@ -78,7 +85,7 @@ function LoginFormInner() {
       <div className="mt-6 border-t border-[#E5E7EB] pt-5 text-center">
         <p className="text-sm text-[#4B5563]">
           New to Rajgir Marathon?{" "}
-          <Link href={`/register${query}`} className={linkClass}>
+          <Link href={`/signup${query}`} className={linkClass}>
             Create an account
           </Link>
         </p>

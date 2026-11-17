@@ -179,3 +179,10 @@ export function dashboardPathForRole(value: string | null | undefined): string {
       return value === "ORGANIZER" || value === "SUPER_ADMIN" ? "/admin" : "/dashboard/individual";
   }
 }
+
+/** "Runner", "Volunteer", ... when a path such as /register/runner is a registration page, else null. */
+export function registrationTitleForPath(path: string | null | undefined): string | null {
+  if (!path) return null;
+  const pathname = path.split(/[?#]/)[0].replace(/\/+$/, "");
+  return ALL_OPTIONS.find((option) => option.registerPath === pathname)?.title ?? null;
+}

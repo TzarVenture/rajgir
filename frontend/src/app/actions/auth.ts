@@ -1,16 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { api, type ApiRole } from "@/lib/api";
+import { api } from "@/lib/api";
 import { homePath } from "@/lib/auth/paths";
 import { safeRedirect } from "@/lib/auth/redirect";
-import { isSelfSignupRole, registerPathForRole } from "@/lib/auth/roles";
 import {
-  authContext,
   clientContext,
   endSession,
   rememberNext,
-  requireUser,
   saveSession,
 } from "@/lib/auth/session";
 
@@ -80,7 +77,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (res.data.session) {
     // Project has email confirmation switched off: signed in straight away.
     await saveSession(res.data.session);
-    redirect(homePath(res.data.user));
+    redirect(next ?? homePath(res.data.user));
   }
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}`);
@@ -154,19 +151,4 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
   if (!res.success) return { error: res.error ?? "We could not update your password. Please request a new link." };
 
   redirect("/login?reset=1");
-}
-
-export async function selectRole(_prev: FormState, formData: FormData): Promise<FormState> {
-  const role = text(formData, "role");
-  await requireUser("/onboarding/intent");
-
-  if (!isSelfSignupRole(role)) return { error: "Please choose one of the options to continue." };
-
-  const ctx = await authContext();
-  if (!ctx) redirect("/login?redirect=%2Fonboarding%2Fintent");
-
-  const res = await api.users.setMyRole(role as ApiRole, ctx);
-  if (!res.success) return { error: res.error ?? "We could not save your choice. Please try again." };
-
-  redirect(registerPathForRole(role));
 }

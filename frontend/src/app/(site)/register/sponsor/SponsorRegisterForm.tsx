@@ -47,7 +47,6 @@ export default function SponsorRegisterForm({ user }: SponsorRegisterFormProps) 
     setIsSubmitting(true);
     try {
       const res = await submitSponsorRegistration({
-        userId: user.id,
         brandName: formData.brandName.trim(),
         industry: formData.industry.trim(),
         tierInterest: formData.tierInterest.trim(),

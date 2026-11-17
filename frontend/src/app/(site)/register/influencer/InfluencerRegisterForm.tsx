@@ -11,6 +11,7 @@ import {
   FaLock,
   FaBullhorn,
 } from "react-icons/fa";
+import { submitInfluencerRegistration } from "@/app/actions/registerPeople";
 
 const PLATFORM_OPTIONS = ["Instagram", "YouTube", "Strava", "Facebook", "Twitter / X", "Blog / Website"];
 
@@ -20,7 +21,6 @@ interface InfluencerRegisterFormProps {
 
 export default function InfluencerRegisterForm({ user }: InfluencerRegisterFormProps) {
   const [formData, setFormData] = useState({
-    userId: user.id,
     fullName: user.name || "",
     stageName: "",
     email: user.email || "",
@@ -50,20 +50,13 @@ export default function InfluencerRegisterForm({ user }: InfluencerRegisterFormP
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/register/influencer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await submitInfluencerRegistration({
           ...formData,
-          userId: user.id,
           fullName: user.name,
           email: user.email,
           phone: formData.phone || user.phone,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
+        });
+      if (!result.success) {
         throw new Error(result.error || "Failed to submit influencer proposal.");
       }
 

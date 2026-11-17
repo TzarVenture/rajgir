@@ -1,9 +1,7 @@
 import React from "react";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { guardRegistration } from "@/lib/auth/registrationGate";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import RoleConflictCard from "@/components/auth/RoleConflictCard";
 import TeamRegisterForm from "./TeamRegisterForm";
 import { FaUsers, FaMapMarkerAlt } from "react-icons/fa";
 
@@ -13,25 +11,8 @@ export const metadata = {
 };
 
 export default async function TeamRegisterPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login?redirectTo=/register/team");
-  }
-
-  // 1 User = 1 Permanent Role Check:
-  // If user already has a DIFFERENT role assigned, show conflict card
-  if (user.role && user.role !== "TEAM_CAPTAIN") {
-    return (
-      <div className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col">
-        <SiteHeader />
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full flex items-center justify-center">
-          <RoleConflictCard user={user} targetRoleLabel="Team Captain" />
-        </main>
-        <SiteFooter />
-      </div>
-    );
-  }
+  const { user, notice } = await guardRegistration("TEAM_CAPTAIN");
+  if (notice) return notice;
 
   return (
     <div

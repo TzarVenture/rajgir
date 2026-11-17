@@ -42,7 +42,6 @@ export default function VendorRegisterForm({ user }: VendorRegisterFormProps) {
     setIsSubmitting(true);
     try {
       const res = await submitVendorRegistration({
-        userId: user.id,
         businessName: formData.businessName.trim(),
         stallCategory: formData.stallCategory.trim(),
         stallSize: formData.stallSize.trim(),

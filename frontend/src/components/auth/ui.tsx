@@ -117,52 +117,11 @@ export function AuthHeading({ title, subtitle }: { title: string; subtitle?: Rea
   );
 }
 
-export type JourneyStep = "account" | "verify" | "role" | "register";
-
-const STEP_LABELS: Record<JourneyStep, string> = {
-  account: "Create account",
-  verify: "Verify email",
-  role: "Choose role",
-  register: "Register",
-};
-
-/** Progress through the first-time journey. The "Verify email" step is hidden when verification is off. */
-export function StepIndicator({
-  current,
-  withVerification = true,
-}: {
-  current: JourneyStep;
-  withVerification?: boolean;
-}) {
-  const steps = (Object.keys(STEP_LABELS) as JourneyStep[]).filter((s) => withVerification || s !== "verify");
-  const currentIndex = steps.indexOf(current) + 1;
-
+/** Short highlighted note at the top of a form, e.g. which registration the person is working on. */
+export function ContextBanner({ children }: { children: ReactNode }) {
   return (
-    <ol className="mb-6 flex items-center justify-between gap-1" aria-label="Sign-up progress">
-      {steps.map((key, index) => {
-        const label = STEP_LABELS[key];
-        const step = index + 1;
-        const done = step < currentIndex;
-        const active = step === currentIndex;
-        return (
-          <li key={label} className="flex flex-1 flex-col items-center gap-1.5" aria-current={active ? "step" : undefined}>
-            <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
-                done
-                  ? "bg-[#16A34A] text-white"
-                  : active
-                    ? "bg-[#E31B23] text-white ring-4 ring-[#E31B23]/15"
-                    : "bg-[#E5E7EB] text-[#6B7280]"
-              }`}
-            >
-              {done ? "✓" : step}
-            </span>
-            <span className={`text-center text-[10px] font-bold uppercase tracking-wide ${active ? "text-[#111827]" : "text-[#9CA3AF]"}`}>
-              {label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs sm:text-sm font-medium text-blue-800">
+      {children}
+    </div>
   );
 }

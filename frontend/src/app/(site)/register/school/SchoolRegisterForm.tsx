@@ -60,7 +60,6 @@ export default function SchoolRegisterForm({ user }: SchoolRegisterFormProps) {
     setIsSubmitting(true);
     try {
       const res = await submitSchoolRegistration({
-        userId: user.id,
         schoolName: formData.schoolName.trim(),
         boardAffiliation: formData.boardAffiliation.trim(),
         city: formData.city.trim(),

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FaEnvelopeOpenText } from "react-icons/fa";
 import { resendVerification, type FormState } from "@/app/actions/auth";
 import SubmitButton from "@/components/auth/SubmitButton";
-import { Field, FormError, FormNotice, StepIndicator, cardClass, linkClass } from "@/components/auth/ui";
+import { Field, FormError, FormNotice, cardClass, linkClass } from "@/components/auth/ui";
 
 const COOLDOWN_SECONDS = 60;
 
@@ -36,8 +36,6 @@ export default function VerifyEmailCard({
 
   return (
     <div className={cardClass}>
-      <StepIndicator current="verify" />
-
       <div className="mb-5 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FEF3C7] text-2xl text-[#C78A12]">
           <FaEnvelopeOpenText />

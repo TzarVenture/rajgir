@@ -50,8 +50,6 @@ const LEGACY_PUBLIC_PREFIXES = [
   "/register/influencer",
   "/api/forms",
   "/api/influencer",
-  "/api/register/volunteer",
-  "/api/register/influencer",
 ];
 
 function isLegacyPublic(pathname: string): boolean {

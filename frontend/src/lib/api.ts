@@ -43,6 +43,11 @@ export interface ApiUser {
   emailVerified: boolean;
 }
 
+/** The signed-in user's registration, or { registered: false }. */
+export type MyRegistration =
+  | { registered: false }
+  | { registered: true; role: ApiRole; status: string; profile: Record<string, unknown> };
+
 export interface ApiSession {
   accessToken: string;
   refreshToken: string;
@@ -117,55 +122,6 @@ export const api = {
   // Health
   checkHealth: () => request<{ status: string; service: string }>("health"),
 
-  // Runners
-  registerRunner: (payload: unknown) =>
-    request<{
-      success: boolean;
-      registrationNumber: string;
-      runnerName: string;
-      bibName: string;
-      distance: string;
-    }>("runners/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  getRunner: (registrationNumber: string) =>
-    request<unknown>(`runners/${encodeURIComponent(registrationNumber)}`),
-
-  listRunners: (limit = 50, offset = 0) =>
-    request<unknown>(`runners?limit=${limit}&offset=${offset}`),
-
-  // Volunteers
-  registerVolunteer: (payload: unknown) =>
-    request<{ success: boolean; id: string; fullName: string }>("volunteers/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  listVolunteers: (limit = 50, offset = 0) =>
-    request<unknown>(`volunteers?limit=${limit}&offset=${offset}`),
-
-  // Influencers
-  registerInfluencer: (payload: unknown) =>
-    request<{ success: boolean; id: string; fullName: string }>("influencers/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  listInfluencers: (limit = 50, offset = 0) =>
-    request<unknown>(`influencers?limit=${limit}&offset=${offset}`),
-
-  // Admin Overview
-  getAdminOverview: () =>
-    request<{
-      totalRunners: number;
-      totalVolunteers: number;
-      totalInfluencers: number;
-      totalRevenue: number;
-      categoryBreakdown: Array<{ distance: string; count: number }>;
-    }>("admin/overview"),
-
   // Authentication & identity (all logic lives in NestJS)
   auth: {
     /** Public settings, e.g. whether email verification is currently required. */
@@ -207,46 +163,63 @@ export const api = {
       request<ApiUser>("auth/me", { headers: contextHeaders(ctx), cache: "no-store" }),
   },
 
-  users: {
-    setMyRole: (role: ApiRole, ctx: CallContext) => post<ApiUser>("users/me/role", { role }, ctx),
+  /** Registrations. Every call needs the signed-in user (token); the backend decides who the user is. */
+  registrations: {
+    /** The signed-in user's registration, if any. */
+    me: (ctx: CallContext) =>
+      request<MyRegistration>("registrations/me", { headers: contextHeaders(ctx), cache: "no-store" }),
+
+    /** Withdraw a registration that is still pending review. */
+    withdraw: (ctx: CallContext) =>
+      request<{ success: boolean }>("registrations/me", {
+        method: "DELETE",
+        headers: contextHeaders(ctx),
+        cache: "no-store",
+      }),
+
+    team: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown; teamJoinCode: string }>("registrations/team", payload, ctx),
+    corporate: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown }>("registrations/corporate", payload, ctx),
+    school: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown }>("registrations/school", payload, ctx),
+    sponsor: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown }>("registrations/sponsor", payload, ctx),
+    vendor: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown }>("registrations/vendor", payload, ctx),
+    tourism: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; profile: unknown }>("registrations/tourism", payload, ctx),
   },
 
-  // Group Registrations
-  registerTeam: (payload: any) =>
-    request<{ success: boolean; profile: any; teamJoinCode: string }>("registrations/team", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  runners: {
+    register: (payload: unknown, ctx: CallContext) =>
+      post<{
+        success: boolean;
+        registrationNumber: string;
+        runnerName: string;
+        bibName: string;
+        distance: string;
+        raceTitle: string;
+        email: string;
+        paymentStatus: string | null;
+        qrToken: string | null;
+      }>("runners/register", payload, ctx),
 
-  registerCorporate: (payload: any) =>
-    request<{ success: boolean; profile: any }>("registrations/corporate", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    /** Owner or staff only. */
+    get: (registrationNumber: string, ctx: CallContext) =>
+      request<Record<string, unknown>>(`runners/${encodeURIComponent(registrationNumber)}`, {
+        headers: contextHeaders(ctx),
+        cache: "no-store",
+      }),
+  },
 
-  registerSchool: (payload: any) =>
-    request<{ success: boolean; profile: any }>("registrations/school", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  volunteers: {
+    register: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; id: string; fullName: string; status: string }>("volunteers/register", payload, ctx),
+  },
 
-  // Partner Registrations
-  registerSponsor: (payload: any) =>
-    request<{ success: boolean; profile: any }>("registrations/sponsor", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  registerVendor: (payload: any) =>
-    request<{ success: boolean; profile: any }>("registrations/vendor", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  registerTourism: (payload: any) =>
-    request<{ success: boolean; profile: any }>("registrations/tourism", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  influencers: {
+    register: (payload: unknown, ctx: CallContext) =>
+      post<{ success: boolean; id: string; fullName: string; status: string }>("influencers/register", payload, ctx),
+  },
 };
-

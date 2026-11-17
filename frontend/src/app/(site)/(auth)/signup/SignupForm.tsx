@@ -6,19 +6,29 @@ import { useSearchParams } from "next/navigation";
 import { signUp, type FormState } from "@/app/actions/auth";
 import PasswordField from "@/components/auth/PasswordField";
 import SubmitButton from "@/components/auth/SubmitButton";
-import { AuthHeading, Field, FormError, StepIndicator, cardClass, linkClass } from "@/components/auth/ui";
+import { AuthHeading, ContextBanner, Field, FormError, cardClass, linkClass } from "@/components/auth/ui";
+import { registrationTitleForPath } from "@/lib/auth/roles";
 
-function RegisterFormInner({ withVerification }: { withVerification: boolean }) {
+function SignupFormInner({ withVerification }: { withVerification: boolean }) {
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || params.get("redirectTo") || "";
   const [state, action] = useActionState<FormState, FormData>(signUp, undefined);
   const errors = state?.fieldErrors ?? {};
   const query = redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
+  const registering = registrationTitleForPath(redirectTo);
 
   return (
     <div className={cardClass}>
-      <StepIndicator current="account" withVerification={withVerification} />
-      <AuthHeading title="Create your account" subtitle="One account for everything you do at the Rajgir Marathon." />
+      <AuthHeading
+        title="Create your account"
+        subtitle="Just the basics. You will add the rest on the registration form."
+      />
+
+      {registering ? (
+        <ContextBanner>
+          You are registering as <strong>{registering}</strong>. Create your account and you will go straight back to the form.
+        </ContextBanner>
+      ) : null}
 
       <form action={action} className="space-y-4">
         <input type="hidden" name="redirect" value={redirectTo} />
@@ -40,7 +50,7 @@ function RegisterFormInner({ withVerification }: { withVerification: boolean }) 
 
         <FormError message={state?.error} />
 
-        <SubmitButton label="Create account" pendingLabel="Creating your account..." />
+        <SubmitButton label={registering ? "Create account and continue" : "Create account"} pendingLabel="Creating your account..." />
 
         <p className="text-center text-[11px] leading-relaxed text-[#6B7280]">
           By creating an account you agree to receive race updates by email and SMS.
@@ -59,10 +69,10 @@ function RegisterFormInner({ withVerification }: { withVerification: boolean }) 
   );
 }
 
-export default function RegisterForm({ withVerification }: { withVerification: boolean }) {
+export default function SignupForm({ withVerification }: { withVerification: boolean }) {
   return (
     <Suspense fallback={<div className="py-10 text-center text-xs text-neutral-400">Loading...</div>}>
-      <RegisterFormInner withVerification={withVerification} />
+      <SignupFormInner withVerification={withVerification} />
     </Suspense>
   );
 }

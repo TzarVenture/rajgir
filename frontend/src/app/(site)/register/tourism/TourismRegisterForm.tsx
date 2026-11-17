@@ -51,7 +51,6 @@ export default function TourismRegisterForm({ user }: TourismRegisterFormProps) 
     setIsSubmitting(true);
     try {
       const res = await submitTourismRegistration({
-        userId: user.id,
         businessName: formData.businessName.trim(),
         serviceType: formData.serviceType.trim(),
         location: formData.location.trim(),

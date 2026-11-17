@@ -52,7 +52,6 @@ export default function TeamRegisterForm({ user }: TeamRegisterFormProps) {
     setIsSubmitting(true);
     try {
       const res = await submitTeamRegistration({
-        userId: user.id,
         teamName: formData.teamName.trim(),
         clubAffiliation: formData.clubAffiliation.trim() || undefined,
         city: formData.city.trim(),

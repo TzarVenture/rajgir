@@ -1,5 +1,5 @@
 /** Pages that must never be used as a post-login destination (avoids loops and open redirects). */
-const AUTH_PAGES = new Set(["/login", "/register", "/verify-email", "/forgot-password", "/reset-password"]);
+const AUTH_PAGES = new Set(["/login", "/signup", "/verify-email", "/forgot-password", "/reset-password"]);
 
 /**
  * Returns the path if it is a safe same-site destination, otherwise null.

@@ -11,6 +11,7 @@ import {
   FaShieldAlt,
   FaLock,
 } from "react-icons/fa";
+import { submitVolunteerRegistration } from "@/app/actions/registerPeople";
 
 const TSHIRT_SIZES = ["S", "M", "L", "XL", "XXL"];
 
@@ -36,7 +37,6 @@ interface VolunteerRegisterFormProps {
 export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    userId: user.id,
     fullName: user.name || "",
     email: user.email || "",
     phone: user.phone || "",
@@ -83,20 +83,13 @@ export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormPro
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/register/volunteer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await submitVolunteerRegistration({
           ...formData,
-          userId: user.id,
           fullName: user.name,
           email: user.email,
           phone: formData.phone || user.phone,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
+        });
+      if (!result.success) {
         throw new Error(result.error || "Failed to submit volunteer registration.");
       }
 

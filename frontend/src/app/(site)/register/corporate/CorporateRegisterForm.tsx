@@ -56,7 +56,6 @@ export default function CorporateRegisterForm({ user }: CorporateRegisterFormPro
     setIsSubmitting(true);
     try {
       const res = await submitCorporateRegistration({
-        userId: user.id,
         companyName: formData.companyName.trim(),
         gstin: formData.gstin.trim() || undefined,
         officialEmailDomain: formData.officialEmailDomain.trim(),

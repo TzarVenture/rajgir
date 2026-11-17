@@ -1,9 +1,7 @@
 import React from "react";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { guardRegistration } from "@/lib/auth/registrationGate";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import RoleConflictCard from "@/components/auth/RoleConflictCard";
 import VendorRegisterForm from "./VendorRegisterForm";
 import { FaStore, FaMapMarkerAlt } from "react-icons/fa";
 
@@ -13,24 +11,8 @@ export const metadata = {
 };
 
 export default async function VendorRegisterPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login?redirectTo=/register/vendor");
-  }
-
-  // 1 User = 1 Permanent Role Check
-  if (user.role && user.role !== "VENDOR") {
-    return (
-      <div className="relative min-h-screen w-full bg-[#080604] text-white flex flex-col">
-        <SiteHeader />
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full flex items-center justify-center">
-          <RoleConflictCard user={user} targetRoleLabel="Expo Vendor" />
-        </main>
-        <SiteFooter />
-      </div>
-    );
-  }
+  const { user, notice } = await guardRegistration("VENDOR");
+  if (notice) return notice;
 
   return (
     <div
