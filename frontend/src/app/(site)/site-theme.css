@@ -72,3 +72,11 @@ body:has(.site-root) {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * The root layout loads a legacy prebuilt stylesheet (tailwind-built.css) AFTER globals.css, and its base
+ * utilities (for example .grid-cols-1) override newer responsive variants such as
+ * lg:grid-cols-[minmax(0,1fr)_340px]. Re-emitting the utilities here, for real-site pages only, puts every
+ * variant in the correct order. Coming Soon never loads this file.
+ */
+@tailwind utilities;
