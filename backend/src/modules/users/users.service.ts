@@ -27,6 +27,14 @@ export interface PublicUser {
   emailVerified: boolean;
 }
 
+/**
+ * Email verification is switched off while REQUIRE_EMAIL_VERIFICATION=false.
+ * (Also turn off "Confirm email" in the Supabase dashboard.) Defaults to required.
+ */
+export function requireEmailVerification(): boolean {
+  return (process.env.REQUIRE_EMAIL_VERIFICATION ?? 'true').trim().toLowerCase() !== 'false';
+}
+
 export function toPublicUser(user: User, emailVerified: boolean): PublicUser {
   return {
     id: user.id,
@@ -35,7 +43,8 @@ export function toPublicUser(user: User, emailVerified: boolean): PublicUser {
     fullName: user.fullName,
     role: user.role,
     status: user.status,
-    emailVerified,
+    // When verification is not required, nobody is held back by it.
+    emailVerified: emailVerified || !requireEmailVerification(),
   };
 }
 

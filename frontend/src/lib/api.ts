@@ -168,6 +168,10 @@ export const api = {
 
   // Authentication & identity (all logic lives in NestJS)
   auth: {
+    /** Public settings, e.g. whether email verification is currently required. */
+    config: () =>
+      request<{ requireEmailVerification: boolean }>("auth/config", { cache: "no-store" }),
+
     signup: (
       payload: { name: string; email: string; mobile: string; password: string },
       ctx?: CallContext

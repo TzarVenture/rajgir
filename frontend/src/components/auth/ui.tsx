@@ -117,16 +117,33 @@ export function AuthHeading({ title, subtitle }: { title: string; subtitle?: Rea
   );
 }
 
-const STEPS = ["Create account", "Verify email", "Choose role", "Register"];
+export type JourneyStep = "account" | "verify" | "role" | "register";
 
-/** Progress through the first-time journey. `current` is 1-based. */
-export function StepIndicator({ current }: { current: 1 | 2 | 3 | 4 }) {
+const STEP_LABELS: Record<JourneyStep, string> = {
+  account: "Create account",
+  verify: "Verify email",
+  role: "Choose role",
+  register: "Register",
+};
+
+/** Progress through the first-time journey. The "Verify email" step is hidden when verification is off. */
+export function StepIndicator({
+  current,
+  withVerification = true,
+}: {
+  current: JourneyStep;
+  withVerification?: boolean;
+}) {
+  const steps = (Object.keys(STEP_LABELS) as JourneyStep[]).filter((s) => withVerification || s !== "verify");
+  const currentIndex = steps.indexOf(current) + 1;
+
   return (
     <ol className="mb-6 flex items-center justify-between gap-1" aria-label="Sign-up progress">
-      {STEPS.map((label, index) => {
+      {steps.map((key, index) => {
+        const label = STEP_LABELS[key];
         const step = index + 1;
-        const done = step < current;
-        const active = step === current;
+        const done = step < currentIndex;
+        const active = step === currentIndex;
         return (
           <li key={label} className="flex flex-1 flex-col items-center gap-1.5" aria-current={active ? "step" : undefined}>
             <span

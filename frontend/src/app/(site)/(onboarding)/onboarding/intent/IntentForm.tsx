@@ -45,10 +45,12 @@ export default function IntentForm({
   userName,
   currentRole,
   currentTypeId,
+  withVerification,
 }: {
   userName: string;
   currentRole: string | null;
   currentTypeId: AccountTypeId | null;
+  withVerification: boolean;
 }) {
   const [state, action] = useActionState<FormState, FormData>(selectRole, undefined);
   const [typeId, setTypeId] = useState<AccountTypeId | null>(currentTypeId);
@@ -59,7 +61,7 @@ export default function IntentForm({
 
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-xl shadow-gray-200/50 sm:p-8">
-      <StepIndicator current={3} />
+      <StepIndicator current="role" withVerification={withVerification} />
 
       {!type ? (
         <section aria-labelledby="type-heading">

@@ -36,7 +36,7 @@ export default function VerifyEmailCard({
 
   return (
     <div className={cardClass}>
-      <StepIndicator current={2} />
+      <StepIndicator current="verify" />
 
       <div className="mb-5 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FEF3C7] text-2xl text-[#C78A12]">

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
-import { toPublicUser } from '../users/users.service';
+import { requireEmailVerification, toPublicUser } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
@@ -13,6 +13,12 @@ const perMinute = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
+
+  @Get('config')
+  @ApiOperation({ summary: 'Public auth settings the UI adapts to' })
+  config() {
+    return { requireEmailVerification: requireEmailVerification() };
+  }
 
   @Post('signup')
   @Throttle(perMinute(5))
