@@ -30,3 +30,45 @@ body:has(.site-root) {
 .site-root .font-devanagari {
   font-family: 'Noto Sans Devanagari', -apple-system, sans-serif !important;
 }
+
+/* Design tokens from designn.md (section 23). Scoped to the real site; Coming Soon never loads this file. */
+.site-root {
+  --brand-red: #E31B23;
+  --brand-red-dark: #B5121B;
+  --brand-saffron: #F5A623;
+  --brand-gold: #FFC928;
+  --brand-gold-dark: #C78A12;
+  --surface: #FFFFFF;
+  --surface-soft: #F8F8F6;
+  --surface-warm: #FFF9EF;
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --success: #15803D;
+  --warning: #D97706;
+  --error: #DC2626;
+  --info: #2563EB;
+  --font-body: "Manrope", sans-serif;
+  --font-display: "Barlow Condensed", sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-card: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 2px 8px rgba(17, 24, 39, 0.05);
+  --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+/* Respect reduced-motion preferences on the real site. */
+@media (prefers-reduced-motion: reduce) {
+  .site-root *,
+  .site-root *::before,
+  .site-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
