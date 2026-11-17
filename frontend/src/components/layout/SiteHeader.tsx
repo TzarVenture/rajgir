@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/app/actions/auth";
+import { useHeaderUser } from "@/components/layout/HeaderAuth";
 import {
   FaRunning,
   FaBars,
@@ -20,6 +22,8 @@ interface SiteHeaderProps {
 
 export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps) {
   const pathname = usePathname();
+  const user = useHeaderUser();
+  const firstName = user?.name.trim().split(" ")[0] ?? "";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -106,13 +110,40 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
 
           {/* 3. RIGHT CTAS */}
           <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href="/admin"
-              className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 font-manrope shadow-sm"
-            >
-              <FaUserCircle className="text-sm text-[#C78A12]" />
-              <span>Portal</span>
-            </Link>
+{user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 font-manrope shadow-sm max-w-[11rem]"
+                >
+                  <FaUserCircle className="text-sm text-[#C78A12] shrink-0" />
+                  <span className="truncate">{firstName}</span>
+                </Link>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-[#6B7280] hover:text-[#E31B23] transition-colors font-manrope"
+                  >
+                    Log out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-[#374151] hover:text-[#E31B23] transition-colors font-manrope"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all font-manrope shadow-sm"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
 
             <Link
               href="/register/runner"
@@ -125,6 +156,14 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
 
           {/* 4. MOBILE HAMBURGER BUTTON */}
           <div className="flex items-center gap-2 lg:hidden">
+            <Link
+              href={user ? "/dashboard" : "/login"}
+              aria-label={user ? "My dashboard" : "Log in"}
+              className="sm:hidden w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-[#111827] hover:text-[#E31B23] transition-colors"
+            >
+              <FaUserCircle className="text-lg" />
+            </Link>
+
             <Link
               href="/register/runner"
               className="sm:hidden py-1.5 px-3.5 rounded-lg bg-[#E31B23] text-white font-extrabold text-[11px] uppercase tracking-wider shadow font-manrope"
@@ -177,22 +216,42 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
               <span>Register As Runner</span>
             </Link>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/join"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
-              >
-                Volunteer / Creator
-              </Link>
-              <Link
-                href="/admin"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
-              >
-                Portal Login
-              </Link>
-            </div>
+            {user ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope truncate"
+                >
+                  {firstName}: Dashboard
+                </Link>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#E31B23] font-manrope"
+                  >
+                    Log out
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

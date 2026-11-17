@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./site-theme.css";
 import { isGateActive } from "@/lib/gate";
+import { HeaderAuthProvider } from "@/components/layout/HeaderAuth";
 import { PreviewProvider } from "@/components/layout/PreviewContext";
+import { getCurrentUser } from "@/lib/auth/session";
 
 /**
  * Layout for the REAL site only (everything behind the Coming Soon gate).
@@ -17,12 +19,16 @@ export const metadata: Metadata = {
     "Official digital platform for the Rajgir Marathon. Connects runners, volunteers, sponsors, expo vendors, and tourism partners in the historic city of Rajgir, Bihar.",
 };
 
-export default function SiteLayout({
+export default async function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getCurrentUser();
+
   return (
     <div className="site-root flex flex-1 flex-col bg-white text-[#111827] font-manrope antialiased">
-      <PreviewProvider isPreview={isGateActive()}>{children}</PreviewProvider>
+      <PreviewProvider isPreview={isGateActive()}>
+        <HeaderAuthProvider user={user ? { name: user.name } : null}>{children}</HeaderAuthProvider>
+      </PreviewProvider>
     </div>
   );
 }
