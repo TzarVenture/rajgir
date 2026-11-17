@@ -1,8 +1,8 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, Role, User } from '@prisma/client';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SELF_SIGNUP_ROLES } from '../../common/constants/roles';
+import { ROLE_LABELS, STAFF_ROLES } from '../../common/constants/roles';
 
 const PROFILE_INCLUDE = {
   runnerRegistration: true,
@@ -15,6 +15,45 @@ const PROFILE_INCLUDE = {
   vendorProfile: true,
   tourismProfile: true,
 } satisfies Prisma.UserInclude;
+
+type ProfileKey = keyof typeof PROFILE_INCLUDE;
+
+/** Which user relation holds the registration for each role. */
+const PROFILE_FOR_ROLE: Record<string, ProfileKey> = {
+  RUNNER: "runnerRegistration",
+  VOLUNTEER: "volunteer",
+  INFLUENCER: "influencer",
+  TEAM_CAPTAIN: "teamProfile",
+  CORPORATE_MANAGER: "corporateProfile",
+  SCHOOL_COORDINATOR: "schoolProfile",
+  SPONSOR: "sponsorProfile",
+  VENDOR: "vendorProfile",
+  TOURISM_PARTNER: "tourismProfile",
+};
+
+/** Prisma delegate name for each relation (used when withdrawing). */
+const DELEGATE_FOR_KEY: Record<ProfileKey, string> = {
+  runnerRegistration: "runnerRegistration",
+  volunteer: "volunteer",
+  influencer: "influencer",
+  teamProfile: "teamProfile",
+  corporateProfile: "corporateProfile",
+  schoolProfile: "schoolProfile",
+  sponsorProfile: "sponsorProfile",
+  vendorProfile: "vendorProfile",
+  tourismProfile: "tourismProfile",
+};
+
+/** Registrations that wait for organizer review and can be withdrawn while pending. */
+const WITHDRAWABLE_ROLES: Role[] = [
+  Role.VOLUNTEER,
+  Role.INFLUENCER,
+  Role.CORPORATE_MANAGER,
+  Role.SCHOOL_COORDINATOR,
+  Role.SPONSOR,
+  Role.VENDOR,
+  Role.TOURISM_PARTNER,
+];
 
 /** Safe user shape returned to the frontend. */
 export interface PublicUser {
@@ -130,37 +169,71 @@ export class UsersService {
   }
 
   /**
-   * Save the role the signed-in user chose.
-   * Rules: self-signup roles only; one role per account; changeable until a registration is submitted.
+   * Which registration (if any) this account has submitted.
+   * The role is only ever set by submitting a registration, so the profile tables are the source of truth.
    */
-  async setOwnRole(userId: string, requestedRole: Role): Promise<User> {
-    if (!SELF_SIGNUP_ROLES.includes(requestedRole)) {
-      throw new BadRequestException('This role cannot be selected.');
+  async getRegistration(userId: string): Promise<{ role: Role; status: string; profile: Record<string, unknown> } | null> {
+    const user = await this.getUserById(userId);
+    for (const [role, key] of Object.entries(PROFILE_FOR_ROLE) as [Role, ProfileKey][]) {
+      const profile = user[key] as Record<string, unknown> | null;
+      if (profile) {
+        const profileStatus = (profile.status ?? profile.paymentStatus ?? "submitted") as string;
+        return { role, status: String(profileStatus), profile };
+      }
     }
+    return null;
+  }
 
+  /**
+   * One registration per account. Call before creating any registration profile.
+   * Returns the user when they are free to register as `role`.
+   */
+  async assertCanRegister(userId: string, role: Role): Promise<User> {
     const user = await this.getUserById(userId);
 
-    if (user.role && user.role !== requestedRole) {
-      const hasSubmittedRegistration = Boolean(
-        user.runnerRegistration ||
-          user.volunteer ||
-          user.influencer ||
-          user.teamProfile ||
-          user.corporateProfile ||
-          user.schoolProfile ||
-          user.sponsorProfile ||
-          user.vendorProfile ||
-          user.tourismProfile,
-      );
-      if (hasSubmittedRegistration) {
-        throw new BadRequestException(
-          `This account is already registered as ${user.role.replace(/_/g, ' ').toLowerCase()} and cannot be changed. Please use a separate account for a different role.`,
+    if (STAFF_ROLES.includes(user.role as Role)) {
+      throw new ForbiddenException("Staff accounts cannot submit event registrations.");
+    }
+    if (user.status === "SUSPENDED") {
+      throw new ForbiddenException("This account is suspended. Please contact support.");
+    }
+
+    for (const [existingRole, key] of Object.entries(PROFILE_FOR_ROLE) as [Role, ProfileKey][]) {
+      if (user[key]) {
+        throw new ConflictException(
+          existingRole === role
+            ? "You have already submitted this registration."
+            : `This account is already registered as ${ROLE_LABELS[existingRole]}. Each account can hold one registration. Use a different account to register as ${ROLE_LABELS[role]}.`,
         );
       }
     }
 
-    const updated = await this.prisma.user.update({ where: { id: userId }, data: { role: requestedRole } });
-    this.logger.log(`User ${user.email} chose role ${requestedRole}`);
-    return updated;
+    return user;
+  }
+
+  /**
+   * Withdraw a registration that is still waiting for review so the person can register as something else.
+   * Not allowed once it is active (runners are confirmed immediately; contact support for changes).
+   */
+  async withdrawRegistration(userId: string) {
+    const registration = await this.getRegistration(userId);
+    if (!registration) throw new NotFoundException("You do not have a registration to withdraw.");
+
+    if (!WITHDRAWABLE_ROLES.includes(registration.role) || registration.status !== "pending") {
+      throw new ConflictException(
+        "This registration can no longer be withdrawn online. Please contact the organizers for changes.",
+      );
+    }
+
+    const key = PROFILE_FOR_ROLE[registration.role];
+    await this.prisma.$transaction(async (tx) => {
+      // Every profile delegate exposes the same deleteMany({ where: { userId } }) shape.
+      const delegates = tx as unknown as Record<string, { deleteMany(args: { where: { userId: string } }): Promise<unknown> }>;
+      await delegates[DELEGATE_FOR_KEY[key]].deleteMany({ where: { userId } });
+      await tx.user.update({ where: { id: userId }, data: { role: null, status: "PENDING_ONBOARDING" } });
+    });
+
+    this.logger.log(`User ${userId} withdrew their ${registration.role} registration`);
+    return { success: true };
   }
 }

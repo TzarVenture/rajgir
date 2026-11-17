@@ -2,11 +2,6 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterSponsorDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: 'Amrit Mineral Waters Ltd' })
   @IsString()
   @IsNotEmpty()

@@ -2,11 +2,6 @@ import { IsNotEmpty, IsString, IsNumber, Min, IsBoolean } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterSchoolDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: "St. Xavier's High School Rajgir" })
   @IsString()
   @IsNotEmpty()

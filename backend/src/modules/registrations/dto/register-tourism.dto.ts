@@ -2,11 +2,6 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterTourismDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: 'Rajgir Heritage Resort & Spa' })
   @IsString()
   @IsNotEmpty()

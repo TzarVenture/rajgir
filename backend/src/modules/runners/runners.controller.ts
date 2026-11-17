@@ -1,36 +1,41 @@
-import { Controller, Post, Body, Get, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { Roles, RolesGuard } from '../../common/guards/roles.guard';
 import { RunnersService } from './runners.service';
 import { CreateRunnerDto } from './dto/create-runner.dto';
 
 @ApiTags('Runners')
+@ApiBearerAuth()
+@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Controller('runners')
 export class RunnersController {
   constructor(private readonly runnersService: RunnersService) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new marathon runner' })
-  @ApiResponse({ status: 201, description: 'Runner registered successfully' })
-  @ApiResponse({ status: 400, description: 'Validation or duplicate error' })
-  registerRunner(@Body() dto: CreateRunnerDto) {
-    return this.runnersService.registerRunner(dto);
-  }
-
-  @Get(':registrationNumber')
-  @ApiOperation({ summary: 'Get registration details by Registration Number' })
-  getRegistration(@Param('registrationNumber') registrationNumber: string) {
-    return this.runnersService.getRegistrationByNumber(registrationNumber);
+  @ApiOperation({ summary: 'Register the signed-in user as a runner' })
+  registerRunner(@CurrentUser() auth: AuthContext, @Body() dto: CreateRunnerDto) {
+    return this.runnersService.registerRunner(auth.dbUser.id, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all registered runners (Admin / Operations)' })
+  @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'List all registered runners (staff only)' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
-  listRunners(
-    @Query('limit') limit = 50,
-    @Query('offset') offset = 0,
-  ) {
+  listRunners(@Query('limit') limit = 50, @Query('offset') offset = 0) {
     return this.runnersService.listRunners(Number(limit), Number(offset));
+  }
+
+  @Get(':registrationNumber')
+  @ApiOperation({ summary: 'Get a registration by number (owner or staff)' })
+  getRegistration(@CurrentUser() auth: AuthContext, @Param('registrationNumber') registrationNumber: string) {
+    return this.runnersService.getRegistrationByNumber(registrationNumber, {
+      id: auth.dbUser.id,
+      role: auth.dbUser.role,
+    });
   }
 }

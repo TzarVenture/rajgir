@@ -2,11 +2,6 @@ import { IsNotEmpty, IsOptional, IsString, IsNumber, Min } from 'class-validator
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterTeamDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: 'Patna Striders Running Club' })
   @IsString()
   @IsNotEmpty()

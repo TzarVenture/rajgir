@@ -2,11 +2,6 @@ import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterVendorDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: 'Magadh Organic Food & Nutrition' })
   @IsString()
   @IsNotEmpty()

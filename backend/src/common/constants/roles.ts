@@ -1,16 +1,18 @@
 import { Role } from '@prisma/client';
 
-/** Roles a person may choose for themselves. Staff roles are assigned by admins only. */
-export const SELF_SIGNUP_ROLES: Role[] = [
-  Role.RUNNER,
-  Role.VOLUNTEER,
-  Role.INFLUENCER,
-  Role.TEAM_CAPTAIN,
-  Role.CORPORATE_MANAGER,
-  Role.SCHOOL_COORDINATOR,
-  Role.SPONSOR,
-  Role.VENDOR,
-  Role.TOURISM_PARTNER,
-];
-
 export const STAFF_ROLES: Role[] = [Role.ORGANIZER, Role.SUPER_ADMIN];
+
+/** Plain-language names used in messages. */
+export const ROLE_LABELS: Record<Role, string> = {
+  RUNNER: 'a runner',
+  VOLUNTEER: 'a volunteer',
+  INFLUENCER: 'an influencer',
+  TEAM_CAPTAIN: 'a team captain',
+  CORPORATE_MANAGER: 'a company',
+  SCHOOL_COORDINATOR: 'a school or college',
+  SPONSOR: 'a sponsor',
+  VENDOR: 'an expo or food stall',
+  TOURISM_PARTNER: 'a hotel or tourism partner',
+  ORGANIZER: 'an organizer',
+  SUPER_ADMIN: 'an administrator',
+};

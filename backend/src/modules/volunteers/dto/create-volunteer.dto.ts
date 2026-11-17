@@ -9,11 +9,6 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateVolunteerDto {
-  @ApiPropertyOptional({ example: 'usr-uuid-here' })
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
   @ApiProperty({ example: 'Aarav Sharma' })
   @IsString()
   @IsNotEmpty()

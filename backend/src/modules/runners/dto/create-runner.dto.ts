@@ -3,31 +3,16 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
-  IsNumber,
   IsBoolean,
   IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRunnerDto {
-  @ApiPropertyOptional({ example: 'usr-uuid-here' })
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
   @ApiProperty({ example: '21.1 KM' })
   @IsString()
   @IsNotEmpty()
   categoryDistance: string;
-
-  @ApiProperty({ example: 'Half Marathon' })
-  @IsString()
-  @IsNotEmpty()
-  categoryTitle: string;
-
-  @ApiProperty({ example: 1499 })
-  @IsNumber()
-  registrationFee: number;
 
   @ApiProperty({ example: 'Rahul' })
   @IsString()

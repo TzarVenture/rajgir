@@ -2,11 +2,6 @@ import { IsNotEmpty, IsOptional, IsString, IsNumber, Min } from 'class-validator
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterCorporateDto {
-  @ApiProperty({ example: 'usr-uuid-here' })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
   @ApiProperty({ example: 'Tata Steel CSR Foundation' })
   @IsString()
   @IsNotEmpty()

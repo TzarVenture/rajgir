@@ -1,261 +1,187 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { AccountStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
 import { RegisterTeamDto } from './dto/register-team.dto';
 import { RegisterCorporateDto } from './dto/register-corporate.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 import { RegisterSponsorDto } from './dto/register-sponsor.dto';
 import { RegisterVendorDto } from './dto/register-vendor.dto';
 import { RegisterTourismDto } from './dto/register-tourism.dto';
-import { Role } from '@prisma/client';
 
+/**
+ * Group and partner registrations.
+ * Every method: the signed-in user comes from the token (never the request body), one registration per
+ * account is enforced, and the profile + the user's role/status are saved together in one transaction.
+ */
 @Injectable()
 export class RegistrationsService {
   private readonly logger = new Logger(RegistrationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly users: UsersService,
+  ) {}
 
-  private async validateAndPrepareUser(userId: string, expectedRole: Role) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        runnerRegistration: true,
-        volunteer: true,
-        influencer: true,
-        teamProfile: true,
-        corporateProfile: true,
-        schoolProfile: true,
-        sponsorProfile: true,
-        vendorProfile: true,
-        tourismProfile: true,
-      },
-    });
-
-    if (!user) {
-      throw new BadRequestException(`User account with ID ${userId} does not exist.`);
-    }
-
-    // 1 User = 1 Role check:
-    if (user.role && user.role !== expectedRole) {
-      const hasOtherProfile =
-        user.runnerRegistration ||
-        user.volunteer ||
-        user.influencer ||
-        user.teamProfile ||
-        user.corporateProfile ||
-        user.schoolProfile ||
-        user.sponsorProfile ||
-        user.vendorProfile ||
-        user.tourismProfile;
-
-      if (hasOtherProfile) {
-        throw new BadRequestException(
-          `This account is already registered as ${user.role}. Accounts are strictly limited to one role per phone/email.`,
-        );
+  private async submit<T>(
+    userId: string,
+    role: Role,
+    status: AccountStatus,
+    create: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    await this.users.assertCanRegister(userId, role);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const profile = await create(tx);
+        await tx.user.update({ where: { id: userId }, data: { role, status } });
+        return profile;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('You have already submitted this registration.');
       }
+      throw error;
     }
-
-    return user;
   }
 
-  // --- 1. TEAM CAPTAIN REGISTRATION ---
-  async registerTeam(dto: RegisterTeamDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.TEAM_CAPTAIN);
+  /** The signed-in user's registration (if any), for "you are registered" screens and dashboards. */
+  async getMine(userId: string) {
+    const registration = await this.users.getRegistration(userId);
+    if (!registration) return { registered: false as const };
+    return { registered: true as const, ...registration };
+  }
 
-    if (user.teamProfile) {
-      throw new BadRequestException('This account already has a registered team profile.');
+  withdrawMine(userId: string) {
+    return this.users.withdrawRegistration(userId);
+  }
+
+  // --- 1. TEAM / RUNNING CLUB (active straight away) ---
+  private async freeTeamJoinCode(): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = `TEAM-${Math.floor(1000 + Math.random() * 9000)}`;
+      const taken = await this.prisma.teamProfile.findUnique({ where: { teamJoinCode: code } });
+      if (!taken) return code;
     }
+    return `TEAM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const teamJoinCode = `TEAM-${randomSuffix}`;
-
-    const profile = await this.prisma.teamProfile.create({
-      data: {
-        userId: user.id,
-        teamName: dto.teamName.trim(),
-        clubAffiliation: dto.clubAffiliation?.trim() || null,
-        city: dto.city.trim(),
-        teamJoinCode,
-        estimatedMembers: dto.estimatedMembers,
-        notes: dto.notes?.trim() || null,
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.TEAM_CAPTAIN,
-        status: 'ACTIVE',
-      },
-    });
-
-    this.logger.log(`Team created: ${profile.teamName} by ${user.email} (Code: ${teamJoinCode})`);
+  async registerTeam(userId: string, dto: RegisterTeamDto) {
+    const teamJoinCode = await this.freeTeamJoinCode();
+    const profile = await this.submit(userId, Role.TEAM_CAPTAIN, 'ACTIVE', (tx) =>
+      tx.teamProfile.create({
+        data: {
+          userId,
+          teamName: dto.teamName.trim(),
+          clubAffiliation: dto.clubAffiliation?.trim() || null,
+          city: dto.city.trim(),
+          teamJoinCode,
+          estimatedMembers: dto.estimatedMembers,
+          notes: dto.notes?.trim() || null,
+        },
+      }),
+    );
+    this.logger.log(`Team created: ${profile.teamName} (Code: ${teamJoinCode})`);
     return { success: true, profile, teamJoinCode };
   }
 
-  // --- 2. CORPORATE REGISTRATION ---
-  async registerCorporate(dto: RegisterCorporateDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.CORPORATE_MANAGER);
-
-    if (user.corporateProfile) {
-      throw new BadRequestException('This account already has a registered corporate profile.');
-    }
-
-    const profile = await this.prisma.corporateProfile.create({
-      data: {
-        userId: user.id,
-        companyName: dto.companyName.trim(),
-        gstin: dto.gstin?.trim() || null,
-        officialEmailDomain: dto.officialEmailDomain.trim(),
-        designation: dto.designation.trim(),
-        estimatedPasses: dto.estimatedPasses,
-        csrFocus: dto.csrFocus?.trim() || null,
-        billingAddress: dto.billingAddress?.trim() || null,
-        status: 'pending',
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.CORPORATE_MANAGER,
-        status: 'PENDING_APPROVAL',
-      },
-    });
-
-    this.logger.log(`Corporate application submitted: ${profile.companyName} by ${user.email}`);
+  // --- 2. CORPORATE ---
+  async registerCorporate(userId: string, dto: RegisterCorporateDto) {
+    const profile = await this.submit(userId, Role.CORPORATE_MANAGER, 'PENDING_APPROVAL', (tx) =>
+      tx.corporateProfile.create({
+        data: {
+          userId,
+          companyName: dto.companyName.trim(),
+          gstin: dto.gstin?.trim() || null,
+          officialEmailDomain: dto.officialEmailDomain.trim(),
+          designation: dto.designation.trim(),
+          estimatedPasses: dto.estimatedPasses,
+          csrFocus: dto.csrFocus?.trim() || null,
+          billingAddress: dto.billingAddress?.trim() || null,
+          status: 'pending',
+        },
+      }),
+    );
+    this.logger.log(`Corporate application submitted: ${profile.companyName}`);
     return { success: true, profile };
   }
 
-  // --- 3. SCHOOL REGISTRATION ---
-  async registerSchool(dto: RegisterSchoolDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.SCHOOL_COORDINATOR);
-
-    if (user.schoolProfile) {
-      throw new BadRequestException('This account already has a registered school profile.');
-    }
-
-    const profile = await this.prisma.schoolProfile.create({
-      data: {
-        userId: user.id,
-        schoolName: dto.schoolName.trim(),
-        boardAffiliation: dto.boardAffiliation.trim(),
-        city: dto.city.trim(),
-        teacherInCharge: dto.teacherInCharge.trim(),
-        teacherDesignation: dto.teacherDesignation.trim(),
-        estimatedStudents: dto.estimatedStudents,
-        parentalConsentAgreed: dto.parentalConsentAgreed,
-        status: 'pending',
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.SCHOOL_COORDINATOR,
-        status: 'PENDING_APPROVAL',
-      },
-    });
-
-    this.logger.log(`School application submitted: ${profile.schoolName} by ${user.email}`);
+  // --- 3. SCHOOL / COLLEGE ---
+  async registerSchool(userId: string, dto: RegisterSchoolDto) {
+    const profile = await this.submit(userId, Role.SCHOOL_COORDINATOR, 'PENDING_APPROVAL', (tx) =>
+      tx.schoolProfile.create({
+        data: {
+          userId,
+          schoolName: dto.schoolName.trim(),
+          boardAffiliation: dto.boardAffiliation.trim(),
+          city: dto.city.trim(),
+          teacherInCharge: dto.teacherInCharge.trim(),
+          teacherDesignation: dto.teacherDesignation.trim(),
+          estimatedStudents: dto.estimatedStudents,
+          parentalConsentAgreed: dto.parentalConsentAgreed,
+          status: 'pending',
+        },
+      }),
+    );
+    this.logger.log(`School application submitted: ${profile.schoolName}`);
     return { success: true, profile };
   }
 
-  // --- 4. SPONSOR REGISTRATION ---
-  async registerSponsor(dto: RegisterSponsorDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.SPONSOR);
-
-    if (user.sponsorProfile) {
-      throw new BadRequestException('This account already has a registered sponsor proposal.');
-    }
-
-    const profile = await this.prisma.sponsorProfile.create({
-      data: {
-        userId: user.id,
-        brandName: dto.brandName.trim(),
-        industry: dto.industry.trim(),
-        tierInterest: dto.tierInterest.trim(),
-        budgetBand: dto.budgetBand.trim(),
-        brandWebsite: dto.brandWebsite?.trim() || null,
-        proposalDeliverables: dto.proposalDeliverables?.trim() || null,
-        status: 'pending',
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.SPONSOR,
-        status: 'PENDING_APPROVAL',
-      },
-    });
-
-    this.logger.log(`Sponsor proposal submitted: ${profile.brandName} by ${user.email}`);
+  // --- 4. SPONSOR ---
+  async registerSponsor(userId: string, dto: RegisterSponsorDto) {
+    const profile = await this.submit(userId, Role.SPONSOR, 'PENDING_APPROVAL', (tx) =>
+      tx.sponsorProfile.create({
+        data: {
+          userId,
+          brandName: dto.brandName.trim(),
+          industry: dto.industry.trim(),
+          tierInterest: dto.tierInterest.trim(),
+          budgetBand: dto.budgetBand.trim(),
+          brandWebsite: dto.brandWebsite?.trim() || null,
+          proposalDeliverables: dto.proposalDeliverables?.trim() || null,
+          status: 'pending',
+        },
+      }),
+    );
+    this.logger.log(`Sponsor proposal submitted: ${profile.brandName}`);
     return { success: true, profile };
   }
 
-  // --- 5. VENDOR REGISTRATION ---
-  async registerVendor(dto: RegisterVendorDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.VENDOR);
-
-    if (user.vendorProfile) {
-      throw new BadRequestException('This account already has a registered vendor stall booking.');
-    }
-
-    const profile = await this.prisma.vendorProfile.create({
-      data: {
-        userId: user.id,
-        businessName: dto.businessName.trim(),
-        stallCategory: dto.stallCategory.trim(),
-        stallSize: dto.stallSize.trim(),
-        fssaiNumber: dto.fssaiNumber?.trim() || null,
-        electricPowerRequired: dto.electricPowerRequired,
-        status: 'pending',
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.VENDOR,
-        status: 'PENDING_APPROVAL',
-      },
-    });
-
-    this.logger.log(`Vendor booth application submitted: ${profile.businessName} by ${user.email}`);
+  // --- 5. VENDOR (expo / food stall) ---
+  async registerVendor(userId: string, dto: RegisterVendorDto) {
+    const profile = await this.submit(userId, Role.VENDOR, 'PENDING_APPROVAL', (tx) =>
+      tx.vendorProfile.create({
+        data: {
+          userId,
+          businessName: dto.businessName.trim(),
+          stallCategory: dto.stallCategory.trim(),
+          stallSize: dto.stallSize.trim(),
+          fssaiNumber: dto.fssaiNumber?.trim() || null,
+          electricPowerRequired: dto.electricPowerRequired,
+          status: 'pending',
+        },
+      }),
+    );
+    this.logger.log(`Vendor application submitted: ${profile.businessName}`);
     return { success: true, profile };
   }
 
-  // --- 6. TOURISM PARTNER REGISTRATION ---
-  async registerTourism(dto: RegisterTourismDto) {
-    const user = await this.validateAndPrepareUser(dto.userId, Role.TOURISM_PARTNER);
-
-    if (user.tourismProfile) {
-      throw new BadRequestException('This account already has a registered tourism partner profile.');
-    }
-
-    const profile = await this.prisma.tourismProfile.create({
-      data: {
-        userId: user.id,
-        businessName: dto.businessName.trim(),
-        serviceType: dto.serviceType.trim(),
-        location: dto.location.trim(),
-        distanceFromStartLine: dto.distanceFromStartLine?.trim() || null,
-        inventoryCapacity: dto.inventoryCapacity.trim(),
-        discountOffering: dto.discountOffering?.trim() || null,
-        status: 'pending',
-      },
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        role: Role.TOURISM_PARTNER,
-        status: 'PENDING_APPROVAL',
-      },
-    });
-
-    this.logger.log(`Tourism partner listing submitted: ${profile.businessName} by ${user.email}`);
+  // --- 6. TOURISM PARTNER ---
+  async registerTourism(userId: string, dto: RegisterTourismDto) {
+    const profile = await this.submit(userId, Role.TOURISM_PARTNER, 'PENDING_APPROVAL', (tx) =>
+      tx.tourismProfile.create({
+        data: {
+          userId,
+          businessName: dto.businessName.trim(),
+          serviceType: dto.serviceType.trim(),
+          location: dto.location.trim(),
+          distanceFromStartLine: dto.distanceFromStartLine?.trim() || null,
+          inventoryCapacity: dto.inventoryCapacity.trim(),
+          discountOffering: dto.discountOffering?.trim() || null,
+          status: 'pending',
+        },
+      }),
+    );
+    this.logger.log(`Tourism partner listing submitted: ${profile.businessName}`);
     return { success: true, profile };
   }
 }
-
