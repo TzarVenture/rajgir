@@ -1,18 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { AppUser } from "@/lib/auth/session";
+import { LuArrowRight, LuCheck, LuCircleCheck, LuCopy, LuUsers } from "react-icons/lu";
 import { submitTeamRegistration } from "@/app/actions/registerGroup";
 import {
-  FaUsers,
-  FaCheckCircle,
-  FaCopy,
-  FaArrowRight,
-  FaShieldAlt,
-  FaLock,
-  FaSpinner,
-} from "react-icons/fa";
+  AccountSummary,
+  Button,
+  Card,
+  Field,
+  FormSection,
+  LinkButton,
+  Notice,
+  Textarea,
+  TextInput,
+} from "@/components/ui";
+import { AppUser } from "@/lib/auth/session";
 
 interface TeamRegisterFormProps {
   user: AppUser;
@@ -84,193 +86,107 @@ export default function TeamRegisterForm({ user }: TeamRegisterFormProps) {
 
   if (successData) {
     return (
-      <div className="w-full max-w-xl mx-auto p-8 rounded-2xl bg-[#0f0c09] border border-emerald-500/30 shadow-2xl text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl">
-          <FaCheckCircle />
-        </div>
+      <Card className="text-center" padded={false}>
+        <div className="p-6 sm:p-10">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D]">
+            <LuCircleCheck className="h-8 w-8" aria-hidden />
+          </span>
+          <h2 className="font-barlow text-[32px] font-bold uppercase leading-none text-charcoal-900">{successData.teamName}</h2>
+          <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-charcoal-600">
+            Congratulations, Captain. Your team is registered and active. Share your team join code with your members so they can join
+            your squad.
+          </p>
 
-        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 rounded-full">
-          Team Registered & Activated
-        </span>
-
-        <h2 className="text-2xl font-black uppercase text-white font-graduate mt-3 mb-2">
-          {successData.teamName}
-        </h2>
-        <p className="text-sm text-neutral-300 max-w-md mx-auto mb-6">
-          Congratulations, Captain! Your team is officially created. Share your unique Team Join Code with your members so they can join your squad.
-        </p>
-
-        {/* Team Join Code Box */}
-        <div className="p-5 rounded-xl bg-black/60 border border-[#cca043]/30 mb-6 flex flex-col items-center justify-center gap-3">
-          <p className="text-xs uppercase tracking-wider text-neutral-400 font-bold">Your Official Team Code</p>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-black font-graduate text-[#cca043] tracking-widest">
-              {successData.teamJoinCode}
-            </span>
-            <button
-              onClick={copyCode}
-              type="button"
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-[#cca043] transition-colors"
-              title="Copy Team Code"
-            >
-              <FaCopy />
-            </button>
+          <div className="mx-auto mt-6 max-w-md rounded-card bg-surface-soft p-5">
+            <p className="text-sm font-semibold text-charcoal-500">Your official team code</p>
+            <div className="mt-2 flex items-center justify-center gap-3">
+              <span className="font-barlow text-3xl font-bold tracking-widest text-charcoal-900">{successData.teamJoinCode}</span>
+              <button
+                onClick={copyCode}
+                type="button"
+                aria-label="Copy team code"
+                title="Copy team code"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-btn border border-charcoal-200 bg-white text-charcoal-700 transition-colors hover:bg-surface-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red"
+              >
+                {copied ? <LuCheck className="h-5 w-5" aria-hidden /> : <LuCopy className="h-5 w-5" aria-hidden />}
+              </button>
+            </div>
+            <p className="mt-2 min-h-[20px] text-sm font-semibold text-[#15803D]" role="status">
+              {copied ? "Copied to clipboard" : ""}
+            </p>
           </div>
-          {copied && <span className="text-xs text-emerald-400 font-bold">Copied to clipboard!</span>}
-        </div>
 
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-full bg-gradient-to-r from-[#cca043] to-[#b3852b] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all"
-        >
-          <span>Enter Team Captain Dashboard</span>
-          <FaArrowRight className="text-xs" />
-        </Link>
-      </div>
+          <div className="mt-6 flex justify-center">
+            <LinkButton href="/dashboard" iconRight={LuArrowRight}>
+              Enter team captain dashboard
+            </LinkButton>
+          </div>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto space-y-6">
-      {error && (
-        <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-sm">
-          {error}
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
-      {/* Verified Captain Identity (Pre-filled & Locked) */}
-      <div className="p-5 rounded-xl bg-[#0f0c09] border border-white/10 space-y-3">
-        <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-          <div className="flex items-center gap-2">
-            <FaShieldAlt className="text-[#cca043] text-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-              Team Captain Identity (Verified)
-            </h3>
-          </div>
-          <span className="text-[10px] text-neutral-400 flex items-center gap-1">
-            <FaLock className="text-[9px]" /> Locked to your account
-          </span>
-        </div>
+      <AccountSummary name={user.name} email={user.email} phone={user.phone} title="Team captain account" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Captain Name</p>
-            <p className="text-sm font-semibold text-white">{user.name}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Email</p>
-            <p className="text-sm font-semibold text-neutral-300 truncate">{user.email}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Mobile Phone</p>
-            <p className="text-sm font-semibold text-neutral-300">{user.phone || "—"}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Team Details */}
-      <div className="p-6 rounded-xl bg-[#0f0c09] border border-white/10 space-y-4">
-        <div className="flex items-center gap-2 border-b border-white/5 pb-2.5">
-          <FaUsers className="text-[#cca043] text-sm" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-            Team & Squad Information
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-              Team / Club Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
+      <FormSection icon={LuUsers} title="Team and squad information" description="Tell us about your club or running group.">
+        <Field label="Team or club name" htmlFor="team-name" required>
+          <TextInput
+            id="team-name"
+            required
+            value={formData.teamName}
+            onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
+            placeholder="e.g. Patna Striders Running Club"
+          />
+        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="City or base" htmlFor="team-city" required>
+            <TextInput
+              id="team-city"
               required
-              value={formData.teamName}
-              onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-              placeholder="e.g. Patna Striders Running Club"
-              className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/15 text-white placeholder-neutral-500 text-sm focus:border-[#cca043] focus:ring-1 focus:ring-[#cca043] outline-none transition"
+              value={formData.city}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              placeholder="e.g. Patna, Nalanda, Gaya"
             />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                City / Base <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g. Patna, Nalanda, Gaya"
-                className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/15 text-white placeholder-neutral-500 text-sm focus:border-[#cca043] focus:ring-1 focus:ring-[#cca043] outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                Estimated Squad Size (min 2) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min={2}
-                max={500}
-                required
-                value={formData.estimatedMembers}
-                onChange={(e) => setFormData({ ...formData, estimatedMembers: parseInt(e.target.value) || 2 })}
-                className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/15 text-white placeholder-neutral-500 text-sm focus:border-[#cca043] focus:ring-1 focus:ring-[#cca043] outline-none transition"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-              Club / Association Affiliation (Optional)
-            </label>
-            <input
-              type="text"
-              value={formData.clubAffiliation}
-              onChange={(e) => setFormData({ ...formData, clubAffiliation: e.target.value })}
-              placeholder="e.g. Bihar Athletics Association, Indian Running Community"
-              className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/15 text-white placeholder-neutral-500 text-sm focus:border-[#cca043] focus:ring-1 focus:ring-[#cca043] outline-none transition"
+          </Field>
+          <Field label="Estimated squad size" htmlFor="team-size" hint="Minimum 2 members" required>
+            <TextInput
+              id="team-size"
+              type="number"
+              inputMode="numeric"
+              min={2}
+              max={500}
+              required
+              value={formData.estimatedMembers}
+              onChange={(e) => setFormData({ ...formData, estimatedMembers: parseInt(e.target.value) || 2 })}
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-              Target Distances / Notes (Optional)
-            </label>
-            <textarea
-              rows={2}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="e.g. Running 21.1K and 10K categories. Aiming for team podium."
-              className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/15 text-white placeholder-neutral-500 text-sm focus:border-[#cca043] focus:ring-1 focus:ring-[#cca043] outline-none transition"
-            />
-          </div>
+          </Field>
         </div>
-      </div>
+        <Field label="Club or association affiliation (optional)" htmlFor="team-affiliation">
+          <TextInput
+            id="team-affiliation"
+            value={formData.clubAffiliation}
+            onChange={(e) => setFormData({ ...formData, clubAffiliation: e.target.value })}
+            placeholder="e.g. Bihar Athletics Association"
+          />
+        </Field>
+        <Field label="Target distances or notes (optional)" htmlFor="team-notes">
+          <Textarea
+            id="team-notes"
+            rows={3}
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="e.g. Running 21.1K and 10K categories. Aiming for team podium."
+          />
+        </Field>
+      </FormSection>
 
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3.5 px-6 rounded-full bg-gradient-to-r from-[#e51b24] via-[#dc2626] to-[#b91c1c] text-white font-extrabold text-xs uppercase tracking-widest shadow-xl shadow-red-950/40 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-        >
-          {isSubmitting ? (
-            <>
-              <FaSpinner className="animate-spin text-sm" />
-              <span>Registering Team...</span>
-            </>
-          ) : (
-            <>
-              <span>Create Team & Generate Join Code</span>
-              <FaArrowRight className="text-xs" />
-            </>
-          )}
-        </button>
-      </div>
+      <Button type="submit" size="xl" fullWidth loading={isSubmitting} iconRight={LuArrowRight}>
+        {isSubmitting ? "Registering team" : "Create team and generate join code"}
+      </Button>
     </form>
   );
 }
-
