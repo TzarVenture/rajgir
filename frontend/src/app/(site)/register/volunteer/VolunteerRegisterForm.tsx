@@ -121,8 +121,8 @@ export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormPro
           </dl>
 
           <div className="mt-6 flex justify-center">
-            <LinkButton href="/pending" iconRight={LuArrowRight}>
-              View application status
+            <LinkButton href="/dashboard/volunteer" iconRight={LuArrowRight}>
+              Go to my volunteer dashboard
             </LinkButton>
           </div>
         </div>

@@ -168,6 +168,9 @@ export function registerPathForRole(value: string | null | undefined): string {
 
 /** Dashboard area for an active user. */
 export function dashboardPathForRole(value: string | null | undefined): string {
+  if (value === "RUNNER") return "/dashboard/runner";
+  if (value === "VOLUNTEER") return "/dashboard/volunteer";
+  if (value === "INFLUENCER") return "/dashboard/influencer";
   switch (getAccountTypeForRole(value)?.id) {
     case "individual":
       return "/dashboard/individual";

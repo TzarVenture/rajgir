@@ -13,7 +13,7 @@ import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { UsersService, normalizeEmail, normalizeMobile, toPublicUser } from '../users/users.service';
-import type { LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
+import type { ChangePasswordDto, DeleteAccountDto, LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 export interface SessionTokens {
   accessToken: string;
@@ -212,6 +212,72 @@ export class AuthService {
 
     // Sign out everywhere so an old (possibly stolen) session cannot keep access.
     await this.supabase.revokeSession(data.session.access_token, 'global');
+    return { success: true };
+  }
+
+  async changePassword(
+    user: { id: string; email: string; supabaseAuthId: string | null },
+    accessToken: string,
+    dto: ChangePasswordDto,
+  ) {
+    if (dto.currentPassword) {
+      const { error: verifyErr } = await this.supabase.anon.auth.signInWithPassword({
+        email: user.email,
+        password: dto.currentPassword,
+      });
+      if (verifyErr) {
+        throw new BadRequestException('Current password is incorrect.');
+      }
+    }
+
+    const { error: updateError } = await this.supabase.userClient(accessToken).auth.updateUser({
+      password: dto.newPassword,
+    });
+    if (updateError) {
+      if (updateError.code === 'weak_password' || updateError.code === 'same_password') {
+        throw new BadRequestException(updateError.message);
+      }
+      this.logger.error(`changePassword update failed: ${updateError.code ?? updateError.message}`);
+      throw new BadRequestException('We could not update your password. Please try again.');
+    }
+
+    return { success: true };
+  }
+
+  async deleteAccount(userId: string, supabaseAuthId: string | null) {
+    await this.prisma.$transaction(async (tx) => {
+      // Delete runner race results and registration
+      const runner = await tx.runnerRegistration.findUnique({ where: { userId } });
+      if (runner) {
+        await tx.raceResult.deleteMany({ where: { registrationId: runner.id } });
+        await tx.runnerRegistration.delete({ where: { userId } });
+      }
+      // Delete volunteer records if any
+      const vol = await tx.volunteer.findUnique({ where: { userId } });
+      if (vol) {
+        await tx.volunteerAttendance.deleteMany({ where: { volunteerId: vol.id } });
+        await tx.incident.deleteMany({ where: { volunteerId: vol.id } });
+        await tx.volunteer.delete({ where: { userId } });
+      }
+      // Delete other role profiles
+      await tx.influencer.deleteMany({ where: { userId } });
+      await tx.teamProfile.deleteMany({ where: { userId } });
+      await tx.corporateProfile.deleteMany({ where: { userId } });
+      await tx.schoolProfile.deleteMany({ where: { userId } });
+      await tx.sponsorProfile.deleteMany({ where: { userId } });
+      await tx.vendorProfile.deleteMany({ where: { userId } });
+      await tx.tourismProfile.deleteMany({ where: { userId } });
+      // Delete user
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    if (supabaseAuthId) {
+      await this.supabase.admin.auth.admin.deleteUser(supabaseAuthId).catch((err) => {
+        this.logger.warn(`Could not delete Supabase auth user ${supabaseAuthId}: ${err?.message}`);
+      });
+    }
+
+    this.logger.log(`User ${userId} deleted their account`);
     return { success: true };
   }
 }

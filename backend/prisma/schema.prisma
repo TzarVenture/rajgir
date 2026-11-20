@@ -109,6 +109,20 @@ model RunnerRegistration {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Race operations (set by organizers; null until allotted)
+  /// Expected finish time "HH:MM" given at registration; used to seed start waves for timed races.
+  estimatedFinishTime String?   @map("estimated_finish_time") @db.VarChar(8)
+  /// Printed bib number, allotted by organizers after the registration cut-off.
+  bibNumber           String?   @unique @map("bib_number") @db.VarChar(12)
+  /// Start wave / corral, e.g. "A", "B", "Elite".
+  startWave           String?   @map("start_wave") @db.VarChar(16)
+  kitCollectedAt      DateTime? @map("kit_collected_at") @db.Timestamptz(6)
+  /// Who collected the kit: "SELF" or the proxy's name.
+  kitCollectedBy      String?   @map("kit_collected_by") @db.VarChar(64)
+  medicalUpdatedAt    DateTime? @map("medical_updated_at") @db.Timestamptz(6)
+
+  result              RaceResult?
+
   @@index([email])
   @@index([phone])
   @@index([registrationNumber])
@@ -136,8 +150,90 @@ model Volunteer {
   status                String?  @default("pending") @db.VarChar(24)
   submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
 
+  // Deployment (set by organizers; null until assigned)
+  assignedRole          String?   @map("assigned_role") @db.VarChar(64)
+  assignedStation       String?   @map("assigned_station") @db.VarChar(64)
+  assignedSector        String?   @map("assigned_sector") @db.VarChar(32)
+  supervisorName        String?   @map("supervisor_name") @db.VarChar(128)
+  supervisorPhone       String?   @map("supervisor_phone") @db.VarChar(20)
+  shiftStart            DateTime? @map("shift_start") @db.Timestamptz(6)
+  shiftEnd              DateTime? @map("shift_end") @db.Timestamptz(6)
+  /// OFF_DUTY | ON_DUTY | ON_BREAK
+  dutyStatus            String    @default("OFF_DUTY") @map("duty_status") @db.VarChar(16)
+  dutyStatusAt          DateTime? @map("duty_status_at") @db.Timestamptz(6)
+  /// { [checklistItemId]: ISO timestamp when ticked }
+  checklist             Json      @default("{}")
+
+  attendance            VolunteerAttendance[]
+  incidents             Incident[]
+
   @@index([email])
+  @@index([assignedStation])
   @@map("volunteers")
+}
+
+/// One check-in / check-out pair for a volunteer shift.
+model VolunteerAttendance {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId  String    @map("volunteer_id") @db.Uuid
+  volunteer    Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  checkInAt    DateTime  @default(now()) @map("check_in_at") @db.Timestamptz(6)
+  checkOutAt   DateTime? @map("check_out_at") @db.Timestamptz(6)
+  station      String?   @db.VarChar(64)
+  latitude     Float?
+  longitude    Float?
+
+  @@index([volunteerId])
+  @@map("volunteer_attendance")
+}
+
+/// Incidents and SOS alerts raised from the field for race control.
+model Incident {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId     String     @map("reporter_id") @db.Uuid
+  volunteerId    String?    @map("volunteer_id") @db.Uuid
+  volunteer      Volunteer? @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
+  /// MEDICAL | SECURITY | LOST_PERSON | COURSE_HAZARD | HYDRATION | CROWD | OTHER
+  type           String     @db.VarChar(24)
+  /// LOW | MEDIUM | HIGH | CRITICAL
+  severity       String     @db.VarChar(12)
+  isSos          Boolean    @default(false) @map("is_sos")
+  location       String     @db.VarChar(128)
+  latitude       Float?
+  longitude      Float?
+  runnerBib      String?    @map("runner_bib") @db.VarChar(16)
+  description    String     @db.Text
+  /// OPEN | ACKNOWLEDGED | RESOLVED
+  status         String     @default("OPEN") @db.VarChar(16)
+  acknowledgedAt DateTime?  @map("acknowledged_at") @db.Timestamptz(6)
+  resolvedAt     DateTime?  @map("resolved_at") @db.Timestamptz(6)
+  resolutionNote String?    @map("resolution_note") @db.Text
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([volunteerId])
+  @@map("incidents")
+}
+
+/// Official timing result for one runner, written by the timing partner import (staff only).
+model RaceResult {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId String             @unique @map("registration_id") @db.Uuid
+  registration   RunnerRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  /// FINISHED | DNF | DNS | DSQ
+  status         String             @db.VarChar(12)
+  gunTimeSeconds Int?               @map("gun_time_seconds")
+  netTimeSeconds Int?               @map("net_time_seconds")
+  overallRank    Int?               @map("overall_rank")
+  genderRank     Int?               @map("gender_rank")
+  categoryRank   Int?               @map("category_rank")
+  ageCategory    String?            @map("age_category") @db.VarChar(24)
+  /// [{ "label": "5K", "distanceKm": 5, "elapsedSeconds": 1520 }, ...] cumulative chip times
+  splits         Json               @default("[]")
+  publishedAt    DateTime           @default(now()) @map("published_at") @db.Timestamptz(6)
+
+  @@map("race_results")
 }
 
 model Influencer {

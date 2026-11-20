@@ -13,6 +13,7 @@ export function Modal({
   children,
   footer,
   className,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,6 +21,8 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** Panel width from the sm breakpoint up. */
+  size?: "md" | "lg" | "xl";
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -53,7 +56,10 @@ export function Modal({
         tabIndex={-1}
         onMouseDown={(event) => event.stopPropagation()}
         className={cn(
-          "flex max-h-[90vh] w-full flex-col rounded-t-feature bg-white shadow-[0_16px_40px_rgba(17,24,39,0.18)] outline-none sm:max-w-lg sm:rounded-feature",
+          "flex max-h-[90vh] w-full flex-col rounded-t-feature bg-white shadow-[0_16px_40px_rgba(17,24,39,0.18)] outline-none sm:rounded-feature",
+          size === "md" && "sm:max-w-lg",
+          size === "lg" && "sm:max-w-2xl",
+          size === "xl" && "sm:max-w-4xl",
           className
         )}
       >

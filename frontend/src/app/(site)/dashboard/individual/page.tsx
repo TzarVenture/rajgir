@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { EVENT, formatDate, formatDateTime } from "@/lib/event";
 import { LuCalendarDays, LuClipboardList, LuMapPin, LuRadio, LuShirt } from "react-icons/lu";
 import { Badge, LinkButton, StatCard } from "@/components/ui";
 import { DashboardHeading, DetailList, SectionCard } from "@/components/dashboard/DashboardParts";
@@ -13,6 +14,9 @@ export default async function IndividualDashboard() {
   const user = await getCurrentUser();
 
   if (!user) redirect("/login");
+  // Runners and volunteers have their own dashboards.
+  if (user.role === "RUNNER") redirect("/dashboard/runner");
+  if (user.role === "VOLUNTEER") redirect("/dashboard/volunteer");
   if (!user.role || !["RUNNER", "VOLUNTEER", "INFLUENCER"].includes(user.role)) {
     redirect("/dashboard");
   }
@@ -48,10 +52,15 @@ export default async function IndividualDashboard() {
       />
 
       <section aria-label="Event overview" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Race date" value="24 Jan 2027" icon={LuCalendarDays} hint="Rajgir Historic Circuit" />
+        <StatCard label="Race date" value={formatDate(EVENT.raceDate)} icon={LuCalendarDays} hint="Rajgir Historic Circuit" />
         <StatCard label="Start / finish line" value="Vishwa Shanti Stupa" icon={LuMapPin} hint="Ratnagiri Hills, Rajgir" />
         <StatCard label="Timing technology" value="UHF RFID chip" icon={LuRadio} hint="Split mats at 5K, 10K, 21K" />
-        <StatCard label="Kit collection expo" value="22-23 Jan 2027" icon={LuShirt} hint="Kund Ground, Rajgir" />
+        <StatCard
+          label="Kit collection expo"
+          value={`${formatDate(EVENT.expo.days[0].date, { year: undefined })} - ${formatDate(EVENT.expo.days[EVENT.expo.days.length - 1].date, { year: undefined })}`}
+          icon={LuShirt}
+          hint={EVENT.expo.venue}
+        />
       </section>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -89,7 +98,7 @@ export default async function IndividualDashboard() {
               </p>
               <DetailList
                 rows={[
-                  { label: "Mandatory briefing", value: "23 Jan 2027, 03:00 PM" },
+                  { label: "Mandatory briefing", value: formatDateTime(EVENT.volunteerBriefing.at) },
                   { label: "Kit provided", value: "Volunteer Jersey + Cap + RFID Marshall Badge" },
                 ]}
               />

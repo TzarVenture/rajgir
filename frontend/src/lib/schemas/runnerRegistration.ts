@@ -192,6 +192,13 @@ export const runnerRegistrationSchema = z.object({
   netAmount: z.number().positive(),
   couponCode: z.string().optional(),
 
+  // Expected finish time "H:MM" (timed categories; seeds the start wave)
+  estimatedFinishTime: z
+    .string()
+    .trim()
+    .regex(/^\d{1,2}:[0-5]\d$/, "Use H:MM, for example 2:05")
+    .optional(),
+
   // Waiver
   waiverAgreed: z.literal(true, {
     errorMap: () => ({ message: "You must accept the event waiver to register" }),

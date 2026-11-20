@@ -54,6 +54,7 @@ export async function submitRunnerRegistration(rawData: unknown): Promise<Regist
       runningClub: data.runningClub || undefined,
       selectedAddons: data.selectedAddons,
       couponCode: data.couponCode?.trim() || undefined,
+      estimatedFinishTime: data.estimatedFinishTime || undefined,
       waiverAgreed: data.waiverAgreed,
     },
     ctx

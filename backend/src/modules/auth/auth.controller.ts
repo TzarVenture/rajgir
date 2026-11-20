@@ -1,11 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { requireEmailVerification, toPublicUser } from '../users/users.service';
 import { AuthService } from './auth.service';
-import { EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
+import { ChangePasswordDto, DeleteAccountDto, EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 const perMinute = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 
@@ -90,5 +90,24 @@ export class AuthController {
   @ApiOperation({ summary: 'Current signed-in user' })
   me(@CurrentUser() auth: AuthContext) {
     return toPublicUser(auth.dbUser, Boolean(auth.authUser.email_confirmed_at));
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(SupabaseAuthGuard)
+  @Throttle(perMinute(5))
+  @ApiOperation({ summary: 'Change password for currently authenticated user' })
+  changePassword(@CurrentUser() auth: AuthContext, @Body() dto: ChangePasswordDto) {
+    return this.auth.changePassword(auth.dbUser, auth.accessToken, dto);
+  }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(SupabaseAuthGuard)
+  @ApiOperation({ summary: 'Delete account and cancel all registrations' })
+  deleteAccount(@CurrentUser() auth: AuthContext) {
+    return this.auth.deleteAccount(auth.dbUser.id, auth.dbUser.supabaseAuthId);
   }
 }

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -113,6 +114,14 @@ export class CreateRunnerDto {
   @IsOptional()
   @IsString()
   couponCode?: string;
+
+  @ApiPropertyOptional({
+    example: '01:55',
+    description: 'Expected finish time HH:MM (timed categories only); used to seed start waves.',
+  })
+  @IsOptional()
+  @Matches(/^\d{1,2}:[0-5]\d$/, { message: 'Expected finish time must look like HH:MM' })
+  estimatedFinishTime?: string;
 
   @ApiProperty({ example: true })
   @IsBoolean()

@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { EVENT, formatDate } from "@/lib/event";
 import { LuHandshake, LuHeadset, LuMail, LuMapPin, LuPhone, LuTicket } from "react-icons/lu";
 import { Badge, StatCard } from "@/components/ui";
 import { DashboardHeading, DetailList, SectionCard } from "@/components/dashboard/DashboardParts";
@@ -8,6 +9,11 @@ import { DashboardHeading, DetailList, SectionCard } from "@/components/dashboar
 export const metadata = {
   title: "Commercial Partner Dashboard | Rajgir Marathon 2027",
 };
+
+const expoFirstDay = EVENT.expo.days[0].date;
+/** Exhibitor move-in is the day before the expo opens. */
+const moveInDay = new Date(new Date(`${expoFirstDay}T00:00:00+05:30`).getTime() - 86_400_000);
+const expoRange = `${formatDate(expoFirstDay, { year: undefined })} - ${formatDate(EVENT.raceDate)}`;
 
 export default async function PartnerDashboard() {
   const user = await getCurrentUser();
@@ -48,7 +54,7 @@ export default async function PartnerDashboard() {
           icon={LuHandshake}
           hint="Accredited tier"
         />
-        <StatCard label="Expo location" value="Kund Ground, Rajgir" icon={LuMapPin} hint="22-24 January 2027" />
+        <StatCard label="Expo location" value="Kund Ground, Rajgir" icon={LuMapPin} hint={expoRange} />
         <StatCard label="VIP accreditation" value="Stage passes active" icon={LuTicket} hint="Podium & VIP lounge" />
         <StatCard label="Partnership desk" value="Dedicated manager" icon={LuHeadset} hint="Direct support" />
       </section>
@@ -82,12 +88,12 @@ export default async function PartnerDashboard() {
           {isVendor && (
             <div className="space-y-4 text-sm text-charcoal-700">
               <p>
-                Your stall footprint is reserved at the Marathon Expo. Exhibitor setup commences 21 January 2027 at 10:00
-                AM.
+                Your stall footprint is reserved at the Marathon Expo. Exhibitor setup commences {formatDate(moveInDay)} at 10:00
+                AM (provisional).
               </p>
               <DetailList
                 rows={[
-                  { label: "Move-in schedule", value: "21 Jan 2027, 10:00 AM - 08:00 PM" },
+                  { label: "Move-in schedule", value: `${formatDate(moveInDay)}, 10:00 AM - 08:00 PM` },
                   { label: "Power allotment", value: "15A Dedicated Power Supply" },
                 ]}
               />

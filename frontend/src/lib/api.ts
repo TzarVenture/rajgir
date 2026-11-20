@@ -48,6 +48,127 @@ export type MyRegistration =
   | { registered: false }
   | { registered: true; role: ApiRole; status: string; profile: Record<string, unknown> };
 
+export interface ApiSplit {
+  label: string;
+  distanceKm: number;
+  /** Cumulative chip time. */
+  elapsedSeconds: number;
+}
+
+export interface ApiRaceResult {
+  status: "FINISHED" | "DNF" | "DNS" | "DSQ";
+  gunTimeSeconds: number | null;
+  netTimeSeconds: number | null;
+  overallRank: number | null;
+  genderRank: number | null;
+  categoryRank: number | null;
+  ageCategory: string | null;
+  splits: ApiSplit[];
+  publishedAt: string;
+}
+
+/** The signed-in runner's full registration (GET runners/me). */
+export interface ApiRunnerRegistration {
+  id: string;
+  registrationNumber: string;
+  distance: string;
+  raceTitle: string;
+  baseFee: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  ageOnRaceDay: number;
+  gender: string;
+  bibName: string;
+  bloodGroup: string;
+  tshirtSize: string;
+  emergencyName: string;
+  emergencyRelation: string;
+  emergencyPhone: string;
+  medicalNotes: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string | null;
+  runningClub: string | null;
+  selectedAddons: { id: string; title: string; price: number }[] | null;
+  grossAmount: number;
+  discountAmount: number | null;
+  netAmount: number;
+  couponCode: string | null;
+  paymentStatus: string | null;
+  qrCodeToken: string | null;
+  waiverAgreed: boolean;
+  createdAt: string;
+  updatedAt: string;
+  estimatedFinishTime: string | null;
+  bibNumber: string | null;
+  startWave: string | null;
+  kitCollectedAt: string | null;
+  kitCollectedBy: string | null;
+  medicalUpdatedAt: string | null;
+  result: ApiRaceResult | null;
+}
+
+export interface ApiVolunteer {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  tShirtSize: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  availability: string[] | null;
+  rolePreference: string;
+  languagesSpoken: string | null;
+  dietaryRestrictions: string | null;
+  medicalCertification: boolean | null;
+  status: string | null;
+  submittedAt: string;
+  assignedRole: string | null;
+  assignedStation: string | null;
+  assignedSector: string | null;
+  supervisorName: string | null;
+  supervisorPhone: string | null;
+  shiftStart: string | null;
+  shiftEnd: string | null;
+  dutyStatus: "OFF_DUTY" | "ON_DUTY" | "ON_BREAK";
+  dutyStatusAt: string | null;
+  checklist: Record<string, string> | null;
+}
+
+export interface ApiAttendance {
+  id: string;
+  checkInAt: string;
+  checkOutAt: string | null;
+  station: string | null;
+}
+
+export interface ApiIncident {
+  id: string;
+  type: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  isSos: boolean;
+  location: string;
+  runnerBib: string | null;
+  description: string;
+  status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+  createdAt: string;
+  volunteerId: string | null;
+}
+
+export interface ApiVolunteerDashboard {
+  volunteer: ApiVolunteer;
+  attendance: ApiAttendance[];
+  incidents: ApiIncident[];
+  checkInOpen: boolean;
+}
+
 export interface ApiSession {
   accessToken: string;
   refreshToken: string;
@@ -71,12 +192,20 @@ function contextHeaders(ctx?: CallContext): Record<string, string> {
 }
 
 function post<T>(endpoint: string, body: unknown, ctx?: CallContext) {
+  return send<T>("POST", endpoint, body, ctx);
+}
+
+function send<T>(method: "POST" | "PATCH" | "PUT", endpoint: string, body: unknown, ctx?: CallContext) {
   return request<T>(endpoint, {
-    method: "POST",
+    method,
     headers: contextHeaders(ctx),
     body: JSON.stringify(body ?? {}),
     cache: "no-store",
   });
+}
+
+function get<T>(endpoint: string, ctx: CallContext) {
+  return request<T>(endpoint, { headers: contextHeaders(ctx), cache: "no-store" });
 }
 
 async function request<T>(
@@ -159,6 +288,16 @@ export const api = {
     resetPassword: (payload: { tokenHash: string; password: string }, ctx?: CallContext) =>
       post<{ success: boolean }>("auth/reset-password", payload, ctx),
 
+    changePassword: (payload: { currentPassword?: string; newPassword: string }, ctx: CallContext) =>
+      post<{ success: boolean }>("auth/change-password", payload, ctx),
+
+    deleteAccount: (ctx: CallContext) =>
+      request<{ success: boolean }>("auth/account", {
+        method: "DELETE",
+        headers: contextHeaders(ctx),
+        cache: "no-store",
+      }),
+
     me: (ctx: CallContext) =>
       request<ApiUser>("auth/me", { headers: contextHeaders(ctx), cache: "no-store" }),
   },
@@ -211,11 +350,64 @@ export const api = {
         headers: contextHeaders(ctx),
         cache: "no-store",
       }),
+
+    /** The signed-in runner's registration, bib, kit status and result. */
+    me: (ctx: CallContext) => get<ApiRunnerRegistration>("runners/me", ctx),
+
+    updateMedical: (
+      payload: {
+        emergencyName: string;
+        emergencyRelation: string;
+        emergencyPhone: string;
+        bloodGroup: string;
+        medicalNotes?: string;
+      },
+      ctx: CallContext
+    ) => send<ApiRunnerRegistration>("PATCH", "runners/me/medical", payload, ctx),
+
+    updateProfile: (
+      payload: {
+        firstName: string;
+        lastName: string;
+        phone: string;
+        bibName: string;
+        tshirtSize: string;
+        city: string;
+        state: string;
+        pincode: string;
+        country?: string;
+        runningClub?: string;
+      },
+      ctx: CallContext
+    ) => send<ApiRunnerRegistration>("PATCH", "runners/me/profile", payload, ctx),
   },
 
   volunteers: {
     register: (payload: unknown, ctx: CallContext) =>
       post<{ success: boolean; id: string; fullName: string; status: string }>("volunteers/register", payload, ctx),
+
+    me: (ctx: CallContext) => get<ApiVolunteerDashboard>("volunteers/me", ctx),
+    checkIn: (geo: { latitude?: number; longitude?: number }, ctx: CallContext) =>
+      post<ApiAttendance>("volunteers/me/check-in", geo, ctx),
+    checkOut: (ctx: CallContext) => post<ApiAttendance>("volunteers/me/check-out", {}, ctx),
+    setStatus: (status: "ON_DUTY" | "ON_BREAK", ctx: CallContext) =>
+      send<ApiVolunteer>("PATCH", "volunteers/me/status", { status }, ctx),
+    setChecklistItem: (itemId: string, done: boolean, ctx: CallContext) =>
+      send<{ checklist: Record<string, string> }>("PATCH", "volunteers/me/checklist", { itemId, done }, ctx),
+    incidents: (ctx: CallContext) => get<ApiIncident[]>("volunteers/me/incidents", ctx),
+    reportIncident: (
+      payload: {
+        type: string;
+        severity: string;
+        isSos?: boolean;
+        location?: string;
+        runnerBib?: string;
+        description: string;
+        latitude?: number;
+        longitude?: number;
+      },
+      ctx: CallContext
+    ) => post<ApiIncident>("volunteers/me/incidents", payload, ctx),
   },
 
   influencers: {
