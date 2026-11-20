@@ -16,7 +16,7 @@ export default async function PendingPage() {
   const user = await requireUser("/pending");
 
   // Only people waiting for approval belong here.
-  if (user.status !== "PENDING_APPROVAL") redirect(homePath(user));
+  if (user.status !== "PENDING_APPROVAL" || homePath(user) !== "/pending") redirect(homePath(user));
 
   const displayRole = roleLabel(user.role);
 

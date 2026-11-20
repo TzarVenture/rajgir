@@ -50,7 +50,7 @@ export type MarathonRole =
   | "Organizer"
   | "Vendor";
 
-export const ALL_ROLES: MarathonRole[] = [
+const ALL_ROLES: MarathonRole[] = [
   "Guest",
   "Runner",
   "Volunteer",

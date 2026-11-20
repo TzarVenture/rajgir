@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsNotEmpty, IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 const PASSWORD_RULE = 'Password must be 8 to 72 characters long.';
 
@@ -79,4 +79,24 @@ export class ResetPasswordDto {
   @MinLength(8, { message: PASSWORD_RULE })
   @MaxLength(72, { message: PASSWORD_RULE })
   password: string;
+}
+
+export class ChangePasswordDto {
+  @ApiPropertyOptional({ description: 'Current password for verification' })
+  @IsOptional()
+  @IsString()
+  currentPassword?: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(8, { message: PASSWORD_RULE })
+  @MaxLength(72, { message: PASSWORD_RULE })
+  newPassword: string;
+}
+
+export class DeleteAccountDto {
+  @ApiPropertyOptional({ description: 'Current password confirmation' })
+  @IsOptional()
+  @IsString()
+  password?: string;
 }

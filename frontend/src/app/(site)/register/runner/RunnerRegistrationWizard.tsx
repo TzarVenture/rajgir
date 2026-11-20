@@ -14,6 +14,7 @@ import {
   LuUser,
 } from "react-icons/lu";
 import { raceCategories, availableAddons } from "@/lib/schemas/runnerRegistration";
+import { EVENT, ageOnRaceDay, categoryOps, formatCutoff, formatDate } from "@/lib/event";
 import BibPreview from "./BibPreview";
 import TShirtSizeModal from "./TShirtSizeModal";
 import OrderSummaryCard from "./OrderSummaryCard";
@@ -117,6 +118,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
     runningClub: "",
     selectedAddons: [] as string[],
     couponCode: "",
+    estimatedFinishTime: "",
     waiverAgreed: true,
   });
 
@@ -125,21 +127,10 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
   const [globalError, setGlobalError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Auto-calculate age on race day (Nov 2027)
-  const calculateAge = (dobString: string): number => {
-    if (!dobString) return 0;
-    const dob = new Date(dobString);
-    const raceDate = new Date("2027-11-21");
-    let age = raceDate.getFullYear() - dob.getFullYear();
-    const m = raceDate.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && raceDate.getDate() < dob.getDate())) {
-      age--;
-    }
-    return Math.max(0, age);
-  };
-
-  const calculatedAge = calculateAge(formData.dateOfBirth);
+  // Age on race day: same rule as the API (lib/event.ts).
+  const calculatedAge = formData.dateOfBirth ? ageOnRaceDay(formData.dateOfBirth) : 0;
   const currentCategory = raceCategories.find((c) => c.distance === selectedDistance) || raceCategories[0];
+  const currentOps = categoryOps(currentCategory.distance);
 
   // Coupon calculations
   const calculateDiscount = (gross: number, code: string): number => {
@@ -188,6 +179,17 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
 
     if (step === 1) {
       if (!selectedDistance) errors.distance = "Please select a category.";
+      const eft = formData.estimatedFinishTime.trim();
+      if (currentOps.timed && eft) {
+        const m = eft.match(/^(\d{1,2}):([0-5]\d)$/);
+        const minutes = m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
+        if (!m) errors.estimatedFinishTime = "Use H:MM, for example 2:05.";
+        else if (minutes > currentOps.cutoffMinutes) {
+          errors.estimatedFinishTime = `That is beyond the ${formatCutoff(currentOps.cutoffMinutes)} cut-off.`;
+        } else if (minutes < currentOps.distanceKm * 2.5) {
+          errors.estimatedFinishTime = "That is faster than the course record pace. Please check.";
+        }
+      }
     }
 
     if (step === 2) {
@@ -293,6 +295,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
         discountAmount,
         netAmount: Math.max(1, grossAmount - discountAmount),
         couponCode: formData.couponCode || undefined,
+        estimatedFinishTime: currentOps.timed ? formData.estimatedFinishTime.trim() || undefined : undefined,
         waiverAgreed: true,
       };
 
@@ -398,6 +401,26 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                 })}
               </div>
               <FieldMessage error={fieldErrors.distance} />
+
+              {currentOps.timed ? (
+                <Field
+                  label="Expected finish time (optional)"
+                  htmlFor="rr-estimatedFinishTime"
+                  error={fieldErrors.estimatedFinishTime}
+                  hint={`HH:MM, e.g. ${selectedDistance === "42.2 KM" ? "4:30" : selectedDistance === "21.1 KM" ? "2:05" : "0:58"}. Used to place you in the right start wave. Cut-off ${formatCutoff(currentOps.cutoffMinutes)}.`}
+                  className="max-w-xs"
+                >
+                  <TextInput
+                    {...a11y("estimatedFinishTime")}
+                    name="estimatedFinishTime"
+                    inputMode="numeric"
+                    placeholder="H:MM"
+                    maxLength={5}
+                    value={formData.estimatedFinishTime}
+                    onChange={handleInputChange}
+                  />
+                </Field>
+              ) : null}
             </div>
           )}
 
@@ -488,7 +511,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                   hint={
                     formData.dateOfBirth ? (
                       <>
-                        Age on race day (Nov 2027): <strong>{calculatedAge} years</strong> (min {currentCategory.minAge}y)
+                        Age on race day ({formatDate(EVENT.raceDate)}): <strong>{calculatedAge} years</strong> (min {currentCategory.minAge}y)
                       </>
                     ) : undefined
                   }

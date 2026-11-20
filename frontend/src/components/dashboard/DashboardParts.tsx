@@ -31,14 +31,16 @@ export function SectionCard({
   tag,
   description,
   children,
+  id,
 }: {
   title: string;
   tag?: ReactNode;
   description?: string;
   children: ReactNode;
+  id?: string;
 }) {
   return (
-    <Card className="flex flex-col">
+    <Card id={id} className="flex flex-col">
       <div className="mb-4 flex items-start justify-between gap-3 border-b border-charcoal-200 pb-3">
         <div>
           <h2 className="text-base font-bold text-charcoal-900">{title}</h2>

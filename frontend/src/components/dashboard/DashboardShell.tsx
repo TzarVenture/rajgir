@@ -3,7 +3,27 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LuClipboardList, LuHouse, LuLayoutDashboard, LuLifeBuoy, LuMenu, LuUserRound, LuX } from "react-icons/lu";
+import {
+  LuAward,
+  LuBookOpen,
+  LuClipboardCheck,
+  LuClipboardList,
+  LuClock,
+  LuFootprints,
+  LuHouse,
+  LuIdCard,
+  LuLayoutDashboard,
+  LuLifeBuoy,
+  LuMegaphone,
+  LuMenu,
+  LuReceipt,
+  LuShieldAlert,
+  LuSiren,
+  LuSparkles,
+  LuTimer,
+  LuUserRound,
+  LuX,
+} from "react-icons/lu";
 import { Badge, cn } from "@/components/ui";
 
 const ICONS = {
@@ -11,6 +31,23 @@ const ICONS = {
   registration: LuClipboardList,
   help: LuLifeBuoy,
   home: LuHouse,
+  bib: LuIdCard,
+  splits: LuTimer,
+  medical: LuShieldAlert,
+  training: LuFootprints,
+  certificate: LuAward,
+  invoice: LuReceipt,
+  shift: LuClock,
+  badge: LuIdCard,
+  checklist: LuClipboardCheck,
+  incidents: LuShieldAlert,
+  sop: LuBookOpen,
+  sos: LuSiren,
+  profile: LuUserRound,
+  deliverables: LuClipboardCheck,
+  brand: LuSparkles,
+  pass: LuIdCard,
+  media: LuMegaphone,
 } as const;
 
 export interface DashboardNavItem {
@@ -21,7 +58,11 @@ export interface DashboardNavItem {
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/dashboard") return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+  if (href.includes("#")) return false;
+  if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/dashboard/runner") return pathname === "/dashboard/runner";
+  if (href === "/dashboard/volunteer") return pathname === "/dashboard/volunteer";
+  if (href === "/dashboard/influencer") return pathname === "/dashboard/influencer";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

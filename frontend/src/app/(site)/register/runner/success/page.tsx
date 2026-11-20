@@ -6,6 +6,8 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { Card, EmptyState, LinkButton } from "@/components/ui";
 import SuccessContent from "./SuccessContent";
 import { getRegistrationDetails } from "@/app/actions/registerRunner";
+import { qrDataUrl, runnerQrPayload } from "@/lib/qr";
+import { EVENT, formatDate } from "@/lib/event";
 
 export const metadata: Metadata = {
   title: "Registration Confirmed | Rajgir Marathon 2027",
@@ -19,6 +21,9 @@ export default async function RegisterSuccessPage({
 }) {
   const { reg_no } = await searchParams;
   const registration = reg_no ? await getRegistrationDetails(reg_no) : null;
+  const qr = registration
+    ? await qrDataUrl(runnerQrPayload(registration.registration_number, registration.qr_code_token))
+    : "";
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white font-manrope text-charcoal-900">
@@ -26,7 +31,7 @@ export default async function RegisterSuccessPage({
 
       <main className="flex-1 bg-surface-soft px-4 py-10 sm:px-6">
         {registration ? (
-          <SuccessContent registration={registration} />
+          <SuccessContent registration={registration} qrDataUrl={qr} raceDateLabel={formatDate(EVENT.raceDate)} />
         ) : (
           <Card className="mx-auto max-w-md" padded={false}>
             <div className="p-4 sm:p-6">

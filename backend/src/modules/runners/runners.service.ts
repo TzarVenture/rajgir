@@ -1,9 +1,18 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { STAFF_ROLES } from '../../common/constants/roles';
+import { ageOnRaceDay, isTimedDistance } from '../../common/constants/event';
 import { UsersService } from '../users/users.service';
 import { CreateRunnerDto } from './dto/create-runner.dto';
+import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 import { quotePrice } from './pricing';
 
 @Injectable()
@@ -22,16 +31,6 @@ export class RunnersService {
     return `RJG-2027-${prefix}-${randomSuffix}`;
   }
 
-  private calculateAge(dob: Date): number {
-    const raceDay = new Date('2027-01-24');
-    let age = raceDay.getFullYear() - dob.getFullYear();
-    const monthDiff = raceDay.getMonth() - dob.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && raceDay.getDate() < dob.getDate())) {
-      age--;
-    }
-    return Math.max(0, age);
-  }
-
   /** Register the signed-in user as a runner. Price, age and role are all decided here, on the server. */
   async registerRunner(userId: string, dto: CreateRunnerDto) {
     await this.users.assertCanRegister(userId, Role.RUNNER);
@@ -42,8 +41,8 @@ export class RunnersService {
     const parsedDob = new Date(dto.dateOfBirth);
     if (isNaN(parsedDob.getTime())) throw new BadRequestException('Invalid date of birth');
 
-    const ageOnRaceDay = this.calculateAge(parsedDob);
-    if (ageOnRaceDay < quote.category.minAge) {
+    const age = ageOnRaceDay(parsedDob);
+    if (age < quote.category.minAge) {
       throw new BadRequestException(
         `Participants for ${quote.category.distance} must be at least ${quote.category.minAge} years old on race day.`,
       );
@@ -67,7 +66,7 @@ export class RunnersService {
               email: dto.email.toLowerCase().trim(),
               phone: dto.phone.trim(),
               dateOfBirth: parsedDob,
-              ageOnRaceDay,
+              ageOnRaceDay: age,
               gender: dto.gender,
               bloodGroup: dto.bloodGroup,
               tshirtSize: dto.tshirtSize,
@@ -81,6 +80,7 @@ export class RunnersService {
               pincode: dto.pincode.trim(),
               country: dto.country?.trim() || 'India',
               runningClub: dto.runningClub?.trim() || null,
+              estimatedFinishTime: isTimedDistance(quote.category.distance) ? dto.estimatedFinishTime || null : null,
               selectedAddons: quote.addons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
               grossAmount: quote.gross,
               discountAmount: quote.discount,
@@ -130,6 +130,128 @@ export class RunnersService {
     const isStaff = requester.role ? STAFF_ROLES.includes(requester.role) : false;
     if (!isOwner && !isStaff) throw new ForbiddenException('You do not have access to this registration.');
     return record;
+  }
+
+  /** The signed-in runner's own registration with its result (if published). */
+  async getMine(userId: string) {
+    const record = await this.prisma.runnerRegistration.findUnique({ where: { userId }, include: { result: true } });
+    if (!record) throw new NotFoundException('You do not have a runner registration.');
+    return record;
+  }
+
+  /** Runner updates their emergency contact and medical details (shown to race medical staff). */
+  async updateMedical(userId: string, dto: UpdateMedicalDto) {
+    const existing = await this.prisma.runnerRegistration.findUnique({ where: { userId } });
+    if (!existing) throw new NotFoundException('You do not have a runner registration.');
+
+    const updated = await this.prisma.runnerRegistration.update({
+      where: { userId },
+      data: {
+        emergencyName: dto.emergencyName.trim(),
+        emergencyRelation: dto.emergencyRelation.trim(),
+        emergencyPhone: dto.emergencyPhone.trim(),
+        bloodGroup: dto.bloodGroup,
+        medicalNotes: dto.medicalNotes?.trim() || null,
+        medicalUpdatedAt: new Date(),
+      },
+      include: { result: true },
+    });
+    this.logger.log(`Medical profile updated: ${updated.registrationNumber}`);
+    return updated;
+  }
+
+  /** Runner updates their athlete profile (name, phone, bib name, t-shirt size, address). */
+  async updateProfile(userId: string, dto: UpdateRunnerProfileDto) {
+    const existing = await this.prisma.runnerRegistration.findUnique({ where: { userId } });
+    if (!existing) throw new NotFoundException('You do not have a runner registration.');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const reg = await tx.runnerRegistration.update({
+        where: { userId },
+        data: {
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          phone: dto.phone.trim(),
+          bibName: dto.bibName.toUpperCase().trim(),
+          tshirtSize: dto.tshirtSize,
+          city: dto.city.trim(),
+          state: dto.state.trim(),
+          pincode: dto.pincode.trim(),
+          country: dto.country?.trim() || 'India',
+          runningClub: dto.runningClub?.trim() || null,
+        },
+        include: { result: true },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          fullName: `${dto.firstName.trim()} ${dto.lastName.trim()}`,
+          phone: dto.phone.trim(),
+        },
+      });
+
+      return reg;
+    });
+
+    this.logger.log(`Runner profile updated: ${updated.registrationNumber}`);
+    return updated;
+  }
+
+  // ---------- Staff operations ----------
+
+  private async findByNumberOrThrow(registrationNumber: string) {
+    const record = await this.prisma.runnerRegistration.findUnique({ where: { registrationNumber } });
+    if (!record) throw new NotFoundException('Registration not found');
+    return record;
+  }
+
+  async allotBib(registrationNumber: string, dto: AllotBibDto) {
+    await this.findByNumberOrThrow(registrationNumber);
+    try {
+      return await this.prisma.runnerRegistration.update({
+        where: { registrationNumber },
+        data: { bibNumber: dto.bibNumber.toUpperCase().trim(), startWave: dto.startWave?.trim() || null },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('This bib number is already allotted to another runner.');
+      }
+      throw error;
+    }
+  }
+
+  async markKitCollected(registrationNumber: string, dto: KitCollectedDto) {
+    const record = await this.findByNumberOrThrow(registrationNumber);
+    if (record.kitCollectedAt) throw new ConflictException('Kit was already collected for this registration.');
+    return this.prisma.runnerRegistration.update({
+      where: { registrationNumber },
+      data: { kitCollectedAt: new Date(), kitCollectedBy: dto.collectedBy?.trim() || 'SELF' },
+    });
+  }
+
+  async upsertResult(registrationNumber: string, dto: UpsertResultDto) {
+    const record = await this.findByNumberOrThrow(registrationNumber);
+    if (!isTimedDistance(record.distance)) {
+      throw new BadRequestException(`${record.distance} is a non-timed category; results are not published.`);
+    }
+    const splits = [...(dto.splits ?? [])].sort((a, b) => a.distanceKm - b.distanceKm);
+    const data = {
+      status: dto.status,
+      gunTimeSeconds: dto.gunTimeSeconds ?? null,
+      netTimeSeconds: dto.netTimeSeconds ?? null,
+      overallRank: dto.overallRank ?? null,
+      genderRank: dto.genderRank ?? null,
+      categoryRank: dto.categoryRank ?? null,
+      ageCategory: dto.ageCategory ?? null,
+      splits: splits.map((s) => ({ label: s.label, distanceKm: s.distanceKm, elapsedSeconds: s.elapsedSeconds })),
+      publishedAt: new Date(),
+    };
+    return this.prisma.raceResult.upsert({
+      where: { registrationId: record.id },
+      create: { registrationId: record.id, ...data },
+      update: data,
+    });
   }
 
   async listRunners(limit = 50, offset = 0) {

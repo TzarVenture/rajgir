@@ -10,6 +10,7 @@ export function homePath(user: Pick<AppUser, "role" | "status" | "emailVerified"
   if (!user.role) return "/register";
   // Role saved but the form was never submitted (older accounts): continue that registration.
   if (user.status === "PENDING_ONBOARDING") return registerPathForRole(user.role);
-  if (user.status === "PENDING_APPROVAL") return "/pending";
+  // Volunteers and Influencers wait for approval on their own dashboard, which shows what is pending.
+  if (user.status === "PENDING_APPROVAL") return (user.role === "VOLUNTEER" || user.role === "INFLUENCER") ? "/dashboard" : "/pending";
   return "/dashboard";
 }

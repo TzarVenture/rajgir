@@ -5,17 +5,58 @@ import { roleLabel as getRoleLabel, registerPathForRole } from "@/lib/auth/roles
 import { requireUser } from "@/lib/auth/session";
 import { Button } from "@/components/ui";
 import { DashboardShell, type DashboardNavItem } from "@/components/dashboard/DashboardShell";
+import { DashboardSupportDrawer } from "@/components/dashboard/support/DashboardSupportDrawer";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireUser("/dashboard");
   const roleLabel = getRoleLabel(user.role);
 
-  const items: DashboardNavItem[] = [
-    { href: "/dashboard", label: "Overview", icon: "overview" },
-    { href: registerPathForRole(user.role), label: "My registration", icon: "registration" },
-    { href: "/contact", label: "Contact and help", icon: "help" },
-    { href: "/", label: "Home", icon: "home" },
-  ];
+  const isRunner = user.role === "RUNNER";
+  const isVolunteer = user.role === "VOLUNTEER";
+  const isInfluencer = user.role === "INFLUENCER";
+
+  const items: DashboardNavItem[] = isRunner
+    ? [
+      { href: "/dashboard/runner", label: "Overview Hub", icon: "overview" },
+      { href: "/dashboard/runner/bib", label: "Digital Bib Pass", icon: "bib" },
+      { href: "/dashboard/runner/splits", label: "Race & Splits", icon: "splits" },
+      { href: "/dashboard/runner/medical", label: "Medical Profile", icon: "medical" },
+      { href: "/dashboard/runner/training", label: "Training Plan", icon: "training" },
+      { href: "/dashboard/runner/invoice", label: "Invoice & Certificate", icon: "invoice" },
+      { href: "/dashboard/runner/profile", label: "Profile & Account", icon: "profile" },
+      { href: "/dashboard/runner/support", label: "Support & Helpdesk", icon: "help" },
+      { href: "/", label: "Marathon Home", icon: "home" },
+    ]
+    : isVolunteer
+      ? [
+        { href: "/dashboard/volunteer", label: "Overview Hub", icon: "overview" },
+        { href: "/dashboard/volunteer/shift", label: "Duty & Shift Control", icon: "shift" },
+        { href: "/dashboard/volunteer/badge", label: "Accreditation Badge", icon: "badge" },
+        { href: "/dashboard/volunteer/checklist", label: "Station Checklist", icon: "checklist" },
+        { href: "/dashboard/volunteer/incidents", label: "Incident Desk", icon: "incidents" },
+        { href: "/dashboard/volunteer/sop", label: "Field SOP Manual", icon: "sop" },
+        { href: "/dashboard/volunteer/application", label: "My Application", icon: "registration" },
+        { href: "/dashboard/volunteer/profile", label: "Profile & Account", icon: "profile" },
+        { href: "/dashboard/volunteer/support", label: "Support & Helpdesk", icon: "help" },
+        { href: "/", label: "Marathon Home", icon: "home" },
+      ]
+      : isInfluencer
+        ? [
+          { href: "/dashboard/influencer", label: "Overview Hub", icon: "overview" },
+          { href: "/dashboard/influencer/pass", label: "Media Accreditation Pass", icon: "pass" },
+          { href: "/dashboard/influencer/deliverables", label: "Campaign Deliverables", icon: "deliverables" },
+          { href: "/dashboard/influencer/brand-kit", label: "Brand Kit & Promo Code", icon: "brand" },
+          { href: "/dashboard/influencer/application", label: "My Application", icon: "registration" },
+          { href: "/dashboard/influencer/profile", label: "Profile & Account", icon: "profile" },
+          { href: "/dashboard/influencer/support", label: "PR & Media Helpdesk", icon: "help" },
+          { href: "/", label: "Marathon Home", icon: "home" },
+        ]
+        : [
+          { href: "/dashboard", label: "Overview", icon: "overview" },
+          { href: registerPathForRole(user.role), label: "My registration", icon: "registration" },
+          { href: "/contact", label: "Contact and help", icon: "help" },
+          { href: "/", label: "Home", icon: "home" },
+        ];
 
   return (
     <DashboardShell
@@ -31,6 +72,27 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       }
     >
       {children}
+      <DashboardSupportDrawer
+        context={{
+          athleteName: user.name,
+          email: user.email,
+          phone: user.phone ?? undefined,
+          roleLabel: isVolunteer
+            ? "Volunteer Crew"
+            : isInfluencer
+              ? "Media Creator"
+              : isRunner
+                ? "Registered Runner"
+                : undefined,
+        }}
+        helpdeskHref={
+          isVolunteer
+            ? "/dashboard/volunteer/support"
+            : isInfluencer
+              ? "/dashboard/influencer/support"
+              : "/dashboard/runner/support"
+        }
+      />
     </DashboardShell>
   );
 }

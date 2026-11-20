@@ -23,6 +23,9 @@ interface SuccessContentProps {
     qr_code_token: string;
     created_at: string;
   };
+  /** QR generated on our server (the token is never sent to a third-party QR service). */
+  qrDataUrl: string;
+  raceDateLabel: string;
 }
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -34,10 +37,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-export default function SuccessContent({ registration }: SuccessContentProps) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-    `RAJGIR-MARATHON:${registration.registration_number}:${registration.qr_code_token}`
-  )}`;
+export default function SuccessContent({ registration, qrDataUrl: qrUrl, raceDateLabel }: SuccessContentProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -98,7 +98,7 @@ export default function SuccessContent({ registration }: SuccessContentProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-4 border-t border-charcoal-200 pt-4">
-                <Detail label="Venue and date">Rajgir, Bihar | Nov 2027</Detail>
+                <Detail label="Venue and date">Rajgir, Bihar | {raceDateLabel}</Detail>
                 <Detail label="Fee paid and status">
                   <span className="flex flex-wrap items-center gap-2">
                     <span>₹{registration.net_amount.toLocaleString()}</span>
@@ -131,8 +131,8 @@ export default function SuccessContent({ registration }: SuccessContentProps) {
             Print / save digital pass
           </Button>
 
-          <LinkButton href="/register/runner" size="lg" iconRight={LuArrowRight}>
-            Register another participant
+          <LinkButton href="/dashboard/runner" size="lg" iconRight={LuArrowRight}>
+            Go to my race dashboard
           </LinkButton>
         </div>
 
