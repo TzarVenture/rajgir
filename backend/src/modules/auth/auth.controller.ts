@@ -1,25 +1,31 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { requireEmailVerification, toPublicUser } from '../users/users.service';
 import { AuthService } from './auth.service';
-import { ChangePasswordDto, DeleteAccountDto, EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
+import { ChangePasswordDto, EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 const perMinute = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 
+/**
+ * Authentication endpoints. The global SupabaseAuthGuard protects every route here unless it is
+ * marked @Public(): only the steps that happen before a session exists are public.
+ */
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @Public()
   @Get('config')
   @ApiOperation({ summary: 'Public auth settings the UI adapts to' })
   config() {
     return { requireEmailVerification: requireEmailVerification() };
   }
 
+  @Public()
   @Post('signup')
   @Throttle(perMinute(5))
   @ApiOperation({ summary: 'Create an account (email verification is sent)' })
@@ -27,6 +33,7 @@ export class AuthController {
     return this.auth.signup(dto);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(10))
@@ -35,6 +42,7 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(60))
@@ -46,12 +54,12 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @UseGuards(SupabaseAuthGuard)
   @ApiOperation({ summary: 'Sign out and revoke the session' })
   logout(@CurrentUser() auth: AuthContext) {
     return this.auth.logout(auth.accessToken);
   }
 
+  @Public()
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(3))
@@ -60,6 +68,7 @@ export class AuthController {
     return this.auth.resendVerification(dto.email);
   }
 
+  @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(20))
@@ -68,6 +77,7 @@ export class AuthController {
     return this.auth.verifyEmail(dto);
   }
 
+  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(3))
@@ -76,6 +86,7 @@ export class AuthController {
     return this.auth.forgotPassword(dto.email);
   }
 
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @Throttle(perMinute(10))
@@ -86,7 +97,6 @@ export class AuthController {
 
   @Get('me')
   @ApiBearerAuth()
-  @UseGuards(SupabaseAuthGuard)
   @ApiOperation({ summary: 'Current signed-in user' })
   me(@CurrentUser() auth: AuthContext) {
     return toPublicUser(auth.dbUser, Boolean(auth.authUser.email_confirmed_at));
@@ -95,9 +105,8 @@ export class AuthController {
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @UseGuards(SupabaseAuthGuard)
   @Throttle(perMinute(5))
-  @ApiOperation({ summary: 'Change password for currently authenticated user' })
+  @ApiOperation({ summary: 'Change the password (current password required); signs out other devices' })
   changePassword(@CurrentUser() auth: AuthContext, @Body() dto: ChangePasswordDto) {
     return this.auth.changePassword(auth.dbUser, auth.accessToken, dto);
   }
@@ -105,7 +114,7 @@ export class AuthController {
   @Delete('account')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @UseGuards(SupabaseAuthGuard)
+  @Throttle(perMinute(3))
   @ApiOperation({ summary: 'Delete account and cancel all registrations' })
   deleteAccount(@CurrentUser() auth: AuthContext) {
     return this.auth.deleteAccount(auth.dbUser.id, auth.dbUser.supabaseAuthId);

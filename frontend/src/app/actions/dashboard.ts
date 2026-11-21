@@ -88,7 +88,7 @@ export async function updateRunnerProfile(input: RunnerProfileInput): Promise<Ac
 
 const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().optional(),
+    currentPassword: z.string().min(1, "Enter your current password").max(72),
     newPassword: z.string().min(8, "Use at least 8 characters").max(72, "Use at most 72 characters"),
     confirmPassword: z.string().min(8, "Confirm your password"),
   })
@@ -109,7 +109,7 @@ export async function changeAccountPassword(input: PasswordChangeInput): Promise
   if (!ctx) return { success: false, error: SIGNED_OUT };
 
   const res = await api.auth.changePassword(
-    { currentPassword: parsed.data.currentPassword || undefined, newPassword: parsed.data.newPassword },
+    { currentPassword: parsed.data.currentPassword, newPassword: parsed.data.newPassword },
     ctx
   );
   if (!res.success) return { success: false, error: res.error ?? "We could not update your password." };

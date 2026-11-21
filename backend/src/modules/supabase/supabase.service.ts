@@ -1,6 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, isAuthRetryableFetchError, SupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * True when Supabase could not answer (network failure, timeout, 5xx), as opposed to answering
+ * "this token/credential is invalid". Callers must not end a user's session over a transient error.
+ */
+export function isTransientAuthError(error: unknown): boolean {
+  if (!error) return false;
+  if (isAuthRetryableFetchError(error)) return true;
+  const status = (error as { status?: number }).status;
+  // 429: Supabase rate-limits per IP, and every call comes from this one server, so a busy minute
+  // must read as "try again", never as "session over" / "wrong password".
+  return typeof status === 'number' && (status === 0 || status === 429 || status >= 500);
+}
 
 const CLIENT_OPTIONS = {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -45,8 +58,11 @@ export class SupabaseService {
     });
   }
 
-  /** Revoke the session behind an access token. 'global' signs the user out on every device. */
-  async revokeSession(accessToken: string, scope: 'local' | 'global' = 'local'): Promise<boolean> {
+  /**
+   * Revoke sessions for the user behind an access token.
+   * 'local' = this session only, 'others' = every other device, 'global' = every device.
+   */
+  async revokeSession(accessToken: string, scope: 'local' | 'others' | 'global' = 'local'): Promise<boolean> {
     try {
       const res = await fetch(`${this.url}/auth/v1/logout?scope=${scope}`, {
         method: 'POST',

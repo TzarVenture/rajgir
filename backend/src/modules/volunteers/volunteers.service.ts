@@ -10,7 +10,7 @@ import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { INCIDENT_STATUSES, isVolunteerCheckInOpen } from '../../common/constants/event';
 import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
-import { CreateVolunteerDto } from './dto/create-volunteer.dto';
+import { CreateVolunteerDto, RegisterVolunteerWithAccountDto } from './dto/create-volunteer.dto';
 import {
   AssignVolunteerDto,
   ChecklistItemDto,
@@ -30,6 +30,42 @@ export class VolunteersService {
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
   ) {}
+
+  /** Atomically create account and volunteer registration in a single database transaction. */
+  async registerVolunteerWithAccount(dto: RegisterVolunteerWithAccountDto) {
+    if (!dto.registration.waiverAgreed) throw new BadRequestException('You must accept the volunteer waiver to register.');
+
+    const { user, profile: record, session } = await this.users.createAccountAndRoleProfile(
+      { ...dto.account, role: Role.VOLUNTEER },
+      (tx, user) =>
+        tx.volunteer.create({
+          data: {
+            userId: user.id,
+            tShirtSize: dto.registration.tShirtSize,
+            emergencyContactName: dto.registration.emergencyContactName.trim(),
+            emergencyContactPhone: dto.registration.emergencyContactPhone.trim(),
+            availability: dto.registration.availability || [],
+            rolePreference: dto.registration.rolePreference,
+            languagesSpoken: dto.registration.languagesSpoken?.trim() || null,
+            dietaryRestrictions: dto.registration.dietaryRestrictions?.trim() || null,
+            medicalCertification: dto.registration.medicalCertification || false,
+            waiverAgreed: true,
+            status: 'pending',
+          },
+        }),
+    );
+
+    this.logger.log(`Volunteer registered with account: ${record.id} (user ${user.id})`);
+    return {
+      success: true,
+      id: record.id,
+      fullName: displayName(user),
+      email: user.email,
+      rolePreference: record.rolePreference,
+      status: record.status,
+      session,
+    };
+  }
 
   /**
    * Register the signed-in user as a volunteer (waits for approval).

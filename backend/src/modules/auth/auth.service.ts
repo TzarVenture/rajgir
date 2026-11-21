@@ -6,12 +6,13 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseService, isTransientAuthError } from '../supabase/supabase.service';
 import { UsersService, cleanNamePart, normalizeEmail, normalizeMobile, toPublicUser } from '../users/users.service';
 import type { ChangePasswordDto, DeleteAccountDto, LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
@@ -23,6 +24,7 @@ export interface SessionTokens {
 }
 
 const GENERIC_LOGIN_ERROR = 'Incorrect email/mobile or password.';
+const AUTH_UNAVAILABLE = { code: 'AUTH_UNAVAILABLE', message: 'Sign-in service is temporarily unavailable. Please try again in a moment.' };
 const LINK_ERROR = 'This link is invalid or has expired. Please request a new one.';
 
 function toSession(session: Session): SessionTokens {
@@ -140,6 +142,7 @@ export class AuthService {
 
     const { data, error } = await this.supabase.anon.auth.signInWithPassword({ email, password: dto.password });
 
+    if (isTransientAuthError(error)) throw new ServiceUnavailableException(AUTH_UNAVAILABLE);
     if (error || !data.session || !data.user) {
       if (error?.code === 'email_not_confirmed') {
         throw new ForbiddenException({ code: 'EMAIL_NOT_VERIFIED', message: 'Please verify your email to continue.', email });
@@ -149,6 +152,7 @@ export class AuthService {
 
     const dbUser = await this.requireUser(data.user, data.session.access_token);
     if (dbUser.status === 'SUSPENDED') {
+      await this.supabase.revokeSession(data.session.access_token, 'local').catch(() => undefined);
       throw new ForbiddenException({ code: 'ACCOUNT_SUSPENDED', message: 'This account is suspended. Please contact support.' });
     }
 
@@ -157,7 +161,13 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const { data, error } = await this.supabase.anon.auth.refreshSession({ refresh_token: refreshToken });
-    if (error || !data.session) throw new UnauthorizedException('Your session has expired. Please sign in again.');
+    if (isTransientAuthError(error)) {
+      // Keep the session: the frontend only clears its cookie on 401.
+      throw new ServiceUnavailableException(AUTH_UNAVAILABLE);
+    }
+    if (error || !data.session) {
+      throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Your session has expired. Please sign in again.' });
+    }
     return { session: toSession(data.session) };
   }
 
@@ -232,15 +242,17 @@ export class AuthService {
     accessToken: string,
     dto: ChangePasswordDto,
   ) {
-    if (dto.currentPassword) {
-      const { error: verifyErr } = await this.supabase.anon.auth.signInWithPassword({
-        email: user.email,
-        password: dto.currentPassword,
-      });
-      if (verifyErr) {
-        throw new BadRequestException('Current password is incorrect.');
-      }
+    // Re-authenticate: a stolen or unattended session alone must not be enough to take over the account.
+    const { data: verified, error: verifyErr } = await this.supabase.anon.auth.signInWithPassword({
+      email: user.email,
+      password: dto.currentPassword,
+    });
+    if (isTransientAuthError(verifyErr)) throw new ServiceUnavailableException(AUTH_UNAVAILABLE);
+    if (verifyErr || !verified.session) {
+      throw new BadRequestException({ code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect.' });
     }
+    // The check above opened a session of its own; close it straight away.
+    await this.supabase.revokeSession(verified.session.access_token, 'local');
 
     const { error: updateError } = await this.supabase.userClient(accessToken).auth.updateUser({
       password: dto.newPassword,
@@ -253,6 +265,8 @@ export class AuthService {
       throw new BadRequestException('We could not update your password. Please try again.');
     }
 
+    // Sign out every other device; the session that made the change stays signed in.
+    await this.supabase.revokeSession(accessToken, 'others');
     return { success: true };
   }
 

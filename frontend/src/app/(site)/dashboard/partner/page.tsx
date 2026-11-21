@@ -1,6 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { EVENT, formatDate } from "@/lib/event";
 import { LuHandshake, LuHeadset, LuMail, LuMapPin, LuPhone, LuTicket } from "react-icons/lu";
 import { Badge, StatCard } from "@/components/ui";
@@ -16,9 +16,8 @@ const moveInDay = new Date(new Date(`${expoFirstDay}T00:00:00+05:30`).getTime() 
 const expoRange = `${formatDate(expoFirstDay, { year: undefined })} - ${formatDate(EVENT.raceDate)}`;
 
 export default async function PartnerDashboard() {
-  const user = await getCurrentUser();
+  const user = await requireUser("/dashboard/partner");
 
-  if (!user) redirect("/login");
   if (!user.role || !["SPONSOR", "VENDOR", "TOURISM_PARTNER"].includes(user.role)) {
     redirect("/dashboard");
   }

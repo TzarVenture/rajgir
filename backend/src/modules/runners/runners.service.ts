@@ -11,7 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { STAFF_ROLES } from '../../common/constants/roles';
 import { ageOnRaceDay, isTimedDistance } from '../../common/constants/event';
 import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
-import { CreateRunnerDto } from './dto/create-runner.dto';
+import { CreateRunnerDto, RegisterRunnerWithAccountDto } from './dto/create-runner.dto';
 import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 import { quotePrice } from './pricing';
 
@@ -32,6 +32,84 @@ export class RunnersService {
     const prefix = cleanDist ? `${cleanDist}K` : 'OPEN';
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     return `RJG-2027-${prefix}-${randomSuffix}`;
+  }
+
+  /** Atomically create account and runner registration in a single database transaction. */
+  async registerRunnerWithAccount(dto: RegisterRunnerWithAccountDto) {
+    const quote = quotePrice(dto.registration.categoryDistance, dto.registration.selectedAddons ?? [], dto.registration.couponCode);
+    if (!quote) throw new BadRequestException('Invalid race category selected.');
+
+    const parsedDob = new Date(dto.registration.dateOfBirth);
+    if (isNaN(parsedDob.getTime())) throw new BadRequestException('Invalid date of birth');
+
+    const age = ageOnRaceDay(parsedDob);
+    if (age < quote.category.minAge) {
+      throw new BadRequestException(
+        `Participants for ${quote.category.distance} must be at least ${quote.category.minAge} years old on race day.`,
+      );
+    }
+    if (!dto.registration.waiverAgreed) throw new BadRequestException('You must accept the event waiver to register.');
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const registrationNumber = this.generateRegistrationNumber(quote.category.distance);
+      try {
+        const { user, profile: record, session } = await this.users.createAccountAndRoleProfile(
+          { ...dto.account, role: Role.RUNNER },
+          (tx, user) =>
+            tx.runnerRegistration.create({
+              data: {
+                userId: user.id,
+                registrationNumber,
+                distance: quote.category.distance,
+                raceTitle: quote.category.title,
+                baseFee: quote.category.fee,
+                dateOfBirth: parsedDob,
+                ageOnRaceDay: age,
+                gender: dto.registration.gender,
+                bloodGroup: dto.registration.bloodGroup,
+                tshirtSize: dto.registration.tshirtSize,
+                bibName: dto.registration.bibName.toUpperCase().trim(),
+                emergencyName: dto.registration.emergencyName.trim(),
+                emergencyRelation: dto.registration.emergencyRelation,
+                emergencyPhone: dto.registration.emergencyPhone.trim(),
+                medicalNotes: dto.registration.medicalNotes?.trim() || null,
+                city: dto.registration.city.trim(),
+                state: dto.registration.state.trim(),
+                pincode: dto.registration.pincode.trim(),
+                country: dto.registration.country?.trim() || 'India',
+                runningClub: dto.registration.runningClub?.trim() || null,
+                estimatedFinishTime: isTimedDistance(quote.category.distance) ? dto.registration.estimatedFinishTime || null : null,
+                selectedAddons: quote.addons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
+                grossAmount: quote.gross,
+                discountAmount: quote.discount,
+                netAmount: quote.net,
+                couponCode: quote.coupon,
+                waiverAgreed: true,
+                paymentStatus: 'CONFIRMED',
+              },
+            }),
+        );
+
+        this.logger.log(`Runner registered with account: ${record.registrationNumber} (user ${user.id})`);
+        return {
+          success: true,
+          registrationNumber: record.registrationNumber,
+          runnerName: displayName(user),
+          bibName: record.bibName,
+          distance: record.distance,
+          raceTitle: record.raceTitle,
+          email: user.email,
+          paymentStatus: record.paymentStatus,
+          qrToken: record.qrCodeToken,
+          createdAt: record.createdAt,
+          session,
+        };
+      } catch (error) {
+        const clash = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+        if (!clash) throw error;
+      }
+    }
+    throw new BadRequestException('Could not allocate a unique registration number. Please try again.');
   }
 
   /** Register the signed-in user as a runner. Price, age and role are all decided here, on the server. */

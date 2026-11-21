@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { RegistrationsService } from './registrations.service';
+import { RegisterGroupWithAccountDto } from './dto/register-group-with-account.dto';
 import { RegisterTeamDto } from './dto/register-team.dto';
 import { RegisterCorporateDto } from './dto/register-corporate.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
@@ -12,7 +13,6 @@ import { RegisterTourismDto } from './dto/register-tourism.dto';
 
 @ApiTags('Registrations')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard)
 @Controller('registrations')
 export class RegistrationsController {
   constructor(private readonly registrationsService: RegistrationsService) {}
@@ -28,6 +28,17 @@ export class RegistrationsController {
   @ApiOperation({ summary: 'Withdraw my registration while it is still pending review' })
   withdraw(@CurrentUser() auth: AuthContext) {
     return this.registrationsService.withdrawMine(auth.dbUser.id);
+  }
+
+  @Public()
+  @Post(':type/register-with-account')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Atomically create account and register for group/partner role' })
+  registerGroupWithAccount(
+    @Param('type') type: 'team' | 'corporate' | 'school' | 'sponsor' | 'vendor' | 'tourism',
+    @Body() dto: RegisterGroupWithAccountDto,
+  ) {
+    return this.registrationsService.registerGroupWithAccount(type, dto);
   }
 
   @Post('team')

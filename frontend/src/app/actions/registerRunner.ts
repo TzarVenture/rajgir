@@ -1,7 +1,7 @@
 "use server";
 
 import { api } from "@/lib/api";
-import { authContext } from "@/lib/auth/session";
+import { authContext, clearPendingRegistration, getPendingRegistration, saveSession } from "@/lib/auth/session";
 import { runnerRegistrationSchema } from "@/lib/schemas/runnerRegistration";
 
 export interface RegisterRunnerResult {
@@ -27,35 +27,59 @@ export async function submitRunnerRegistration(rawData: unknown): Promise<Regist
     return { success: false, error: "Please correct the highlighted errors in the form.", fieldErrors };
   }
 
+  const pending = await getPendingRegistration();
   const ctx = await authContext();
-  if (!ctx) return { success: false, error: "Please sign in to complete your registration." };
+
+  if (!ctx && !pending) {
+    return { success: false, error: "Please sign in to complete your registration." };
+  }
 
   const data = parsed.data;
-  const res = await api.runners.register(
-    {
-      categoryDistance: data.distance,
-      // Name, email and mobile are not sent: the API binds the registration to the signed-in account.
-      dateOfBirth: data.dateOfBirth,
-      gender: data.gender,
-      bloodGroup: data.bloodGroup,
-      tshirtSize: data.tshirtSize,
-      bibName: data.bibName,
-      emergencyName: data.emergencyName,
-      emergencyRelation: data.emergencyRelation,
-      emergencyPhone: data.emergencyPhone,
-      medicalNotes: data.medicalNotes || undefined,
-      city: data.city,
-      state: data.state,
-      pincode: data.pincode,
-      country: data.country || "India",
-      runningClub: data.runningClub || undefined,
-      selectedAddons: data.selectedAddons,
-      couponCode: data.couponCode?.trim() || undefined,
-      estimatedFinishTime: data.estimatedFinishTime || undefined,
-      waiverAgreed: data.waiverAgreed,
-    },
-    ctx
-  );
+  const runnerPayload = {
+    categoryDistance: data.distance,
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender,
+    bloodGroup: data.bloodGroup,
+    tshirtSize: data.tshirtSize,
+    bibName: data.bibName,
+    emergencyName: data.emergencyName,
+    emergencyRelation: data.emergencyRelation,
+    emergencyPhone: data.emergencyPhone,
+    medicalNotes: data.medicalNotes || undefined,
+    city: data.city,
+    state: data.state,
+    pincode: data.pincode,
+    country: data.country || "India",
+    runningClub: data.runningClub || undefined,
+    selectedAddons: data.selectedAddons,
+    couponCode: data.couponCode?.trim() || undefined,
+    estimatedFinishTime: data.estimatedFinishTime || undefined,
+    waiverAgreed: data.waiverAgreed,
+  };
+
+  let res;
+  if (pending) {
+    res = await api.runners.registerWithAccount({
+      account: {
+        firstName: pending.firstName,
+        lastName: pending.lastName,
+        email: pending.email,
+        mobile: pending.mobile,
+        password: pending.password,
+      },
+      registration: runnerPayload,
+    });
+    if (res.success && res.data) {
+      await clearPendingRegistration();
+      if (res.data.session) {
+        await saveSession(res.data.session);
+      }
+    }
+  } else if (ctx) {
+    res = await api.runners.register(runnerPayload, ctx);
+  } else {
+    return { success: false, error: "Please sign in to complete your registration." };
+  }
 
   if (!res.success || !res.data) {
     return { success: false, error: res.error ?? "We could not complete your registration. Please try again." };

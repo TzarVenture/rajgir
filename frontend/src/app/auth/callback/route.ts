@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { homePath } from "@/lib/auth/paths";
 import { safeRedirect } from "@/lib/auth/redirect";
 import { NEXT_COOKIE, SESSION_COOKIE, encodeSession, sessionCookieOptions } from "@/lib/auth/cookie";
+import { clientIpFromHeaders } from "@/lib/auth/sessionState";
 
 /**
  * Landing point for the links in Supabase emails (verify email, reset password).
@@ -34,7 +35,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (tokenHash && (type === "signup" || type === "email")) {
-    const res = await api.auth.verifyEmail(tokenHash, type);
+    const clientIp = clientIpFromHeaders((name) => request.headers.get(name));
+    const res = await api.auth.verifyEmail(tokenHash, type, { clientIp });
     if (!res.success || !res.data) {
       return NextResponse.redirect(publicUrl(request, "/verify-email?error=link"));
     }

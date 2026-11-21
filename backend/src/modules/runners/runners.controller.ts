@@ -1,19 +1,26 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
-import { Roles, RolesGuard } from '../../common/guards/roles.guard';
+import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/guards/roles.guard';
 import { RunnersService } from './runners.service';
-import { CreateRunnerDto } from './dto/create-runner.dto';
+import { CreateRunnerDto, RegisterRunnerWithAccountDto } from './dto/create-runner.dto';
 import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 
 @ApiTags('Runners')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Controller('runners')
 export class RunnersController {
   constructor(private readonly runnersService: RunnersService) {}
+
+  @Public()
+  @Post('register-with-account')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Atomically create account and register as a runner' })
+  registerWithAccount(@Body() dto: RegisterRunnerWithAccountDto) {
+    return this.runnersService.registerRunnerWithAccount(dto);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)

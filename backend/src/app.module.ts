@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
+import { GLOBAL_GUARDS } from './common/guards/global-guards';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { RunnersModule } from './modules/runners/runners.module';
@@ -32,7 +32,7 @@ import { AuthModule } from './modules/auth/auth.module';
     InfluencersModule,
     AdminModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  // Rate limit -> authentication (unless @Public) -> roles, for every route.
+  providers: [...GLOBAL_GUARDS],
 })
 export class AppModule {}
-

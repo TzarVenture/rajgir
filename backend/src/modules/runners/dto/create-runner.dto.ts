@@ -5,7 +5,9 @@ import {
   IsBoolean,
   IsArray,
   Matches,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRunnerDto {
@@ -107,5 +109,44 @@ export class CreateRunnerDto {
   @ApiProperty({ example: true })
   @IsBoolean()
   waiverAgreed: boolean;
+}
+
+export class SignupAccountDto {
+  @ApiProperty({ example: 'Rahul' })
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty({ example: 'Verma' })
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
+  @ApiProperty({ example: 'rahul@example.com' })
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ example: '9876543210' })
+  @IsString()
+  @IsNotEmpty()
+  mobile: string;
+
+  @ApiPropertyOptional({ example: 'secret123' })
+  @IsString()
+  @IsOptional()
+  password?: string;
+}
+
+export class RegisterRunnerWithAccountDto {
+  @ApiProperty({ type: () => SignupAccountDto })
+  @ValidateNested()
+  @Type(() => SignupAccountDto)
+  account: SignupAccountDto;
+
+  @ApiProperty({ type: () => CreateRunnerDto })
+  @ValidateNested()
+  @Type(() => CreateRunnerDto)
+  registration: CreateRunnerDto;
 }
 

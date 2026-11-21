@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { AccountStatus, Prisma, Role, User } from '@prisma/client';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { ROLE_LABELS, STAFF_ROLES } from '../../common/constants/roles';
 
 const PROFILE_INCLUDE = {
@@ -147,7 +148,88 @@ export function normalizeMobile(input: string): string | null {
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supabase: SupabaseService,
+  ) {}
+
+  /**
+   * Atomically create the user account and their role profile in a single database transaction.
+   * Supabase auth is created first; if the database transaction fails, Supabase auth is rolled back.
+   * If the user never submits their final registration wizard, ZERO database rows are created.
+   */
+  async createAccountAndRoleProfile<T>(
+    account: { email: string; mobile: string; firstName: string; lastName: string; password?: string; role?: Role },
+    createProfileFn: (tx: Prisma.TransactionClient, user: User) => Promise<T>,
+  ): Promise<{ user: User; profile: T; session: { accessToken: string; refreshToken: string; expiresAt: number } | null }> {
+    const email = normalizeEmail(account.email);
+    const mobile = normalizeMobile(account.mobile);
+    if (!mobile) throw new BadRequestException('Enter a valid 10-digit mobile number.');
+    const firstName = cleanNamePart(account.firstName);
+    const lastName = cleanNamePart(account.lastName);
+    if (!firstName || !lastName) throw new BadRequestException('Enter your first and last name.');
+
+    const [byEmail, byPhone] = await Promise.all([this.findByEmail(email), this.findByPhone(mobile)]);
+    if (byEmail) throw new ConflictException('An account with this email already exists. Try signing in instead.');
+    if (byPhone) throw new ConflictException('This mobile number is already linked to another account.');
+
+    let supabaseAuthId = '';
+    let session = null;
+
+    if (account.password) {
+      const { data, error } = await this.supabase.anon.auth.signUp({
+        email,
+        password: account.password,
+        options: {
+          data: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, phone: mobile },
+        },
+      });
+
+      if (error) {
+        if (error.code === 'weak_password') throw new BadRequestException(error.message);
+        throw new BadRequestException('We could not create your account. Please check your details.');
+      }
+
+      if (!data.user || data.user.identities?.length === 0) {
+        throw new ConflictException('An account with this email already exists. Try signing in instead.');
+      }
+
+      supabaseAuthId = data.user.id;
+      if (data.session) {
+        session = {
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+          expiresAt: data.session.expires_at ?? Math.floor(Date.now() / 1000) + data.session.expires_in,
+        };
+      }
+    }
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            firstName,
+            lastName,
+            email,
+            phone: mobile,
+            supabaseAuthId,
+            role: account.role || null,
+            status: 'ACTIVE',
+          },
+        });
+
+        const profile = await createProfileFn(tx, user);
+        return { user, profile };
+      });
+
+      return { ...result, session };
+    } catch (err) {
+      if (supabaseAuthId) {
+        await this.supabase.admin.auth.admin.deleteUser(supabaseAuthId).catch(() => undefined);
+      }
+      throw err;
+    }
+  }
 
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
@@ -164,10 +246,11 @@ export class UsersService {
    * (account removed), a still-valid Supabase token must NOT bring the account back.
    *
    * Matching by email is kept for rows created before supabase_auth_id was recorded; such a row is
-   * linked on first sight. A row already linked to a different Supabase identity never matches.
+   * linked on first sight, but only to an identity that has proven it owns the email
+   * (email_confirmed_at set). A row already linked to a different Supabase identity never matches.
    */
   async findForAuthUser(authUser: SupabaseAuthUser): Promise<User | null> {
-    const email = normalizeEmail(authUser.email ?? '');
+    const email = authUser.email_confirmed_at ? normalizeEmail(authUser.email ?? '') : '';
     const user = await this.prisma.user.findFirst({
       where: { OR: [{ supabaseAuthId: authUser.id }, ...(email ? [{ email }] : [])] },
     });
