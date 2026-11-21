@@ -1,6 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { LuBuilding2, LuHeadset, LuReceipt, LuShirt, LuUsers } from "react-icons/lu";
 import { Badge, Button, EmptyState, StatCard } from "@/components/ui";
 import { DashboardHeading, SectionCard } from "@/components/dashboard/DashboardParts";
@@ -10,9 +10,8 @@ export const metadata = {
 };
 
 export default async function GroupDashboard() {
-  const user = await getCurrentUser();
+  const user = await requireUser("/dashboard/group");
 
-  if (!user) redirect("/login");
   if (!user.role || !["TEAM_CAPTAIN", "CORPORATE_MANAGER", "SCHOOL_COORDINATOR"].includes(user.role)) {
     redirect("/dashboard");
   }

@@ -4,8 +4,11 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SignupAccountDto } from '../../runners/dto/create-runner.dto';
 
 export class CreateVolunteerDto {
   // Name, email and mobile are not accepted here: they come from the signed-in account (users table).
@@ -53,5 +56,17 @@ export class CreateVolunteerDto {
   @ApiProperty({ example: true })
   @IsBoolean()
   waiverAgreed: boolean;
+}
+
+export class RegisterVolunteerWithAccountDto {
+  @ApiProperty({ type: () => SignupAccountDto })
+  @ValidateNested()
+  @Type(() => SignupAccountDto)
+  account: SignupAccountDto;
+
+  @ApiProperty({ type: () => CreateVolunteerDto })
+  @ValidateNested()
+  @Type(() => CreateVolunteerDto)
+  registration: CreateVolunteerDto;
 }
 

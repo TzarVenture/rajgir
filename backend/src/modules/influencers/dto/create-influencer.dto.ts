@@ -2,8 +2,11 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SignupAccountDto } from '../../runners/dto/create-runner.dto';
 
 export class CreateInfluencerDto {
   // Name, email and mobile are not accepted here: they come from the signed-in account (users table).
@@ -52,5 +55,17 @@ export class CreateInfluencerDto {
   @IsString()
   @IsNotEmpty()
   collaborationDeliverables: string;
+}
+
+export class RegisterInfluencerWithAccountDto {
+  @ApiProperty({ type: () => SignupAccountDto })
+  @ValidateNested()
+  @Type(() => SignupAccountDto)
+  account: SignupAccountDto;
+
+  @ApiProperty({ type: () => CreateInfluencerDto })
+  @ValidateNested()
+  @Type(() => CreateInfluencerDto)
+  registration: CreateInfluencerDto;
 }
 

@@ -21,6 +21,7 @@ build/
 # NestJS & Backend builds
 dist/
 */dist/
+*/dist-test/
 
 # Miscellaneous
 .DS_Store

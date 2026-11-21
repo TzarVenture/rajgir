@@ -9,7 +9,17 @@ import SubmitButton from "@/components/auth/SubmitButton";
 import { AuthHeading, ContextBanner, Field, FormError, cardClass, linkClass } from "@/components/auth/ui";
 import { registrationTitleForPath } from "@/lib/auth/roles";
 
-function SignupFormInner({ withVerification }: { withVerification: boolean }) {
+interface SignupFormProps {
+  withVerification: boolean;
+  initialValues?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    mobile?: string;
+  };
+}
+
+function SignupFormInner({ withVerification, initialValues }: SignupFormProps) {
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || params.get("redirectTo") || "";
   const [state, action] = useActionState<FormState, FormData>(signUp, undefined);
@@ -34,8 +44,25 @@ function SignupFormInner({ withVerification }: { withVerification: boolean }) {
         <input type="hidden" name="redirect" value={redirectTo} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="First name" name="firstName" autoComplete="given-name" placeholder="e.g. Rahul" maxLength={64} defaultValue={state?.values?.firstName} error={errors.firstName} autoFocus />
-          <Field label="Last name" name="lastName" autoComplete="family-name" placeholder="e.g. Verma" maxLength={64} defaultValue={state?.values?.lastName} error={errors.lastName} />
+          <Field
+            label="First name"
+            name="firstName"
+            autoComplete="given-name"
+            placeholder="e.g. Rahul"
+            maxLength={64}
+            defaultValue={state?.values?.firstName ?? initialValues?.firstName}
+            error={errors.firstName}
+            autoFocus
+          />
+          <Field
+            label="Last name"
+            name="lastName"
+            autoComplete="family-name"
+            placeholder="e.g. Verma"
+            maxLength={64}
+            defaultValue={state?.values?.lastName ?? initialValues?.lastName}
+            error={errors.lastName}
+          />
         </div>
         <Field
           label="Email address"
@@ -43,11 +70,20 @@ function SignupFormInner({ withVerification }: { withVerification: boolean }) {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
-          defaultValue={state?.values?.email}
+          defaultValue={state?.values?.email ?? initialValues?.email}
           error={errors.email}
           hint={withVerification ? "We will send a verification link here." : undefined}
         />
-        <Field label="Mobile number" name="mobile" type="tel" inputMode="tel" autoComplete="tel" placeholder="10-digit mobile number" defaultValue={state?.values?.mobile} error={errors.mobile} />
+        <Field
+          label="Mobile number"
+          name="mobile"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="10-digit mobile number"
+          defaultValue={state?.values?.mobile ?? initialValues?.mobile}
+          error={errors.mobile}
+        />
         <PasswordField label="Password" name="password" autoComplete="new-password" placeholder="At least 8 characters" error={errors.password} hint="Use at least 8 characters." />
         <PasswordField label="Confirm password" name="confirm" autoComplete="new-password" placeholder="Repeat your password" error={errors.confirm} />
 
@@ -72,10 +108,10 @@ function SignupFormInner({ withVerification }: { withVerification: boolean }) {
   );
 }
 
-export default function SignupForm({ withVerification }: { withVerification: boolean }) {
+export default function SignupForm({ withVerification, initialValues }: SignupFormProps) {
   return (
     <Suspense fallback={<div className="py-10 text-center text-xs text-neutral-400">Loading...</div>}>
-      <SignupFormInner withVerification={withVerification} />
+      <SignupFormInner withVerification={withVerification} initialValues={initialValues} />
     </Suspense>
   );
 }

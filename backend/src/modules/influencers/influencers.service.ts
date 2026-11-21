@@ -2,7 +2,7 @@ import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
-import { CreateInfluencerDto } from './dto/create-influencer.dto';
+import { CreateInfluencerDto, RegisterInfluencerWithAccountDto } from './dto/create-influencer.dto';
 
 @Injectable()
 export class InfluencersService {
@@ -12,6 +12,48 @@ export class InfluencersService {
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
   ) {}
+
+  /** Atomically create account and influencer registration in a single database transaction. */
+  async registerInfluencerWithAccount(dto: RegisterInfluencerWithAccountDto) {
+    try {
+      const { user, profile: record, session } = await this.users.createAccountAndRoleProfile(
+        { ...dto.account, role: Role.INFLUENCER },
+        (tx, user) =>
+          tx.influencer.create({
+            data: {
+              userId: user.id,
+              stageName: dto.registration.stageName?.trim() || null,
+              city: dto.registration.city?.trim() || null,
+              country: dto.registration.country?.trim() || 'India',
+              primaryPlatform: dto.registration.primaryPlatform,
+              profileUrl: dto.registration.profileUrl.trim(),
+              followerCount: dto.registration.followerCount.trim(),
+              engagementRate: dto.registration.engagementRate?.trim() || null,
+              targetNiche: dto.registration.targetNiche.trim(),
+              collaborationDeliverables: dto.registration.collaborationDeliverables.trim(),
+              status: 'pending',
+            },
+          }),
+      );
+
+      this.logger.log(`Influencer registered with account: ${record.id} (${record.primaryPlatform}, user ${user.id})`);
+      return {
+        success: true,
+        id: record.id,
+        fullName: displayName(user),
+        email: user.email,
+        primaryPlatform: record.primaryPlatform,
+        status: record.status,
+        submittedAt: record.submittedAt,
+        session,
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('You have already submitted this registration.');
+      }
+      throw error;
+    }
+  }
 
   /**
    * Register the signed-in user as an influencer (waits for approval).

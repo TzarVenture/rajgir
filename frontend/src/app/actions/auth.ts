@@ -5,9 +5,12 @@ import { api } from "@/lib/api";
 import { homePath } from "@/lib/auth/paths";
 import { safeRedirect } from "@/lib/auth/redirect";
 import {
+  clearPendingRegistration,
+  clearSession,
   clientContext,
   endSession,
   rememberNext,
+  savePendingRegistration,
   saveSession,
 } from "@/lib/auth/session";
 
@@ -46,8 +49,8 @@ function tenDigitMobile(value: string): string | null {
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
-  const firstName = text(formData, "firstName").replace(/s+/g, " ");
-  const lastName = text(formData, "lastName").replace(/s+/g, " ");
+  const firstName = text(formData, "firstName").replace(/\s+/g, " ");
+  const lastName = text(formData, "lastName").replace(/\s+/g, " ");
   const email = text(formData, "email").toLowerCase();
   const mobileInput = text(formData, "mobile");
   const password = String(formData.get("password") ?? "");
@@ -71,20 +74,33 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     return { error: "Please fix the highlighted fields.", fieldErrors, values };
   }
 
-  const res = await api.auth.signup({ firstName, lastName, email, mobile, password }, await clientContext());
-  if (!res.success || !res.data) {
-    return { error: res.error ?? "We could not create your account. Please try again.", values };
+  // Pre-validate that email and mobile are available before staging
+  const res = await api.auth.checkAvailability({ email, mobile });
+  if (!res.success) {
+    if (res.statusCode === 409) {
+      return { error: res.error ?? "An account with this email or mobile already exists. Try signing in instead.", values };
+    }
+    if (res.statusCode === 400) {
+      return { error: res.error ?? "Invalid registration details. Please check your email and mobile number.", values };
+    }
   }
 
-  await rememberNext(next);
+  // Purge any old session cookies so there is no conflict
+  await clearSession();
 
-  if (res.data.session) {
-    // Project has email confirmation switched off: signed in straight away.
-    await saveSession(res.data.session);
-    redirect(next ?? homePath(res.data.user));
-  }
+  // STAGE ONLY — DO NOT WRITE TO DATABASE OR CREATE SUPABASE USER YET.
+  // The database write occurs atomically when the user completes their final registration step.
+  await savePendingRegistration({
+    firstName,
+    lastName,
+    email,
+    mobile,
+    password,
+    redirect: next ?? undefined,
+    createdAt: Date.now(),
+  });
 
-  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
+  redirect(next ?? "/register");
 }
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -114,6 +130,11 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
 export async function logout(): Promise<void> {
   await endSession();
   redirect("/login");
+}
+
+export async function cancelPendingRegistration(): Promise<void> {
+  await clearPendingRegistration();
+  redirect("/signup");
 }
 
 export async function resendVerification(_prev: FormState, formData: FormData): Promise<FormState> {

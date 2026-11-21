@@ -27,7 +27,7 @@ export default async function SiteLayout({
   return (
     <div className="site-root flex flex-1 flex-col bg-white text-[#111827] font-manrope antialiased">
       <PreviewProvider isPreview={isGateActive()}>
-        <HeaderAuthProvider user={user ? { name: user.name } : null}>{children}</HeaderAuthProvider>
+        <HeaderAuthProvider user={user && !user.isPending ? { name: user.name } : null}>{children}</HeaderAuthProvider>
       </PreviewProvider>
     </div>
   );

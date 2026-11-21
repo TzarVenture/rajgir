@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { NEXT_COOKIE, SESSION_COOKIE } from "@/lib/auth/cookie";
-import { loginUrl } from "@/lib/auth/redirect";
+import { api } from "@/lib/api";
+import { NEXT_COOKIE, SESSION_COOKIE, decodeSession } from "@/lib/auth/cookie";
+import { loginUrl, safeRedirect } from "@/lib/auth/redirect";
+import { REFRESH_FAILED_HEADER, classifyMeResponse, clientIpFromHeaders } from "@/lib/auth/sessionState";
 
 /**
- * Clears a session the API no longer accepts (expired, revoked, or the account was deleted) and
- * sends the browser to /login, keeping a safe return path.
+ * Clears a session cookie the API no longer accepts, then continues to /login (keeping a safe
+ * return path). requireUser() sends the browser here because server components cannot change cookies.
  *
- * Server components cannot change cookies while rendering, so requireUser() redirects here when
- * the API answers 401 for a session cookie that is still present. Only the local cookies are
- * removed; nothing else changes, so a forged link can at worst sign the visitor out.
+ * The session is re-checked first and the cookie is removed only if the API still rejects it (401):
+ *  - a request that raced a token refresh in another tab is sent back to its page, still signed in;
+ *  - a forged link to this URL cannot sign out a user whose session is valid.
+ * Deliberate sign-out is the `logout` server action (POST, revokes the session on the API).
  */
 function publicUrl(request: NextRequest, path: string): URL {
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.host;
@@ -16,11 +19,30 @@ function publicUrl(request: NextRequest, path: string): URL {
   return new URL(path, `${proto}://${host}`);
 }
 
-export function GET(request: NextRequest) {
-  const target = loginUrl(request.nextUrl.searchParams.get("redirect"));
-  const response = NextResponse.redirect(publicUrl(request, target));
-  response.cookies.delete(SESSION_COOKIE);
-  response.cookies.delete(NEXT_COOKIE);
+function noStore(response: NextResponse): NextResponse {
   response.headers.set("Cache-Control", "no-store");
   return response;
+}
+
+export async function GET(request: NextRequest) {
+  const returnTo = request.nextUrl.searchParams.get("redirect");
+  const session = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
+
+  if (session) {
+    const clientIp = clientIpFromHeaders((name) => request.headers.get(name));
+    const refreshFailed = request.headers.get(REFRESH_FAILED_HEADER) === "1";
+    const status = classifyMeResponse(await api.auth.me({ token: session.accessToken, clientIp }), refreshFailed);
+    if (status === "authenticated") {
+      return noStore(NextResponse.redirect(publicUrl(request, safeRedirect(returnTo) ?? "/dashboard")));
+    }
+    if (status === "unavailable") {
+      // Cannot tell right now: keep the session and let the login page explain.
+      return noStore(NextResponse.redirect(publicUrl(request, loginUrl(returnTo))));
+    }
+  }
+
+  const response = NextResponse.redirect(publicUrl(request, loginUrl(returnTo)));
+  response.cookies.delete(SESSION_COOKIE);
+  response.cookies.delete(NEXT_COOKIE);
+  return noStore(response);
 }

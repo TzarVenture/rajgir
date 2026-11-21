@@ -5,16 +5,24 @@ import { api, type ApiSession, type ApiUser, type CallContext } from "@/lib/api"
 import { loginUrl, safeRedirect } from "@/lib/auth/redirect";
 import {
   NEXT_COOKIE,
+  PENDING_REG_COOKIE,
   SESSION_COOKIE,
+  PendingAccount,
+  decodePendingRegistration,
   decodeSession,
+  encodePendingRegistration,
   encodeSession,
   sessionCookieOptions,
 } from "@/lib/auth/cookie";
+import { REFRESH_FAILED_HEADER, classifyMeResponse, clientIpFromHeaders, type SessionStatus } from "@/lib/auth/sessionState";
 
 /**
- * Server-side session helpers.
- * Next.js only stores the tokens in an httpOnly cookie and passes them to the
- * NestJS API; all identity logic lives in the backend.
+ * The frontend's single authentication module (server-only).
+ *
+ * - The session is the httpOnly cookie (lib/auth/cookie.ts); the middleware keeps it refreshed.
+ * - Who the user is comes only from the NestJS API (GET /auth/me), asked once per request.
+ * - Pages use getCurrentUser() (display) or requireUser() (protected); server actions use
+ *   authContext() to call the API as the user. Nothing else reads or writes auth state.
  */
 export interface AppUser {
   id: string;
@@ -27,11 +35,42 @@ export interface AppUser {
   role?: string | null;
   status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | string;
   emailVerified: boolean;
+  isPending?: boolean;
+}
+
+export type SessionState =
+  | { status: "authenticated"; user: AppUser }
+  | { status: Exclude<SessionStatus, "authenticated"> };
+
+/** Thrown when the API cannot confirm the session right now. Rendered by app/(site)/error.tsx. */
+export class AuthUnavailableError extends Error {
+  constructor() {
+    super("The account service is temporarily unavailable.");
+    this.name = "AuthUnavailableError";
+  }
 }
 
 export async function getSessionTokens() {
   const store = await cookies();
   return decodeSession(store.get(SESSION_COOKIE)?.value);
+}
+
+export async function getPendingRegistration(): Promise<PendingAccount | null> {
+  const store = await cookies();
+  return decodePendingRegistration(store.get(PENDING_REG_COOKIE)?.value);
+}
+
+export async function savePendingRegistration(account: PendingAccount): Promise<void> {
+  const store = await cookies();
+  store.set(PENDING_REG_COOKIE, encodePendingRegistration(account), {
+    ...sessionCookieOptions,
+    maxAge: 60 * 60 * 4, // 4 hours
+  });
+}
+
+export async function clearPendingRegistration(): Promise<void> {
+  const store = await cookies();
+  store.delete(PENDING_REG_COOKIE);
 }
 
 /** Only call from server actions or route handlers (cookies are read-only while rendering). */
@@ -40,9 +79,12 @@ export async function saveSession(session: ApiSession): Promise<void> {
   store.set(SESSION_COOKIE, encodeSession(session), sessionCookieOptions);
 }
 
+/** Only call from server actions or route handlers. */
 export async function clearSession(): Promise<void> {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
+  store.delete(NEXT_COOKIE);
+  store.delete(PENDING_REG_COOKIE);
 }
 
 /** Remember where to send the user once their email is verified (stays in this browser only). */
@@ -55,42 +97,18 @@ export async function rememberNext(path: string | null): Promise<void> {
   store.set(NEXT_COOKIE, path, { ...sessionCookieOptions, maxAge: 60 * 60 * 24 });
 }
 
-export async function takeNext(): Promise<string | null> {
-  const store = await cookies();
-  const value = store.get(NEXT_COOKIE)?.value ?? null;
-  if (value) store.delete(NEXT_COOKIE);
-  return value;
-}
-
 /** Visitor IP, forwarded to the backend so rate limits apply per person. */
 export async function clientContext(): Promise<CallContext> {
   const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return { clientIp: forwarded || h.get("x-real-ip") || undefined };
+  return { clientIp: clientIpFromHeaders((name) => h.get(name)) };
 }
 
-/** Request context for a signed-in user's calls (token + visitor IP). */
+/** Request context for a signed-in user's API calls (token + visitor IP), or null without a session cookie. */
 export async function authContext(): Promise<CallContext | null> {
   const session = await getSessionTokens();
   if (!session) return null;
   return { ...(await clientContext()), token: session.accessToken };
 }
-
-/**
- * The signed-in user, plus whether the API rejected the session cookie (401: expired, revoked, or
- * the account no longer exists). One backend call per request (cached).
- */
-const loadCurrentUser = cache(async (): Promise<{ user: AppUser | null; sessionRejected: boolean }> => {
-  const session = await getSessionTokens();
-  if (!session) return { user: null, sessionRejected: false };
-
-  const res = await api.auth.me({ token: session.accessToken });
-  if (!res.success || !res.data) {
-    // Only a 401 means the session is dead; a network error or 5xx must not sign anyone out.
-    return { user: null, sessionRejected: res.statusCode === 401 };
-  }
-  return { user: toAppUser(res.data), sessionRejected: false };
-});
 
 function toAppUser(user: ApiUser): AppUser {
   return {
@@ -106,28 +124,62 @@ function toAppUser(user: ApiUser): AppUser {
   };
 }
 
-/** The signed-in user, or null. */
+/** The session state for this request. One API call per request, shared by layout and page (React cache). */
+export const getSession = cache(async (): Promise<SessionState> => {
+  const ctx = await authContext();
+  if (!ctx) return { status: "anonymous" };
+
+  const res = await api.auth.me(ctx);
+  const refreshFailed = (await headers()).get(REFRESH_FAILED_HEADER) === "1";
+  const status = classifyMeResponse(res, refreshFailed);
+  if (status === "authenticated") return { status, user: toAppUser(res.data as ApiUser) };
+  if (status === "unavailable") console.error(`Session check failed (${res.statusCode ?? res.code ?? "no response"}): ${res.error}`);
+  return { status };
+});
+
+/** The signed-in user, or null. For display only (headers, redirects away from /login). */
 export async function getCurrentUser(): Promise<AppUser | null> {
-  return (await loadCurrentUser()).user;
+  const session = await getSession();
+  return session.status === "authenticated" ? session.user : null;
+}
+
+/** Where to go when the API rejected the session cookie: clears it, then continues to /login. */
+function signOutUrl(returnTo?: string | null): string {
+  const safe = safeRedirect(returnTo);
+  return safe ? `/auth/signout?redirect=${encodeURIComponent(safe)}` : "/auth/signout";
 }
 
 /**
- * Use on protected pages: redirects to /login and returns here after sign-in.
- * If the API rejected the session (e.g. the account was deleted), the cookie is cleared first via
- * /auth/signout (server components cannot change cookies), so the dead session is not sent again.
+ * Use on protected pages. Returns the user, or:
+ *  - no session      -> /login?redirect=<returnTo>
+ *  - session rejected -> /auth/signout (clears the dead cookie; server components cannot) -> /login
+ *  - API unreachable -> throws AuthUnavailableError (error page with retry; the session is kept)
  */
 export async function requireUser(returnTo?: string): Promise<AppUser> {
-  const { user, sessionRejected } = await loadCurrentUser();
-  if (user) return user;
-  if (sessionRejected) {
-    const safe = safeRedirect(returnTo);
-    redirect(safe ? `/auth/signout?redirect=${encodeURIComponent(safe)}` : "/auth/signout");
+  const session = await getSession();
+  switch (session.status) {
+    case "authenticated":
+      return session.user;
+    case "rejected":
+      redirect(signOutUrl(returnTo));
+    case "anonymous":
+      redirect(loginUrl(returnTo));
+    default:
+      throw new AuthUnavailableError();
   }
-  redirect(loginUrl(returnTo));
 }
 
+/** Ends the session on the API (revokes it) and clears the cookies. Server actions / route handlers only. */
 export async function endSession(): Promise<void> {
-  const ctx = await authContext();
-  if (ctx) await api.auth.logout(ctx);
+  const tokens = await getSessionTokens();
+  if (tokens) {
+    const ctx = { ...(await clientContext()), token: tokens.accessToken };
+    const res = await api.auth.logout(ctx);
+    if (res.statusCode === 401) {
+      // Access token already expired: exchange the refresh token so the session is still revoked.
+      const refreshed = await api.auth.refresh(tokens.refreshToken, ctx);
+      if (refreshed.success && refreshed.data) await api.auth.logout({ ...ctx, token: refreshed.data.session.accessToken });
+    }
+  }
   await clearSession();
 }

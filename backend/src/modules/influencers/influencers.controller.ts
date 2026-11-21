@@ -1,18 +1,25 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
-import { Roles, RolesGuard } from '../../common/guards/roles.guard';
+import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/guards/roles.guard';
 import { InfluencersService } from './influencers.service';
-import { CreateInfluencerDto } from './dto/create-influencer.dto';
+import { CreateInfluencerDto, RegisterInfluencerWithAccountDto } from './dto/create-influencer.dto';
 
 @ApiTags('Influencers')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Controller('influencers')
 export class InfluencersController {
   constructor(private readonly influencersService: InfluencersService) {}
+
+  @Public()
+  @Post('register-with-account')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Atomically create account and register as an influencer' })
+  registerWithAccount(@Body() dto: RegisterInfluencerWithAccountDto) {
+    return this.influencersService.registerInfluencerWithAccount(dto);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)

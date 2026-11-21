@@ -195,12 +195,33 @@ export interface CallContext {
   clientIp?: string;
 }
 
+/**
+ * Shared secret proving to the API that a call comes from this Next.js server, so it may vouch for
+ * the visitor's IP (rate limits per visitor). Server-only: never NEXT_PUBLIC_, never in the browser.
+ */
+function internalSecret(): string | undefined {
+  return typeof window === "undefined" ? process.env.INTERNAL_API_SECRET || undefined : undefined;
+}
+
 function contextHeaders(ctx?: CallContext): Record<string, string> {
   const headers: Record<string, string> = {};
   if (ctx?.token) headers.Authorization = `Bearer ${ctx.token}`;
-  if (ctx?.clientIp) headers["x-forwarded-for"] = ctx.clientIp;
+  if (ctx?.clientIp) {
+    headers["x-forwarded-for"] = ctx.clientIp;
+    const secret = internalSecret();
+    if (secret) {
+      headers["x-internal-secret"] = secret;
+      headers["x-client-ip"] = ctx.clientIp;
+    }
+  }
   return headers;
 }
+
+/** No API call may hang a page render or a server action indefinitely. */
+const REQUEST_TIMEOUT_MS = 15_000;
+
+/** statusCode is undefined when the API could not be reached at all (network error / timeout). */
+export const NETWORK_ERROR_MESSAGE = "We could not reach the server. Please try again in a moment.";
 
 function post<T>(endpoint: string, body: unknown, ctx?: CallContext) {
   return send<T>("POST", endpoint, body, ctx);
@@ -234,6 +255,7 @@ async function request<T>(
     const res = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     const body = await res.json().catch(() => null);
@@ -253,8 +275,8 @@ async function request<T>(
 
     return { success: true, data: body as T, statusCode: res.status };
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Network error reaching backend API";
-    return { success: false, error: errorMsg };
+    console.error(`API ${endpoint} unreachable:`, err instanceof Error ? err.message : err);
+    return { success: false, error: NETWORK_ERROR_MESSAGE, code: "NETWORK_ERROR" };
   }
 }
 
@@ -265,8 +287,11 @@ export const api = {
   // Authentication & identity (all logic lives in NestJS)
   auth: {
     /** Public settings, e.g. whether email verification is currently required. */
-    config: () =>
-      request<{ requireEmailVerification: boolean }>("auth/config", { cache: "no-store" }),
+    config: (ctx?: CallContext) =>
+      request<{ requireEmailVerification: boolean }>("auth/config", { headers: contextHeaders(ctx), cache: "no-store" }),
+
+    checkAvailability: (payload: { email: string; mobile: string }) =>
+      post<{ available: boolean }>("auth/check-availability", payload),
 
     signup: (
       payload: { firstName: string; lastName: string; email: string; mobile: string; password: string },
@@ -299,7 +324,7 @@ export const api = {
     resetPassword: (payload: { tokenHash: string; password: string }, ctx?: CallContext) =>
       post<{ success: boolean }>("auth/reset-password", payload, ctx),
 
-    changePassword: (payload: { currentPassword?: string; newPassword: string }, ctx: CallContext) =>
+    changePassword: (payload: { currentPassword: string; newPassword: string }, ctx: CallContext) =>
       post<{ success: boolean }>("auth/change-password", payload, ctx),
 
     deleteAccount: (ctx: CallContext) =>
@@ -339,9 +364,32 @@ export const api = {
       post<{ success: boolean; profile: unknown }>("registrations/vendor", payload, ctx),
     tourism: (payload: unknown, ctx: CallContext) =>
       post<{ success: boolean; profile: unknown }>("registrations/tourism", payload, ctx),
+
+    registerGroupWithAccount: (
+      type: "team" | "corporate" | "school" | "sponsor" | "vendor" | "tourism",
+      payload: { account: unknown; registration: unknown }
+    ) =>
+      post<{ success: boolean; profile: unknown; teamJoinCode?: string; session?: ApiSession }>(
+        `registrations/${type}/register-with-account`,
+        payload
+      ),
   },
 
   runners: {
+    registerWithAccount: (payload: { account: unknown; registration: unknown }) =>
+      post<{
+        success: boolean;
+        registrationNumber: string;
+        runnerName: string;
+        bibName: string;
+        distance: string;
+        raceTitle: string;
+        email: string;
+        paymentStatus: string | null;
+        qrToken: string | null;
+        session?: ApiSession;
+      }>("runners/register-with-account", payload),
+
     register: (payload: unknown, ctx: CallContext) =>
       post<{
         success: boolean;
@@ -394,6 +442,12 @@ export const api = {
   },
 
   volunteers: {
+    registerWithAccount: (payload: { account: unknown; registration: unknown }) =>
+      post<{ success: boolean; id: string; fullName: string; status: string; session?: ApiSession }>(
+        "volunteers/register-with-account",
+        payload
+      ),
+
     register: (payload: unknown, ctx: CallContext) =>
       post<{ success: boolean; id: string; fullName: string; status: string }>("volunteers/register", payload, ctx),
 
@@ -422,6 +476,12 @@ export const api = {
   },
 
   influencers: {
+    registerWithAccount: (payload: { account: unknown; registration: unknown }) =>
+      post<{ success: boolean; id: string; fullName: string; status: string; session?: ApiSession }>(
+        "influencers/register-with-account",
+        payload
+      ),
+
     register: (payload: unknown, ctx: CallContext) =>
       post<{ success: boolean; id: string; fullName: string; status: string }>("influencers/register", payload, ctx),
   },

@@ -1,12 +1,12 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Role } from '@prisma/client';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
-import { Roles, RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/guards/roles.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { VolunteersService } from './volunteers.service';
-import { CreateVolunteerDto } from './dto/create-volunteer.dto';
+import { CreateVolunteerDto, RegisterVolunteerWithAccountDto } from './dto/create-volunteer.dto';
 import {
   AssignVolunteerDto,
   ChecklistItemDto,
@@ -18,10 +18,17 @@ import {
 
 @ApiTags('Volunteers')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Controller('volunteers')
 export class VolunteersController {
   constructor(private readonly volunteersService: VolunteersService) {}
+
+  @Public()
+  @Post('register-with-account')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Atomically create account and register as a volunteer' })
+  registerWithAccount(@Body() dto: RegisterVolunteerWithAccountDto) {
+    return this.volunteersService.registerVolunteerWithAccount(dto);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -115,7 +122,6 @@ export class VolunteersController {
 /** Race-control incident feed (staff only). */
 @ApiTags('Incidents')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
 @Controller('incidents')
 export class IncidentsController {

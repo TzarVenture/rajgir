@@ -1,7 +1,7 @@
 "use server";
 
 import { api, type CallContext } from "@/lib/api";
-import { authContext } from "@/lib/auth/session";
+import { authContext, clearPendingRegistration, getPendingRegistration, saveSession } from "@/lib/auth/session";
 
 /**
  * Group and partner registrations. Thin calls to the NestJS API: the backend identifies the user from the
@@ -14,9 +14,34 @@ export interface RegisterResult<T = unknown> {
 }
 
 async function submit<T>(
+  type: "team" | "corporate" | "school" | "sponsor" | "vendor" | "tourism",
+  payload: unknown,
   call: (ctx: CallContext) => Promise<{ success: boolean; data?: T; error?: string }>
 ): Promise<RegisterResult<T>> {
+  const pending = await getPendingRegistration();
   const ctx = await authContext();
+
+  if (pending) {
+    const res = await api.registrations.registerGroupWithAccount(type, {
+      account: {
+        firstName: pending.firstName,
+        lastName: pending.lastName,
+        email: pending.email,
+        mobile: pending.mobile,
+        password: pending.password,
+      },
+      registration: payload,
+    });
+    if (!res.success) {
+      return { success: false, error: res.error ?? "We could not submit your registration. Please try again." };
+    }
+    await clearPendingRegistration();
+    if (res.data?.session) {
+      await saveSession(res.data.session);
+    }
+    return { success: true, data: res.data as T };
+  }
+
   if (!ctx) return { success: false, error: "Please sign in to complete your registration." };
 
   const res = await call(ctx);
@@ -33,7 +58,7 @@ export async function submitTeamRegistration(payload: {
   estimatedMembers: number;
   notes?: string;
 }) {
-  return submit((ctx) => api.registrations.team(payload, ctx));
+  return submit("team", payload, (ctx) => api.registrations.team(payload, ctx));
 }
 
 export async function submitCorporateRegistration(payload: {
@@ -45,7 +70,7 @@ export async function submitCorporateRegistration(payload: {
   csrFocus?: string;
   billingAddress?: string;
 }) {
-  return submit((ctx) => api.registrations.corporate(payload, ctx));
+  return submit("corporate", payload, (ctx) => api.registrations.corporate(payload, ctx));
 }
 
 export async function submitSchoolRegistration(payload: {
@@ -57,7 +82,7 @@ export async function submitSchoolRegistration(payload: {
   estimatedStudents: number;
   parentalConsentAgreed: boolean;
 }) {
-  return submit((ctx) => api.registrations.school(payload, ctx));
+  return submit("school", payload, (ctx) => api.registrations.school(payload, ctx));
 }
 
 export async function submitSponsorRegistration(payload: {
@@ -68,7 +93,7 @@ export async function submitSponsorRegistration(payload: {
   brandWebsite?: string;
   proposalDeliverables?: string;
 }) {
-  return submit((ctx) => api.registrations.sponsor(payload, ctx));
+  return submit("sponsor", payload, (ctx) => api.registrations.sponsor(payload, ctx));
 }
 
 export async function submitVendorRegistration(payload: {
@@ -78,7 +103,7 @@ export async function submitVendorRegistration(payload: {
   fssaiNumber?: string;
   electricPowerRequired: boolean;
 }) {
-  return submit((ctx) => api.registrations.vendor(payload, ctx));
+  return submit("vendor", payload, (ctx) => api.registrations.vendor(payload, ctx));
 }
 
 export async function submitTourismRegistration(payload: {
@@ -89,5 +114,5 @@ export async function submitTourismRegistration(payload: {
   inventoryCapacity: string;
   discountOffering?: string;
 }) {
-  return submit((ctx) => api.registrations.tourism(payload, ctx));
+  return submit("tourism", payload, (ctx) => api.registrations.tourism(payload, ctx));
 }

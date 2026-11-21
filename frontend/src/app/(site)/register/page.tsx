@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { IconType } from "react-icons";
 import {
+  FaArrowLeft,
   FaAward,
   FaBuilding,
   FaBullhorn,
@@ -12,8 +13,9 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import AuthShell from "@/components/auth/AuthShell";
+import { cancelPendingRegistration } from "@/app/actions/auth";
 import { ACCOUNT_TYPES, type RoleOption } from "@/lib/auth/roles";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUser, getPendingRegistration } from "@/lib/auth/session";
 
 export const metadata = {
   title: "Register | Rajgir Marathon 2027",
@@ -37,17 +39,49 @@ const ICONS: Record<RoleOption["icon"], IconType> = {
  * sign-in/sign-up itself. Nothing is saved here.
  */
 export default async function RegisterChooserPage() {
-  const user = await getCurrentUser();
+  const [user, pending] = await Promise.all([
+    getCurrentUser(),
+    getPendingRegistration(),
+  ]);
+
+  const isAuthenticated = user && !user.isPending;
 
   return (
     <AuthShell width="wide">
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-xl shadow-gray-200/50 sm:p-8">
+        {pending ? (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E7EB] pb-4">
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-neutral-50 px-3.5 py-1.5 text-xs font-semibold text-[#374151] hover:bg-neutral-100 hover:text-[#111827] transition"
+            >
+              <FaArrowLeft className="text-[11px] text-[#6B7280]" />
+              <span>Back to Account Details</span>
+            </Link>
+            <div className="flex items-center gap-2.5 text-xs text-[#6B7280]">
+              <span>
+                Staged registration for <strong className="font-semibold text-[#111827]">{pending.email}</strong>
+              </span>
+              <span>•</span>
+              <form action={cancelPendingRegistration} className="inline">
+                <button type="submit" className="font-medium text-[#E31B23] hover:underline cursor-pointer">
+                  Clear / Start fresh
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mb-6 text-center">
           <h1 className="font-barlow text-3xl font-black uppercase tracking-tight text-[#111827] sm:text-4xl">
-            {user ? `Welcome, ${user.name.split(" ")[0]}` : "Register for the marathon"}
+            {isAuthenticated ? `Welcome, ${user.name.split(" ")[0]}` : "Register for the marathon"}
           </h1>
           <p className="mt-1.5 text-sm text-[#4B5563]">
-            Choose how you want to take part. {user ? "" : "You will create a free account on the next step."}
+            {pending
+              ? "Select how you want to participate to complete your registration."
+              : isAuthenticated
+              ? "Choose how you want to take part."
+              : "Choose how you want to take part. You will create a free account on the next step."}
           </p>
         </div>
 
@@ -90,7 +124,7 @@ export default async function RegisterChooserPage() {
           ))}
         </div>
 
-        {!user ? (
+        {!isAuthenticated ? (
           <p className="mt-7 border-t border-[#E5E7EB] pt-5 text-center text-sm text-[#4B5563]">
             Already have an account?{" "}
             <Link href="/login" className="font-bold text-[#E31B23] hover:underline">

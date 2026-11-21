@@ -8,6 +8,7 @@ import {
   needsRefresh,
   sessionCookieOptions,
 } from "@/lib/auth/cookie";
+import { REFRESH_FAILED_HEADER, clientIpFromHeaders } from "@/lib/auth/sessionState";
 import { isGateActive } from "@/lib/gate";
 import {
   PREVIEW_COOKIE,
@@ -62,17 +63,30 @@ function isLegacyPublic(pathname: string): boolean {
  * Response for real-site requests. Keeps a signed-in user's session fresh: when the access token
  * is about to expire, exchange the refresh token through the NestJS API and update the cookie for
  * this request and the browser. Never used for the public Coming Soon pages.
+ *
+ * This is the only place tokens are refreshed. Pages and server actions run after it, so they
+ * always see a usable access token (or no session at all).
  */
 async function realSiteResponse(request: NextRequest): Promise<NextResponse> {
-  const session = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
-  if (!session || !needsRefresh(session)) return NextResponse.next();
+  // Forward a fresh header set: drops any client-supplied copy of the internal marker, and carries
+  // cookie changes made via request.cookies (built lazily, after those changes).
+  const forward = (refreshFailed = false) => {
+    const headers = new Headers(request.headers);
+    headers.delete(REFRESH_FAILED_HEADER);
+    if (refreshFailed) headers.set(REFRESH_FAILED_HEADER, "1");
+    return NextResponse.next({ request: { headers } });
+  };
 
-  const refreshed = await api.auth.refresh(session.refreshToken);
+  const session = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!session || !needsRefresh(session)) return forward();
+
+  const clientIp = clientIpFromHeaders((name) => request.headers.get(name));
+  const refreshed = await api.auth.refresh(session.refreshToken, { clientIp });
 
   if (refreshed.success && refreshed.data) {
     const value = encodeSession(refreshed.data.session);
     request.cookies.set(SESSION_COOKIE, value);
-    const response = NextResponse.next({ request: { headers: request.headers } });
+    const response = forward();
     response.cookies.set(SESSION_COOKIE, value, sessionCookieOptions);
     return response;
   }
@@ -80,12 +94,14 @@ async function realSiteResponse(request: NextRequest): Promise<NextResponse> {
   // Only drop the session when the backend says it is no longer valid (not on a temporary outage).
   if (refreshed.statusCode === 401) {
     request.cookies.delete(SESSION_COOKIE);
-    const response = NextResponse.next({ request: { headers: request.headers } });
+    const response = forward();
     response.cookies.delete(SESSION_COOKIE);
     return response;
   }
 
-  return NextResponse.next();
+  // Refresh could not be completed right now (throttled, outage, timeout). The access token may be
+  // expired, so the API will say 401 for it; tell the session layer that this 401 is NOT final.
+  return forward(true);
 }
 
 export async function middleware(request: NextRequest) {

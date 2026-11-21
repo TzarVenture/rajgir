@@ -99,10 +99,11 @@ export class ResetPasswordDto {
 }
 
 export class ChangePasswordDto {
-  @ApiPropertyOptional({ description: 'Current password for verification' })
-  @IsOptional()
+  @ApiProperty({ description: 'Current password (re-authentication is required to change it)' })
   @IsString()
-  currentPassword?: string;
+  @IsNotEmpty({ message: 'Enter your current password.' })
+  @MaxLength(72)
+  currentPassword: string;
 
   @ApiProperty()
   @IsString()

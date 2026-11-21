@@ -1,11 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
-/** Global so SupabaseAuthGuard (which needs UsersService) can be used by any module's controllers. */
+/** Global so the app-wide SupabaseAuthGuard (which needs UsersService) and every feature module can use it. */
 @Global()
 @Module({
-  providers: [UsersService, SupabaseAuthGuard],
-  exports: [UsersService, SupabaseAuthGuard],
+  providers: [UsersService],
+  exports: [UsersService],
 })
 export class UsersModule {}

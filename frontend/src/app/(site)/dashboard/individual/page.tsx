@@ -1,6 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { EVENT, formatDate, formatDateTime } from "@/lib/event";
 import { LuCalendarDays, LuClipboardList, LuMapPin, LuRadio, LuShirt } from "react-icons/lu";
 import { Badge, LinkButton, StatCard } from "@/components/ui";
@@ -11,9 +11,8 @@ export const metadata = {
 };
 
 export default async function IndividualDashboard() {
-  const user = await getCurrentUser();
+  const user = await requireUser("/dashboard/individual");
 
-  if (!user) redirect("/login");
   // Runners and volunteers have their own dashboards.
   if (user.role === "RUNNER") redirect("/dashboard/runner");
   if (user.role === "VOLUNTEER") redirect("/dashboard/volunteer");
