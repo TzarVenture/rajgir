@@ -1,13 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Length, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 const PASSWORD_RULE = 'Password must be 8 to 72 characters long.';
 
 export class SignupDto {
-  @ApiProperty({ example: 'Rahul Verma' })
+  @ApiProperty({ example: 'Rahul', maxLength: 64 })
+  @ValidateIf((o: SignupDto) => !o.name)
+  @IsString()
+  @Length(1, 64, { message: 'Enter your first name (up to 64 characters).' })
+  firstName: string;
+
+  @ApiProperty({ example: 'Verma', maxLength: 64 })
+  @ValidateIf((o: SignupDto) => !o.name)
+  @IsString()
+  @Length(1, 64, { message: 'Enter your last name (up to 64 characters).' })
+  lastName: string;
+
+  /**
+   * Deprecated: single full name from older clients, split on the server (first word / the rest).
+   * Ignored when firstName and lastName are sent. Kept so a client mid-deploy keeps working.
+   */
+  @ApiPropertyOptional({ deprecated: true, example: 'Rahul Verma' })
+  @IsOptional()
   @IsString()
   @Length(2, 128, { message: 'Enter your full name.' })
-  name: string;
+  name?: string;
 
   @ApiProperty({ example: 'rahul@example.com' })
   @IsEmail({}, { message: 'Enter a valid email address.' })

@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { UsersService, normalizeEmail, normalizeMobile, toPublicUser } from '../users/users.service';
+import { UsersService, cleanNamePart, normalizeEmail, normalizeMobile, toPublicUser } from '../users/users.service';
 import type { ChangePasswordDto, DeleteAccountDto, LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 export interface SessionTokens {
@@ -48,18 +48,29 @@ export class AuthService {
     return (this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000').replace(/\/$/, '');
   }
 
-  private async loadOrCreateUser(authUser: SupabaseAuthUser) {
-    const email = normalizeEmail(authUser.email ?? '');
-    const found = await this.prisma.user.findFirst({
-      where: { OR: [{ supabaseAuthId: authUser.id }, { email }] },
-    });
-    return found ?? this.users.createFromAuthUser(authUser);
+  /**
+   * The platform user for a just-verified Supabase identity. Never creates one (only sign-up does):
+   * if the row was removed, the new Supabase session is revoked and the request is refused.
+   */
+  private async requireUser(authUser: SupabaseAuthUser, accessToken: string) {
+    const dbUser = await this.users.findForAuthUser(authUser);
+    if (!dbUser) {
+      await this.supabase.revokeSession(accessToken, 'local').catch(() => undefined);
+      throw new UnauthorizedException({ code: 'ACCOUNT_NOT_FOUND', message: 'Account no longer exists' });
+    }
+    return dbUser;
   }
 
   async signup(dto: SignupDto) {
     const email = normalizeEmail(dto.email);
     const mobile = normalizeMobile(dto.mobile);
     if (!mobile) throw new BadRequestException('Enter a valid 10-digit mobile number.');
+    // Older clients send one `name`: split it as first word / rest.
+    const legacy = dto.firstName || dto.lastName ? null : cleanNamePart(dto.name ?? '');
+    const firstName = cleanNamePart(dto.firstName ?? (legacy ? legacy.split(' ')[0] : ''));
+    const lastName = cleanNamePart(dto.lastName ?? (legacy ? legacy.split(' ').slice(1).join(' ') : ''));
+    if (!firstName || !lastName) throw new BadRequestException('Enter your first and last name.');
+    if (firstName.length > 64 || lastName.length > 64) throw new BadRequestException('Names can be at most 64 characters.');
 
     const [byEmail, byPhone] = await Promise.all([this.users.findByEmail(email), this.users.findByPhone(mobile)]);
     if (byEmail) throw new ConflictException('An account with this email already exists. Try signing in instead.');
@@ -69,7 +80,7 @@ export class AuthService {
       email,
       password: dto.password,
       options: {
-        data: { full_name: dto.name.trim(), phone: mobile },
+        data: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, phone: mobile },
         emailRedirectTo: `${this.frontendUrl}/auth/callback`,
       },
     });
@@ -96,7 +107,8 @@ export class AuthService {
       dbUser = await this.users.createForSignup({
         email,
         phone: mobile,
-        fullName: dto.name,
+        firstName,
+        lastName,
         supabaseAuthId: data.user.id,
       });
     } catch (err) {
@@ -135,7 +147,7 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
     }
 
-    const dbUser = await this.loadOrCreateUser(data.user);
+    const dbUser = await this.requireUser(data.user, data.session.access_token);
     if (dbUser.status === 'SUSPENDED') {
       throw new ForbiddenException({ code: 'ACCOUNT_SUSPENDED', message: 'This account is suspended. Please contact support.' });
     }
@@ -175,7 +187,7 @@ export class AuthService {
     const { data, error } = await this.supabase.anon.auth.verifyOtp({ token_hash: dto.tokenHash, type: dto.type });
     if (error || !data.session || !data.user) throw new BadRequestException(LINK_ERROR);
 
-    const dbUser = await this.loadOrCreateUser(data.user);
+    const dbUser = await this.requireUser(data.user, data.session.access_token);
     return { session: toSession(data.session), user: toPublicUser(dbUser, Boolean(data.user.email_confirmed_at)) };
   }
 

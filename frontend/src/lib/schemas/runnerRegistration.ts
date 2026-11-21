@@ -118,26 +118,7 @@ export const runnerRegistrationSchema = z.object({
   raceTitle: z.string().min(1),
   baseFee: z.number().positive(),
 
-  // Personal
-  firstName: z
-    .string()
-    .trim()
-    .min(2, "First name must be at least 2 characters")
-    .max(50, "First name too long"),
-  lastName: z
-    .string()
-    .trim()
-    .min(1, "Last name is required")
-    .max(50, "Last name too long"),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email("Enter a valid email address (e.g. runner@example.com)"),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^[0-9]{10}$/, "Enter a valid 10-digit mobile number"),
+  // Personal (name, email and mobile come from the signed-in account, not this form)
   dateOfBirth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter a valid date of birth (YYYY-MM-DD)"),

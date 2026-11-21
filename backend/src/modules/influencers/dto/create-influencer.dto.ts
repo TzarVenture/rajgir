@@ -1,31 +1,17 @@
 import {
   IsString,
-  IsEmail,
   IsNotEmpty,
   IsOptional,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInfluencerDto {
-  @ApiProperty({ example: 'Pooja Verma' })
-  @IsString()
-  @IsNotEmpty()
-  fullName: string;
+  // Name, email and mobile are not accepted here: they come from the signed-in account (users table).
 
   @ApiPropertyOptional({ example: 'The Patna Runner' })
   @IsOptional()
   @IsString()
   stageName?: string;
-
-  @ApiProperty({ example: 'pooja.verma@example.com' })
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @ApiProperty({ example: '9876543210' })
-  @IsString()
-  @IsNotEmpty()
-  phone: string;
 
   @ApiPropertyOptional({ example: 'Patna' })
   @IsOptional()

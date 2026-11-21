@@ -31,10 +31,14 @@ enum AccountStatus {
 
 model User {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // Identity lives only here (single source of truth). Role tables hold domain data and link by user_id.
+  firstName      String         @map("first_name") @db.VarChar(64)
+  lastName       String         @map("last_name") @db.VarChar(64)
+  /// Lowercase; unique.
   email          String         @unique @db.VarChar(128)
+  /// Normalised 10-digit mobile; unique. Nullable only for legacy rows created without a mobile.
   phone          String?        @unique @db.VarChar(20)
-  fullName       String         @map("full_name") @db.VarChar(128)
-  role           Role?
+  role          Role?
   status         AccountStatus  @default(PENDING_ONBOARDING)
   supabaseAuthId String?        @unique @map("supabase_auth_id") @db.VarChar(64)
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -58,8 +62,8 @@ model User {
 
 model RunnerRegistration {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String?  @unique @map("user_id") @db.Uuid
-  user               User?    @relation(fields: [userId], references: [id])
+  userId             String   @unique @map("user_id") @db.Uuid
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   registrationNumber String   @unique @map("registration_number") @db.VarChar(32)
   
@@ -68,11 +72,7 @@ model RunnerRegistration {
   raceTitle          String   @map("race_title") @db.VarChar(64)
   baseFee            Int      @map("base_fee")
   
-  // Personal Info
-  firstName          String   @map("first_name") @db.VarChar(64)
-  lastName           String   @map("last_name") @db.VarChar(64)
-  email              String   @db.VarChar(128)
-  phone              String   @db.VarChar(15)
+  // Participant details (name, email and mobile come from the linked User)
   dateOfBirth        DateTime @map("date_of_birth") @db.Date
   ageOnRaceDay       Int      @map("age_on_race_day")
   gender             String   @db.VarChar(16)
@@ -123,8 +123,6 @@ model RunnerRegistration {
 
   result              RaceResult?
 
-  @@index([email])
-  @@index([phone])
   @@index([registrationNumber])
   @@index([distance])
   @@map("runner_registrations")
@@ -132,12 +130,9 @@ model RunnerRegistration {
 
 model Volunteer {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                String?  @unique @map("user_id") @db.Uuid
-  user                  User?    @relation(fields: [userId], references: [id])
+  userId                String   @unique @map("user_id") @db.Uuid
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  fullName              String   @map("full_name") @db.VarChar(128)
-  email                 String   @db.VarChar(128)
-  phone                 String   @db.VarChar(20)
   tShirtSize            String   @map("tshirt_size") @db.VarChar(10)
   emergencyContactName  String   @map("emergency_contact_name") @db.VarChar(128)
   emergencyContactPhone String   @map("emergency_contact_phone") @db.VarChar(20)
@@ -167,7 +162,6 @@ model Volunteer {
   attendance            VolunteerAttendance[]
   incidents             Incident[]
 
-  @@index([email])
   @@index([assignedStation])
   @@map("volunteers")
 }
@@ -238,13 +232,10 @@ model RaceResult {
 
 model Influencer {
   id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                    String?  @unique @map("user_id") @db.Uuid
-  user                      User?    @relation(fields: [userId], references: [id])
+  userId                    String   @unique @map("user_id") @db.Uuid
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  fullName                  String   @map("full_name") @db.VarChar(128)
   stageName                 String?  @map("stage_name") @db.VarChar(128)
-  email                     String   @db.VarChar(128)
-  phone                     String   @db.VarChar(20)
   city                      String?  @db.VarChar(64)
   country                   String?  @default("India") @db.VarChar(64)
   primaryPlatform           String   @map("primary_platform") @db.VarChar(32)
@@ -256,7 +247,6 @@ model Influencer {
   status                    String?  @default("pending") @db.VarChar(24)
   submittedAt               DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
 
-  @@index([email])
   @@map("influencers")
 }
 

@@ -29,13 +29,9 @@ export class RegistrationsService {
     status: AccountStatus,
     create: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
-    await this.users.assertCanRegister(userId, role);
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const profile = await create(tx);
-        await tx.user.update({ where: { id: userId }, data: { role, status } });
-        return profile;
-      });
+      const { profile } = await this.users.createRoleProfile(userId, role, status, create);
+      return profile;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('You have already submitted this registration.');

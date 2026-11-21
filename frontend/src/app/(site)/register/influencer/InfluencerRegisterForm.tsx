@@ -25,10 +25,7 @@ interface InfluencerRegisterFormProps {
 
 export default function InfluencerRegisterForm({ user }: InfluencerRegisterFormProps) {
   const [formData, setFormData] = useState({
-    fullName: user.name || "",
     stageName: "",
-    email: user.email || "",
-    phone: user.phone || "",
     city: "Patna",
     country: "India",
     primaryPlatform: "Instagram",
@@ -54,12 +51,8 @@ export default function InfluencerRegisterForm({ user }: InfluencerRegisterFormP
 
     setIsSubmitting(true);
     try {
-      const result = await submitInfluencerRegistration({
-          ...formData,
-          fullName: user.name,
-          email: user.email,
-          phone: formData.phone || user.phone,
-        });
+      // Name, email and mobile are not sent: the API uses the signed-in account.
+      const result = await submitInfluencerRegistration(formData);
       if (!result.success) {
         throw new Error(result.error || "Failed to submit influencer proposal.");
       }
@@ -114,22 +107,10 @@ export default function InfluencerRegisterForm({ user }: InfluencerRegisterFormP
     <form onSubmit={handleSubmit} className="space-y-5">
       {submitError ? <Notice tone="error">{submitError}</Notice> : null}
 
-      <AccountSummary name={user.name} email={user.email} title="Creator account" hidePhone />
+      <AccountSummary name={user.name} email={user.email} phone={user.phone} title="Creator account" />
 
       <FormSection icon={LuUserRound} title="Contact and channel" description="How we reach you and where your audience finds you.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Contact mobile" htmlFor="inf-phone" required>
-            <TextInput
-              id="inf-phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="10-digit mobile number"
-            />
-          </Field>
           <Field label="Creator, handle or channel name" htmlFor="inf-stage-name">
             <TextInput
               id="inf-stage-name"

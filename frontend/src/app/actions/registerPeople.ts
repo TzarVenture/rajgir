@@ -24,10 +24,8 @@ export async function submitVolunteerRegistration(form: Record<string, unknown>)
   const ctx = await authContext();
   if (!ctx) return { success: false, error: "Please sign in to complete your registration." };
 
+  // Identity (name, email, mobile) is never sent: the API binds the registration to the signed-in account.
   const payload = pick(form, [
-    "fullName",
-    "email",
-    "phone",
     "tShirtSize",
     "emergencyContactName",
     "emergencyContactPhone",
@@ -49,10 +47,7 @@ export async function submitInfluencerRegistration(form: Record<string, unknown>
   if (!ctx) return { success: false, error: "Please sign in to complete your registration." };
 
   const payload = pick(form, [
-    "fullName",
     "stageName",
-    "email",
-    "phone",
     "city",
     "country",
     "primaryPlatform",

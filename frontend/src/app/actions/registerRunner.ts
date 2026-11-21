@@ -34,10 +34,7 @@ export async function submitRunnerRegistration(rawData: unknown): Promise<Regist
   const res = await api.runners.register(
     {
       categoryDistance: data.distance,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
+      // Name, email and mobile are not sent: the API binds the registration to the signed-in account.
       dateOfBirth: data.dateOfBirth,
       gender: data.gender,
       bloodGroup: data.bloodGroup,

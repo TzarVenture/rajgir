@@ -1,6 +1,5 @@
 import {
   IsString,
-  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsBoolean,
@@ -15,25 +14,7 @@ export class CreateRunnerDto {
   @IsNotEmpty()
   categoryDistance: string;
 
-  @ApiProperty({ example: 'Rahul' })
-  @IsString()
-  @IsNotEmpty()
-  firstName: string;
-
-  @ApiProperty({ example: 'Kumar' })
-  @IsString()
-  @IsNotEmpty()
-  lastName: string;
-
-  @ApiProperty({ example: 'rahul.kumar@example.com' })
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @ApiProperty({ example: '9876543210' })
-  @IsString()
-  @IsNotEmpty()
-  phone: string;
+  // Name, email and mobile are not accepted here: they come from the signed-in account (users table).
 
   @ApiProperty({ example: '1995-08-15' })
   @IsString()

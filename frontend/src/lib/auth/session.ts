@@ -1,8 +1,8 @@
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { api, type ApiSession, type CallContext } from "@/lib/api";
-import { loginUrl } from "@/lib/auth/redirect";
+import { api, type ApiSession, type ApiUser, type CallContext } from "@/lib/api";
+import { loginUrl, safeRedirect } from "@/lib/auth/redirect";
 import {
   NEXT_COOKIE,
   SESSION_COOKIE,
@@ -20,6 +20,9 @@ export interface AppUser {
   id: string;
   email: string;
   phone?: string;
+  firstName: string;
+  lastName: string;
+  /** Display name: first + last name. */
   name: string;
   role?: string | null;
   status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | string;
@@ -73,31 +76,54 @@ export async function authContext(): Promise<CallContext | null> {
   return { ...(await clientContext()), token: session.accessToken };
 }
 
-/** The signed-in user, or null. One backend call per request (cached). */
-export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
+/**
+ * The signed-in user, plus whether the API rejected the session cookie (401: expired, revoked, or
+ * the account no longer exists). One backend call per request (cached).
+ */
+const loadCurrentUser = cache(async (): Promise<{ user: AppUser | null; sessionRejected: boolean }> => {
   const session = await getSessionTokens();
-  if (!session) return null;
+  if (!session) return { user: null, sessionRejected: false };
 
   const res = await api.auth.me({ token: session.accessToken });
-  if (!res.success || !res.data) return null;
+  if (!res.success || !res.data) {
+    // Only a 401 means the session is dead; a network error or 5xx must not sign anyone out.
+    return { user: null, sessionRejected: res.statusCode === 401 };
+  }
+  return { user: toAppUser(res.data), sessionRejected: false };
+});
 
-  const user = res.data;
+function toAppUser(user: ApiUser): AppUser {
   return {
     id: user.id,
     email: user.email,
     phone: user.phone ?? undefined,
-    name: user.fullName,
+    firstName: user.firstName ?? "",
+    lastName: user.lastName ?? "",
+    name: user.fullName || [user.firstName, user.lastName].filter(Boolean).join(" "),
     role: user.role,
     status: user.status,
     emailVerified: user.emailVerified,
   };
-});
+}
 
-/** Use on protected pages: redirects to /login and returns here after sign-in. */
+/** The signed-in user, or null. */
+export async function getCurrentUser(): Promise<AppUser | null> {
+  return (await loadCurrentUser()).user;
+}
+
+/**
+ * Use on protected pages: redirects to /login and returns here after sign-in.
+ * If the API rejected the session (e.g. the account was deleted), the cookie is cleared first via
+ * /auth/signout (server components cannot change cookies), so the dead session is not sent again.
+ */
 export async function requireUser(returnTo?: string): Promise<AppUser> {
-  const user = await getCurrentUser();
-  if (!user) redirect(loginUrl(returnTo));
-  return user;
+  const { user, sessionRejected } = await loadCurrentUser();
+  if (user) return user;
+  if (sessionRejected) {
+    const safe = safeRedirect(returnTo);
+    redirect(safe ? `/auth/signout?redirect=${encodeURIComponent(safe)}` : "/auth/signout");
+  }
+  redirect(loginUrl(returnTo));
 }
 
 export async function endSession(): Promise<void> {

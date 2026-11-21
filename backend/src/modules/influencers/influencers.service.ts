@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
+import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
 import { CreateInfluencerDto } from './dto/create-influencer.dto';
 
 @Injectable()
@@ -13,18 +13,17 @@ export class InfluencersService {
     private readonly users: UsersService,
   ) {}
 
+  /**
+   * Register the signed-in user as an influencer (waits for approval).
+   * Identity comes from the account; eligibility, profile and role change are one transaction.
+   */
   async registerInfluencer(userId: string, dto: CreateInfluencerDto) {
-    await this.users.assertCanRegister(userId, Role.INFLUENCER);
-
     try {
-      const record = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.influencer.create({
+      const { profile: record, user } = await this.users.createRoleProfile(userId, Role.INFLUENCER, 'PENDING_APPROVAL', (tx) =>
+        tx.influencer.create({
           data: {
             userId,
-            fullName: dto.fullName.trim(),
             stageName: dto.stageName?.trim() || null,
-            email: dto.email.toLowerCase().trim(),
-            phone: dto.phone.trim(),
             city: dto.city?.trim() || null,
             country: dto.country?.trim() || 'India',
             primaryPlatform: dto.primaryPlatform,
@@ -35,17 +34,15 @@ export class InfluencersService {
             collaborationDeliverables: dto.collaborationDeliverables.trim(),
             status: 'pending',
           },
-        });
-        await tx.user.update({ where: { id: userId }, data: { role: Role.INFLUENCER, status: 'PENDING_APPROVAL' } });
-        return created;
-      });
+        }),
+      );
 
-      this.logger.log(`Influencer registered: ${record.fullName} (${record.primaryPlatform})`);
+      this.logger.log(`Influencer registered: ${record.id} (${record.primaryPlatform}, user ${userId})`);
       return {
         success: true,
         id: record.id,
-        fullName: record.fullName,
-        email: record.email,
+        fullName: displayName(user),
+        email: user.email,
         primaryPlatform: record.primaryPlatform,
         status: record.status,
         submittedAt: record.submittedAt,
@@ -59,10 +56,16 @@ export class InfluencersService {
   }
 
   async listInfluencers(limit = 50, offset = 0) {
-    const [total, influencers] = await Promise.all([
+    const [total, rows] = await Promise.all([
       this.prisma.influencer.count(),
-      this.prisma.influencer.findMany({ take: limit, skip: offset, orderBy: { submittedAt: 'desc' } }),
+      this.prisma.influencer.findMany({
+        take: limit,
+        skip: offset,
+        orderBy: { submittedAt: 'desc' },
+        include: { user: { select: IDENTITY_SELECT } },
+      }),
     ]);
+    const influencers = rows.map(withIdentity);
     return { total, count: influencers.length, influencers };
   }
 }

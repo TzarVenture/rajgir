@@ -9,7 +9,7 @@ import {
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { INCIDENT_STATUSES, isVolunteerCheckInOpen } from '../../common/constants/event';
-import { UsersService } from '../users/users.service';
+import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
 import { CreateVolunteerDto } from './dto/create-volunteer.dto';
 import {
   AssignVolunteerDto,
@@ -31,18 +31,18 @@ export class VolunteersService {
     private readonly users: UsersService,
   ) {}
 
+  /**
+   * Register the signed-in user as a volunteer (waits for approval).
+   * Identity comes from the account; eligibility, profile and role change are one transaction.
+   */
   async registerVolunteer(userId: string, dto: CreateVolunteerDto) {
-    await this.users.assertCanRegister(userId, Role.VOLUNTEER);
     if (!dto.waiverAgreed) throw new BadRequestException('You must accept the volunteer waiver to register.');
 
     try {
-      const record = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.volunteer.create({
+      const { profile: record, user } = await this.users.createRoleProfile(userId, Role.VOLUNTEER, 'PENDING_APPROVAL', (tx) =>
+        tx.volunteer.create({
           data: {
             userId,
-            fullName: dto.fullName.trim(),
-            email: dto.email.toLowerCase().trim(),
-            phone: dto.phone.trim(),
             tShirtSize: dto.tShirtSize,
             emergencyContactName: dto.emergencyContactName.trim(),
             emergencyContactPhone: dto.emergencyContactPhone.trim(),
@@ -54,17 +54,15 @@ export class VolunteersService {
             waiverAgreed: true,
             status: 'pending',
           },
-        });
-        await tx.user.update({ where: { id: userId }, data: { role: Role.VOLUNTEER, status: 'PENDING_APPROVAL' } });
-        return created;
-      });
+        }),
+      );
 
-      this.logger.log(`Volunteer registered: ${record.fullName} (${record.email})`);
+      this.logger.log(`Volunteer registered: ${record.id} (user ${userId})`);
       return {
         success: true,
         id: record.id,
-        fullName: record.fullName,
-        email: record.email,
+        fullName: displayName(user),
+        email: user.email,
         rolePreference: record.rolePreference,
         status: record.status,
         submittedAt: record.submittedAt,
@@ -78,19 +76,26 @@ export class VolunteersService {
   }
 
   async listVolunteers(limit = 50, offset = 0) {
-    const [total, volunteers] = await Promise.all([
+    const [total, rows] = await Promise.all([
       this.prisma.volunteer.count(),
-      this.prisma.volunteer.findMany({ take: limit, skip: offset, orderBy: { submittedAt: 'desc' } }),
+      this.prisma.volunteer.findMany({
+        take: limit,
+        skip: offset,
+        orderBy: { submittedAt: 'desc' },
+        include: { user: { select: IDENTITY_SELECT } },
+      }),
     ]);
+    const volunteers = rows.map(withIdentity);
     return { total, count: volunteers.length, volunteers };
   }
 
   // ---------- Volunteer self-service (dashboard) ----------
 
+  /** The signed-in user's volunteer profile, read together with their identity (from users). */
   private async findMine(userId: string) {
-    const volunteer = await this.prisma.volunteer.findUnique({ where: { userId } });
-    if (!volunteer) throw new NotFoundException('You do not have a volunteer registration.');
-    return volunteer;
+    const row = await this.prisma.volunteer.findUnique({ where: { userId }, include: { user: { select: IDENTITY_SELECT } } });
+    if (!row) throw new NotFoundException('You do not have a volunteer registration.');
+    return withIdentity(row);
   }
 
   /** Operational actions are only for volunteers the organizers have approved. */
@@ -247,10 +252,18 @@ export class VolunteersService {
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
       take: 200,
-      include: { volunteer: { select: { fullName: true, phone: true, assignedStation: true } } },
+      include: { volunteer: { select: { assignedStation: true, user: { select: IDENTITY_SELECT } } } },
     });
     const urgent = (i: { isSos: boolean; status: string }) => (i.isSos && i.status !== 'RESOLVED' ? 1 : 0);
-    return incidents.sort((a, b) => urgent(b) - urgent(a));
+    // Keep the response shape race control expects: volunteer { fullName, phone, assignedStation }.
+    return incidents
+      .sort((a, b) => urgent(b) - urgent(a))
+      .map(({ volunteer, ...incident }) => ({
+        ...incident,
+        volunteer: volunteer
+          ? { fullName: displayName(volunteer.user), phone: volunteer.user.phone, assignedStation: volunteer.assignedStation }
+          : null,
+      }));
   }
 
   async updateIncident(id: string, dto: UpdateIncidentDto) {

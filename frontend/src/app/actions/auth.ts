@@ -46,16 +46,20 @@ function tenDigitMobile(value: string): string | null {
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
-  const name = text(formData, "name");
+  const firstName = text(formData, "firstName").replace(/s+/g, " ");
+  const lastName = text(formData, "lastName").replace(/s+/g, " ");
   const email = text(formData, "email").toLowerCase();
   const mobileInput = text(formData, "mobile");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
   const next = safeRedirect(text(formData, "redirect"));
-  const values = { name, email, mobile: mobileInput, redirect: next ?? "" };
+  const values = { firstName, lastName, email, mobile: mobileInput, redirect: next ?? "" };
 
   const fieldErrors: Record<string, string> = {};
-  if (name.length < 2) fieldErrors.name = "Enter your full name.";
+  if (!firstName) fieldErrors.firstName = "Enter your first name.";
+  else if (firstName.length > 64) fieldErrors.firstName = "Use at most 64 characters.";
+  if (!lastName) fieldErrors.lastName = "Enter your last name.";
+  else if (lastName.length > 64) fieldErrors.lastName = "Use at most 64 characters.";
   if (!EMAIL_PATTERN.test(email)) fieldErrors.email = "Enter a valid email address.";
   const mobile = tenDigitMobile(mobileInput);
   if (!mobile) fieldErrors.mobile = "Enter a valid 10-digit mobile number.";
@@ -67,7 +71,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     return { error: "Please fix the highlighted fields.", fieldErrors, values };
   }
 
-  const res = await api.auth.signup({ name, email, mobile, password }, await clientContext());
+  const res = await api.auth.signup({ firstName, lastName, email, mobile, password }, await clientContext());
   if (!res.success || !res.data) {
     return { error: res.error ?? "We could not create your account. Please try again.", values };
   }

@@ -33,7 +33,10 @@ function SignupFormInner({ withVerification }: { withVerification: boolean }) {
       <form action={action} className="space-y-4">
         <input type="hidden" name="redirect" value={redirectTo} />
 
-        <Field label="Full name" name="name" autoComplete="name" placeholder="e.g. Rahul Verma" defaultValue={state?.values?.name} error={errors.name} autoFocus />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="First name" name="firstName" autoComplete="given-name" placeholder="e.g. Rahul" maxLength={64} defaultValue={state?.values?.firstName} error={errors.firstName} autoFocus />
+          <Field label="Last name" name="lastName" autoComplete="family-name" placeholder="e.g. Verma" maxLength={64} defaultValue={state?.values?.lastName} error={errors.lastName} />
+        </div>
         <Field
           label="Email address"
           name="email"

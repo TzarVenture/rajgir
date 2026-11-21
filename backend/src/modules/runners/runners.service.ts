@@ -10,10 +10,13 @@ import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { STAFF_ROLES } from '../../common/constants/roles';
 import { ageOnRaceDay, isTimedDistance } from '../../common/constants/event';
-import { UsersService } from '../users/users.service';
+import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
 import { CreateRunnerDto } from './dto/create-runner.dto';
 import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 import { quotePrice } from './pricing';
+
+/** What runner self-service reads return: the published result and the identity from users. */
+const RUNNER_READ_INCLUDE = { result: true, user: { select: IDENTITY_SELECT } } satisfies Prisma.RunnerRegistrationInclude;
 
 @Injectable()
 export class RunnersService {
@@ -33,8 +36,8 @@ export class RunnersService {
 
   /** Register the signed-in user as a runner. Price, age and role are all decided here, on the server. */
   async registerRunner(userId: string, dto: CreateRunnerDto) {
-    await this.users.assertCanRegister(userId, Role.RUNNER);
-
+    // Identity (name, email, mobile) is the signed-in user's; eligibility, the profile and the role
+    // change happen in one transaction (UsersService.createRoleProfile).
     const quote = quotePrice(dto.categoryDistance, dto.selectedAddons ?? [], dto.couponCode);
     if (!quote) throw new BadRequestException('Invalid race category selected.');
 
@@ -53,18 +56,14 @@ export class RunnersService {
     for (let attempt = 0; attempt < 5; attempt++) {
       const registrationNumber = this.generateRegistrationNumber(quote.category.distance);
       try {
-        const record = await this.prisma.$transaction(async (tx) => {
-          const created = await tx.runnerRegistration.create({
+        const { profile: record, user } = await this.users.createRoleProfile(userId, Role.RUNNER, 'ACTIVE', (tx) =>
+          tx.runnerRegistration.create({
             data: {
               userId,
               registrationNumber,
               distance: quote.category.distance,
               raceTitle: quote.category.title,
               baseFee: quote.category.fee,
-              firstName: dto.firstName.trim(),
-              lastName: dto.lastName.trim(),
-              email: dto.email.toLowerCase().trim(),
-              phone: dto.phone.trim(),
               dateOfBirth: parsedDob,
               ageOnRaceDay: age,
               gender: dto.gender,
@@ -90,20 +89,18 @@ export class RunnersService {
               // Payments are not live yet: registrations are confirmed straight away before launch.
               paymentStatus: 'CONFIRMED',
             },
-          });
-          await tx.user.update({ where: { id: userId }, data: { role: Role.RUNNER, status: 'ACTIVE' } });
-          return created;
-        });
+          }),
+        );
 
-        this.logger.log(`Runner registered: ${record.registrationNumber} (${record.email})`);
+        this.logger.log(`Runner registered: ${record.registrationNumber} (user ${userId})`);
         return {
           success: true,
           registrationNumber: record.registrationNumber,
-          runnerName: `${record.firstName} ${record.lastName}`,
+          runnerName: displayName(user),
           bibName: record.bibName,
           distance: record.distance,
           raceTitle: record.raceTitle,
-          email: record.email,
+          email: user.email,
           paymentStatus: record.paymentStatus,
           qrToken: record.qrCodeToken,
           createdAt: record.createdAt,
@@ -121,22 +118,28 @@ export class RunnersService {
     throw new BadRequestException('We could not generate a registration number. Please try again.');
   }
 
-  /** A registration can be read by its owner or by staff. */
+  /**
+   * A registration can be read by its owner or by staff. Responses are read models: the registration's
+   * own fields plus the runner's identity (firstName, lastName, fullName, email, phone) joined from users.
+   */
   async getRegistrationByNumber(registrationNumber: string, requester: { id: string; role: Role | null }) {
-    const record = await this.prisma.runnerRegistration.findUnique({ where: { registrationNumber } });
+    const record = await this.prisma.runnerRegistration.findUnique({
+      where: { registrationNumber },
+      include: { user: { select: IDENTITY_SELECT } },
+    });
     if (!record) throw new NotFoundException('Registration not found');
 
     const isOwner = record.userId === requester.id;
     const isStaff = requester.role ? STAFF_ROLES.includes(requester.role) : false;
     if (!isOwner && !isStaff) throw new ForbiddenException('You do not have access to this registration.');
-    return record;
+    return withIdentity(record);
   }
 
-  /** The signed-in runner's own registration with its result (if published). */
+  /** The signed-in runner's own registration with its result (if published) and identity. */
   async getMine(userId: string) {
-    const record = await this.prisma.runnerRegistration.findUnique({ where: { userId }, include: { result: true } });
+    const record = await this.prisma.runnerRegistration.findUnique({ where: { userId }, include: RUNNER_READ_INCLUDE });
     if (!record) throw new NotFoundException('You do not have a runner registration.');
-    return record;
+    return withIdentity(record);
   }
 
   /** Runner updates their emergency contact and medical details (shown to race medical staff). */
@@ -154,24 +157,26 @@ export class RunnersService {
         medicalNotes: dto.medicalNotes?.trim() || null,
         medicalUpdatedAt: new Date(),
       },
-      include: { result: true },
+      include: RUNNER_READ_INCLUDE,
     });
     this.logger.log(`Medical profile updated: ${updated.registrationNumber}`);
-    return updated;
+    return withIdentity(updated);
   }
 
-  /** Runner updates their athlete profile (name, phone, bib name, t-shirt size, address). */
+  /**
+   * Runner updates their athlete profile. Name and mobile are identity, so they are written to the
+   * users row (the single source of truth); bib name, T-shirt and address stay on the registration.
+   * Both writes are one transaction.
+   */
   async updateProfile(userId: string, dto: UpdateRunnerProfileDto) {
     const existing = await this.prisma.runnerRegistration.findUnique({ where: { userId } });
     if (!existing) throw new NotFoundException('You do not have a runner registration.');
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const reg = await tx.runnerRegistration.update({
+      await this.users.updateIdentity(userId, { firstName: dto.firstName, lastName: dto.lastName, phone: dto.phone }, tx);
+      return tx.runnerRegistration.update({
         where: { userId },
         data: {
-          firstName: dto.firstName.trim(),
-          lastName: dto.lastName.trim(),
-          phone: dto.phone.trim(),
           bibName: dto.bibName.toUpperCase().trim(),
           tshirtSize: dto.tshirtSize,
           city: dto.city.trim(),
@@ -180,22 +185,12 @@ export class RunnersService {
           country: dto.country?.trim() || 'India',
           runningClub: dto.runningClub?.trim() || null,
         },
-        include: { result: true },
+        include: RUNNER_READ_INCLUDE,
       });
-
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          fullName: `${dto.firstName.trim()} ${dto.lastName.trim()}`,
-          phone: dto.phone.trim(),
-        },
-      });
-
-      return reg;
     });
 
     this.logger.log(`Runner profile updated: ${updated.registrationNumber}`);
-    return updated;
+    return withIdentity(updated);
   }
 
   // ---------- Staff operations ----------
@@ -255,10 +250,16 @@ export class RunnersService {
   }
 
   async listRunners(limit = 50, offset = 0) {
-    const [total, runners] = await Promise.all([
+    const [total, rows] = await Promise.all([
       this.prisma.runnerRegistration.count(),
-      this.prisma.runnerRegistration.findMany({ take: limit, skip: offset, orderBy: { createdAt: 'desc' } }),
+      this.prisma.runnerRegistration.findMany({
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: IDENTITY_SELECT } },
+      }),
     ]);
+    const runners = rows.map(withIdentity);
     return { total, count: runners.length, runners };
   }
 }

@@ -77,11 +77,11 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const nameParts = user?.name ? user.name.trim().split(" ") : [];
-  const initialFirstName = nameParts[0] || "";
-  const initialLastName = nameParts.slice(1).join(" ") || "";
-  const initialEmail = user?.email || "";
-  const initialPhone = user?.phone || "";
+  // Identity is read from the signed-in account; the API binds the registration to it.
+  const initialFirstName = user?.firstName?.trim() || "";
+  const participantName = user?.name?.trim() || [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+  const accountEmail = user?.email || "";
+  const accountPhone = user?.phone || "";
 
   // Initial distance from URL query (e.g. ?distance=21.1 or ?distance=42.2)
   const queryDist = searchParams.get("distance") || searchParams.get("dist");
@@ -98,10 +98,6 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
 
   // Form State
   const [formData, setFormData] = useState({
-    firstName: initialFirstName,
-    lastName: initialLastName,
-    email: initialEmail,
-    phone: initialPhone,
     dateOfBirth: "",
     gender: "Male" as "Male" | "Female" | "Other",
     bibName: initialFirstName ? initialFirstName.toUpperCase() : "",
@@ -193,14 +189,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
     }
 
     if (step === 2) {
-      if (!formData.firstName.trim()) errors.firstName = "First name is required.";
-      if (!formData.lastName.trim()) errors.lastName = "Last name is required.";
-      if (!formData.email.trim() || !/^\S+@\S+\.\S+$/.test(formData.email)) {
-        errors.email = "Enter a valid email address.";
-      }
-      if (!formData.phone || formData.phone.length !== 10) {
-        errors.phone = "Enter a valid 10-digit mobile number.";
-      }
+      if (!participantName) errors.identity = "Your account has no name. Please contact the help desk.";
       if (!formData.dateOfBirth) {
         errors.dateOfBirth = "Date of birth is required.";
       } else if (calculatedAge < currentCategory.minAge) {
@@ -219,7 +208,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
       }
       if (!formData.emergencyPhone || formData.emergencyPhone.length !== 10) {
         errors.emergencyPhone = "Enter a valid 10-digit emergency phone number.";
-      } else if (formData.emergencyPhone === formData.phone) {
+      } else if (formData.emergencyPhone === accountPhone) {
         errors.emergencyPhone = "Emergency phone cannot be the same as your primary number.";
       }
     }
@@ -271,14 +260,10 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
         distance: selectedDistance,
         raceTitle: currentCategory.title,
         baseFee: currentCategory.fee,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
         dateOfBirth: formData.dateOfBirth,
         ageOnRaceDay: calculatedAge,
         gender: formData.gender,
-        bibName: formData.bibName || formData.firstName,
+        bibName: formData.bibName || initialFirstName.toUpperCase().slice(0, 16),
         bloodGroup: formData.bloodGroup,
         tshirtSize: formData.tshirtSize,
         emergencyName: formData.emergencyName,
@@ -433,73 +418,30 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                 description="Your custom name will be printed directly onto your official race bib timing chip."
               />
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="First name" htmlFor="rr-firstName" required error={fieldErrors.firstName}>
-                  <TextInput
-                    {...a11y("firstName")}
-                    type="text"
-                    name="firstName"
-                    required
-                    autoComplete="given-name"
-                    value={formData.firstName}
-                    onChange={(e) => {
-                      handleInputChange(e);
-                      if (!formData.bibName) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          bibName: e.target.value.toUpperCase().slice(0, 16),
-                        }));
-                      }
-                    }}
-                    placeholder="Enter first name"
-                  />
-                </Field>
-
-                <Field label="Last name" htmlFor="rr-lastName" required error={fieldErrors.lastName}>
-                  <TextInput
-                    {...a11y("lastName")}
-                    type="text"
-                    name="lastName"
-                    required
-                    autoComplete="family-name"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Enter last name"
-                  />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Email address" htmlFor="rr-email" required error={fieldErrors.email}>
-                  <TextInput
-                    {...a11y("email")}
-                    type="email"
-                    name="email"
-                    required
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="runner@example.com"
-                  />
-                </Field>
-
-                <Field label="Mobile number (+91)" htmlFor="rr-phone" required error={fieldErrors.phone}>
-                  <TextInput
-                    {...a11y("phone")}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel-national"
-                    name="phone"
-                    required
-                    maxLength={10}
-                    value={formData.phone}
-                    onChange={(e) => {
-                      const num = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      setFormData((p) => ({ ...p, phone: num }));
-                    }}
-                    placeholder="10-digit mobile"
-                  />
-                </Field>
+              {/* Name, email and mobile come from the account (stored once, on the user). */}
+              <div className="rounded-card border border-charcoal-200 bg-surface-soft p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-charcoal-900">Participant (your account)</p>
+                  <span className="text-xs text-charcoal-500">Registering as yourself</span>
+                </div>
+                <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                  <div className="min-w-0">
+                    <dt className="text-xs text-charcoal-500">Name</dt>
+                    <dd className="truncate font-semibold text-charcoal-900">{participantName || "-"}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-charcoal-500">Email</dt>
+                    <dd className="break-all font-semibold text-charcoal-900">{accountEmail || "-"}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-charcoal-500">Mobile</dt>
+                    <dd className="font-semibold text-charcoal-900">{accountPhone ? `+91 ${accountPhone}` : "-"}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs text-charcoal-500">
+                  Your name must match your photo ID; it is checked at bib collection. You can correct your name and mobile later from your runner profile.
+                </p>
+                {fieldErrors.identity ? <p className="mt-2 text-xs font-medium text-[#DC2626]">{fieldErrors.identity}</p> : null}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -793,7 +735,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
 
               <dl className="rounded-card border border-charcoal-200 bg-surface-soft px-4 text-sm">
                 <ReviewRow label="Runner">
-                  {formData.firstName} {formData.lastName} ({formData.gender}, {calculatedAge}y)
+                  {participantName} ({formData.gender}, {calculatedAge}y)
                 </ReviewRow>
                 <ReviewRow label="Category">
                   {currentCategory.distance} ({currentCategory.title})
@@ -802,7 +744,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                   <span className="font-mono">{formData.bibName}</span>
                 </ReviewRow>
                 <ReviewRow label="Contact">
-                  {formData.email} | +91 {formData.phone}
+                  {accountEmail} | +91 {accountPhone}
                 </ReviewRow>
                 <ReviewRow label="Emergency">
                   {formData.emergencyName} ({formData.emergencyRelation}) | +91 {formData.emergencyPhone}

@@ -30,9 +30,6 @@ interface VolunteerRegisterFormProps {
 
 export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormProps) {
   const [formData, setFormData] = useState({
-    fullName: user.name || "",
-    email: user.email || "",
-    phone: user.phone || "",
     tShirtSize: "M",
     emergencyContactName: "",
     emergencyContactPhone: "",
@@ -74,12 +71,8 @@ export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormPro
 
     setIsSubmitting(true);
     try {
-      const result = await submitVolunteerRegistration({
-        ...formData,
-        fullName: user.name,
-        email: user.email,
-        phone: formData.phone || user.phone,
-      });
+      // Name, email and mobile are not sent: the API uses the signed-in account.
+      const result = await submitVolunteerRegistration(formData);
       if (!result.success) {
         throw new Error(result.error || "Failed to submit volunteer registration.");
       }
@@ -134,21 +127,9 @@ export default function VolunteerRegisterForm({ user }: VolunteerRegisterFormPro
     <form onSubmit={handleSubmit} className="space-y-5">
       {submitError ? <Notice tone="error">{submitError}</Notice> : null}
 
-      <AccountSummary name={user.name} email={user.email} title="Volunteer account" hidePhone />
+      <AccountSummary name={user.name} email={user.email} phone={user.phone} title="Volunteer account" />
 
       <FormSection icon={LuPhone} title="Contact and emergency" description="Who we can reach, and who to call if something happens.">
-        <Field label="Mobile number" htmlFor="vol-phone" required>
-          <TextInput
-            id="vol-phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            required
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="10-digit mobile number"
-          />
-        </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Emergency contact name" htmlFor="vol-emergency-name" required>
             <TextInput

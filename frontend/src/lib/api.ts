@@ -35,9 +35,12 @@ export type ApiRole =
 
 export interface ApiUser {
   id: string;
+  firstName: string;
+  lastName: string;
+  /** Derived by the API from firstName + lastName (not stored). */
+  fullName: string;
   email: string;
   phone: string | null;
-  fullName: string;
   role: ApiRole | null;
   status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED";
   emailVerified: boolean;
@@ -46,7 +49,15 @@ export interface ApiUser {
 /** The signed-in user's registration, or { registered: false }. */
 export type MyRegistration =
   | { registered: false }
-  | { registered: true; role: ApiRole; status: string; profile: Record<string, unknown> };
+  | {
+      registered: true;
+      role: ApiRole;
+      status: string;
+      /** Role-specific data, with the account identity (name, email, mobile) merged in by the API. */
+      profile: Record<string, unknown>;
+      /** Identity, stored only on the user account. */
+      user?: { firstName: string; lastName: string; fullName: string; email: string; phone: string | null };
+    };
 
 export interface ApiSplit {
   label: string;
@@ -258,7 +269,7 @@ export const api = {
       request<{ requireEmailVerification: boolean }>("auth/config", { cache: "no-store" }),
 
     signup: (
-      payload: { name: string; email: string; mobile: string; password: string },
+      payload: { firstName: string; lastName: string; email: string; mobile: string; password: string },
       ctx?: CallContext
     ) =>
       post<{
