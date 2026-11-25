@@ -45,6 +45,8 @@ export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps
     { label: "Races", href: "/#categories" },
     { label: "Heritage Route", href: "/#route" },
     { label: "Perks & Amenities", href: "/#perks" },
+    { label: "Training", href: "/training" },
+    { label: "Tourism", href: "/tourism" },
     { label: "Community", href: "/join" },
     { label: "Contact", href: "/contact" },
   ];
