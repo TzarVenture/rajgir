@@ -83,6 +83,172 @@ body:has(.site-root) {
   }
 }
 
+/* ------------------------------------------------------------------------------------------------
+ * Homepage motion kit (components/home/*). Plain CSS, no libraries. Everything here is decorative:
+ * the reduced-motion block below shows the final state instantly and stops every loop.
+ * ---------------------------------------------------------------------------------------------- */
+@keyframes rj-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes rj-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rj-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes rj-drift { 0% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(14px, -18px, 0); } 100% { transform: translate3d(0, 0, 0); } }
+@keyframes rj-spin-slow { to { transform: rotate(360deg); } }
+@keyframes rj-kenburns { from { transform: scale(1.02); } to { transform: scale(1.1) translate(-1.5%, -1%); } }
+@keyframes rj-marquee { to { transform: translateX(-50%); } }
+@keyframes rj-pulse-ring { 0% { transform: scale(0.7); opacity: 0.65; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes rj-shimmer { to { background-position: -200% 0; } }
+@keyframes rj-sweep { 0% { transform: translateX(-120%) skewX(-18deg); } 60%, 100% { transform: translateX(260%) skewX(-18deg); } }
+@keyframes rj-draw { to { stroke-dashoffset: 0; } }
+@keyframes rj-dash-flow { to { stroke-dashoffset: -24; } }
+@keyframes rj-pop { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes rj-wave { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(9deg); } }
+@keyframes rj-bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes rj-twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 0.9; transform: scale(1.15); } }
+@keyframes rj-bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Scroll reveal: hidden until the section enters the viewport (Reveal sets data-visible). */
+.site-root .rj-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 90ms);
+  will-change: opacity, transform;
+}
+.site-root .rj-reveal[data-visible="true"] { opacity: 1; transform: none; }
+
+/* Hero entrance: staggered by --i, runs once on load. */
+.site-root .rj-rise { animation: rj-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 110ms + 120ms); }
+.site-root .rj-fade { animation: rj-fade 1.2s ease both; animation-delay: calc(var(--i, 0) * 110ms); }
+
+.site-root .rj-float { animation: rj-float 6s ease-in-out infinite; }
+.site-root .rj-drift { animation: rj-drift 9s ease-in-out infinite; }
+.site-root .rj-spin-slow { animation: rj-spin-slow 90s linear infinite; transform-origin: center; }
+.site-root .rj-kenburns { animation: rj-kenburns 22s ease-in-out infinite alternate; transform-origin: 60% 40%; }
+.site-root .rj-wave { animation: rj-wave 2.6s ease-in-out infinite; transform-origin: 20% 90%; }
+.site-root .rj-bob { animation: rj-bob 3.2s ease-in-out infinite; }
+.site-root .rj-twinkle { animation: rj-twinkle 3.4s ease-in-out infinite; }
+.site-root .rj-pulse-ring { animation: rj-pulse-ring 2.2s ease-out infinite; }
+.site-root .rj-dash-flow { animation: rj-dash-flow 1.6s linear infinite; }
+.site-root .rj-pop { animation: rj-pop 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both; }
+
+/* Gold shine that sweeps across a card now and then. */
+.site-root .rj-shine { position: relative; overflow: hidden; }
+.site-root .rj-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: rj-sweep 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Gold gradient text for one highlighted word. */
+.site-root .rj-gold-text {
+  background: linear-gradient(100deg, #FFC928 0%, #F5A623 40%, #FFE08A 60%, #F5A623 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rj-shimmer 6s linear infinite;
+}
+
+/* Infinite marquee: the track holds two copies, so -50% loops seamlessly. */
+.site-root .rj-marquee-track { display: flex; width: max-content; animation: rj-marquee var(--rj-marquee-speed, 38s) linear infinite; }
+.site-root .rj-marquee:hover .rj-marquee-track { animation-play-state: paused; }
+
+/* Section headline underline that grows when revealed. */
+.site-root .rj-underline { display: block; height: 3px; width: 56px; margin-top: 12px; border-radius: 3px; background: linear-gradient(90deg, #E31B23, #F5A623); transform-origin: left; transform: scaleX(0); transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s; }
+.site-root [data-visible="true"] .rj-underline, .site-root .rj-underline[data-visible="true"] { transform: scaleX(1); }
+.site-root .rj-underline-center { margin-left: auto; margin-right: auto; transform-origin: center; }
+
+/* ------------------------------------------------------------------------------------------------
+ * Site icons (components/home/art/SiteIcons.tsx). Lines draw in once when shown, redraw and move a little on
+ * hover of any .group ancestor. No looping, no blinking.
+ * ---------------------------------------------------------------------------------------------- */
+@keyframes rj-draw-in { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes rj-redraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes rj-ic-speed { 0% { transform: translateX(-5px); opacity: 0.2; } 100% { transform: translateX(0); opacity: 1; } }
+@keyframes rj-ic-swing { 0% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 60% { transform: rotate(7deg); } 100% { transform: rotate(0); } }
+@keyframes rj-ic-bob { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-3px); } }
+@keyframes rj-ic-beat { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.1); } 55% { transform: scale(0.97); } 75% { transform: scale(1.05); } }
+@keyframes rj-ic-steam { 0% { transform: translateY(3px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-4px); opacity: 0; } }
+@keyframes rj-ic-hand { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes rj-ic-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.05); } 100% { transform: scaleX(1); } }
+@keyframes rj-ic-wave { 0%, 100% { transform: skewY(0); } 35% { transform: skewY(-5deg); } 70% { transform: skewY(4deg); } }
+@keyframes rj-ic-slide { 0% { transform: translateX(0); } 50% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+@keyframes rj-ic-shine { 0% { transform: translateX(-4px); opacity: 0.2; } 60% { transform: translateX(8px); opacity: 1; } 100% { transform: translateX(0); opacity: 1; } }
+@keyframes rj-ic-fly { 0% { transform: translate(0, 0); } 50% { transform: translate(4px, -4px); } 100% { transform: translate(0, 0); } }
+@keyframes rj-ic-armL { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(7deg); } }
+@keyframes rj-ic-armR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-7deg); } }
+@keyframes rj-ic-spark { 0% { transform: scale(0.6); opacity: 0.3; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes rj-ic-rise { 0% { transform: scaleY(0.55); } 100% { transform: scaleY(1); } }
+@keyframes rj-ic-ringL { 50% { transform: translateX(-2.5px); } }
+@keyframes rj-ic-ringR { 50% { transform: translateX(2.5px); } }
+@keyframes rj-ic-flow { to { stroke-dashoffset: -2; } }
+@keyframes rj-ic-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+.site-root .rj-ico { overflow: visible; }
+.site-root .rj-ico .rj-d { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.site-root .rj-ico .rj-acc { stroke: var(--rj-acc, #F5A623); }
+.site-root .rj-ico .rj-accf { fill: var(--rj-acc, #F5A623); stroke: none; }
+.site-root .rj-ico [class*="rj-m-"] { transform-box: fill-box; transform-origin: center; }
+.site-root .rj-ico .rj-m-swing, .site-root .rj-ico .rj-m-sway, .site-root .rj-ico .rj-m-hand, .site-root .rj-ico .rj-m-flip,
+.site-root .rj-ico .rj-m-armL, .site-root .rj-ico .rj-m-armR, .site-root .rj-ico .rj-m-spark, .site-root .rj-ico .rj-m-rise, .site-root .rj-ico .rj-m-tassel { transform-box: view-box; }
+
+/* Draw in when the icon first becomes visible (inside a Reveal, or the hero entrance). */
+.site-root [data-visible="true"] .rj-ico .rj-d,
+.site-root .rj-rise .rj-ico .rj-d { animation: rj-draw-in 1.1s cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+/* Hover: redraw the lines and play the icon's own little move. */
+.site-root .group:hover .rj-ico .rj-d { animation: rj-redraw 0.85s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.site-root .group:hover .rj-ico .rj-m-speed { animation: rj-ic-speed 0.7s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-swing { animation: rj-ic-swing 1.1s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-sway { animation: rj-ic-swing 1.1s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-bob { animation: rj-ic-bob 0.8s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-beat { animation: rj-ic-beat 0.9s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-steam path { animation: rj-ic-steam 1.2s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-steam path:nth-child(2) { animation-delay: 0.15s; }
+.site-root .group:hover .rj-ico .rj-m-steam path:nth-child(3) { animation-delay: 0.3s; }
+.site-root .group:hover .rj-ico .rj-m-hand { animation: rj-ic-hand 1s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.site-root .group:hover .rj-ico .rj-m-flip { animation: rj-ic-flip 0.9s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-wave { animation: rj-ic-wave 1s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-slide { animation: rj-ic-slide 0.7s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-shine { animation: rj-ic-shine 0.9s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-fly { animation: rj-ic-fly 0.8s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-armL { animation: rj-ic-armL 0.7s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-armR { animation: rj-ic-armR 0.7s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-spark { animation: rj-ic-spark 0.7s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-rise { animation: rj-ic-rise 0.7s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-ringL { animation: rj-ic-ringL 0.8s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-ringR { animation: rj-ic-ringR 0.8s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-pop { animation: rj-ic-pop 0.7s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-tassel { animation: rj-ic-swing 1s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-laces { animation: rj-ic-bob 0.7s ease-in-out both; }
+.site-root .group:hover .rj-ico .rj-m-windows { animation: rj-ic-spark 0.8s ease-out both; }
+.site-root .group:hover .rj-ico .rj-m-flow { stroke-dasharray: 0.04 0.04; animation: rj-ic-flow 0.9s linear both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .site-root .rj-reveal { opacity: 1; transform: none; transition: none; }
+  .site-root .rj-underline { transform: scaleX(1); transition: none; }
+  .site-root .rj-marquee-track,
+  .site-root .rj-float,
+  .site-root .rj-drift,
+  .site-root .rj-spin-slow,
+  .site-root .rj-kenburns,
+  .site-root .rj-wave,
+  .site-root .rj-bob,
+  .site-root .rj-twinkle,
+  .site-root .rj-pulse-ring,
+  .site-root .rj-dash-flow,
+  .site-root .rj-shine::after,
+  .site-root .rj-gold-text { animation: none !important; }
+  .site-root .rj-marquee-track { flex-wrap: wrap; width: auto; justify-content: center; }
+  .site-root .rj-marquee-track > [aria-hidden] { display: none; }
+  .site-root .rj-gold-text { background-position: 0 0; }
+  .site-root .rj-ico *, .site-root .group:hover .rj-ico * { animation: none !important; }
+}
+
 /*
  * The root layout loads a legacy prebuilt stylesheet (tailwind-built.css) AFTER globals.css, and its base
  * utilities (for example .grid-cols-1) override newer responsive variants such as
