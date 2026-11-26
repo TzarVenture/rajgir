@@ -101,7 +101,6 @@ export default async function RunnerBibPage() {
                 bibName: r.bibName,
                 distance: r.distance,
                 raceTitle: r.raceTitle,
-                startWave: r.startWave,
                 startLabel,
                 timed: ops.timed,
                 color: ops.bibColor,
@@ -157,10 +156,6 @@ export default async function RunnerBibPage() {
                   ) : (
                     "Assigned before expo opens"
                   ),
-                },
-                {
-                  label: "Start Wave",
-                  value: r.startWave ?? (ops.timed ? "To be announced" : "Open Fun Run"),
                 },
               ]}
             />

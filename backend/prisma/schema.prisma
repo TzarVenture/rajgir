@@ -72,6 +72,9 @@ model User {
   sponsorProfile     SponsorProfile?
   vendorProfile      VendorProfile?
   tourismProfile     TourismProfile?
+  adminProfile       AdminProfile?
+  superAdminProfile  SuperAdminProfile?
+  createdAdmins      AdminProfile[]      @relation("AdminCreatedBy")
 
   @@index([email])
   @@index([phone])
@@ -129,12 +132,10 @@ model RunnerRegistration {
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Race operations (set by organizers; null until allotted)
-  /// Expected finish time "HH:MM" given at registration; used to seed start waves for timed races.
+  /// Expected finish time "HH:MM" given at registration; used for target pace bands.
   estimatedFinishTime String?   @map("estimated_finish_time") @db.VarChar(8)
   /// Printed bib number, allotted by organizers after the registration cut-off.
   bibNumber           String?   @unique @map("bib_number") @db.VarChar(12)
-  /// Start wave / corral, e.g. "A", "B", "Elite".
-  startWave           String?   @map("start_wave") @db.VarChar(16)
   kitCollectedAt      DateTime? @map("kit_collected_at") @db.Timestamptz(6)
   /// Who collected the kit: "SELF" or the proxy's name.
   kitCollectedBy      String?   @map("kit_collected_by") @db.VarChar(64)
@@ -392,4 +393,46 @@ model TourismProfile {
   submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
 
   @@map("tourism_profiles")
+}
+
+// ---------------------------------------------------------------------------
+// 10. SUPER ADMINS & ADMINS (Event Command Center & Access Governance)
+// ---------------------------------------------------------------------------
+
+model SuperAdminProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designation String   @default("Event Director") @db.VarChar(120)
+  isRoot      Boolean  @default(true) @map("is_root")
+  isActive    Boolean  @default(true) @map("is_active")
+  notes       String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("super_admins")
+}
+
+model AdminProfile {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designation         String   @default("Operations Admin") @db.VarChar(120)
+  department          String?  @db.VarChar(80)
+  isActive            Boolean  @default(true) @map("is_active")
+  canManageRunners    Boolean  @default(true) @map("can_manage_runners")
+  canAllotBibs        Boolean  @default(true) @map("can_allot_bibs")
+  canManageVolunteers Boolean  @default(true) @map("can_manage_volunteers")
+  canManageInfluencers Boolean @default(true) @map("can_manage_influencers")
+  canManageGroups     Boolean  @default(true) @map("can_manage_groups")
+  canManagePartners   Boolean  @default(true) @map("can_manage_partners")
+  canManageIncidents  Boolean  @default(true) @map("can_manage_incidents")
+  assignedByUserId    String?  @map("assigned_by_user_id") @db.Uuid
+  assignedBy          User?    @relation("AdminCreatedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  notes               String?  @db.VarChar(500)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([assignedByUserId])
+  @@map("admins")
 }

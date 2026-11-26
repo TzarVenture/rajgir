@@ -78,7 +78,14 @@ export function GroupProfileHub({ initial }: { initial: ApiGroupDashboard }) {
             <TextInput id="gp-ln" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           </Field>
           <Field htmlFor="gp-ph" label="Coordinator Mobile">
-            <TextInput id="gp-ph" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <TextInput
+              id="gp-ph"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            />
           </Field>
           <Field
             htmlFor="gp-org"

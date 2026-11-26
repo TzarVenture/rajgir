@@ -80,7 +80,14 @@ export function PartnerProfileHub({ initial }: { initial: ApiPartnerDashboard })
             <TextInput id="pp-ln" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           </Field>
           <Field htmlFor="pp-ph" label="Contact Mobile">
-            <TextInput id="pp-ph" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <TextInput
+              id="pp-ph"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            />
           </Field>
           <Field htmlFor="pp-biz" label={initial.role === "SPONSOR" ? "Brand Name" : "Business / Property Name"} required>
             <TextInput id="pp-biz" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />

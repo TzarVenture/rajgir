@@ -87,6 +87,7 @@ export interface ApiRunnerRegistration {
   baseFee: number;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email: string;
   phone: string;
   dateOfBirth: string;
@@ -116,7 +117,6 @@ export interface ApiRunnerRegistration {
   updatedAt: string;
   estimatedFinishTime: string | null;
   bibNumber: string | null;
-  startWave: string | null;
   kitCollectedAt: string | null;
   kitCollectedBy: string | null;
   medicalUpdatedAt: string | null;
@@ -303,6 +303,24 @@ export const api = {
         session: ApiSession | null;
         user: ApiUser;
       }>("auth/signup", payload, ctx),
+
+    adminSetup: (
+      payload: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        mobile: string;
+        password: string;
+        setupKey: string;
+      },
+      ctx?: CallContext
+    ) =>
+      post<{
+        needsVerification: boolean;
+        email: string;
+        session: ApiSession | null;
+        user: ApiUser;
+      }>("auth/admin-setup", payload, ctx),
 
     login: (payload: { identifier: string; password: string }, ctx?: CallContext) =>
       post<{ session: ApiSession; user: ApiUser }>("auth/login", payload, ctx),
@@ -506,14 +524,55 @@ export const api = {
 
   admin: {
     overview: (ctx: CallContext) =>
-      get<{
-        totalRunners: number;
-        totalVolunteers: number;
-        totalInfluencers: number;
-        totalGroups: number;
-        totalRevenue: number;
-        categoryBreakdown: { distance: string; count: number }[];
-      }>("admin/overview", ctx),
+      get<ApiAdminOverview>("admin/overview", ctx),
+    users: (ctx: CallContext, limit = 100) =>
+      get<ApiAdminUser[]>("admin/users?limit=" + limit, ctx),
+    setUserStatus: (userId: string, status: "ACTIVE" | "SUSPENDED", ctx: CallContext) =>
+      send<{ id: string; status: string }>("PATCH", `admin/users/${userId}/status`, { status }, ctx),
+    runners: (ctx: CallContext, limit = 200) =>
+      get<{ total: number; count: number; runners: ApiRunnerRegistration[] }>(`runners?limit=${limit}`, ctx),
+    allotBib: (registrationNumber: string, payload: { bibNumber: string }, ctx: CallContext) =>
+      send<ApiRunnerRegistration>("PATCH", `runners/${encodeURIComponent(registrationNumber)}/bib`, payload, ctx),
+    autoAllotBibs: (payload: { distance?: string; startFrom?: number }, ctx: CallContext) =>
+      post<{ assignedCount: number; assignments: Array<{ registrationNumber: string; bibNumber: string }> }>(
+        "runners/bibs/auto-allot",
+        payload,
+        ctx
+      ),
+    bulkAllotBibs: (
+      items: Array<{ registrationNumber: string; bibNumber: string }>,
+      ctx: CallContext
+    ) =>
+      post<{
+        updatedCount: number;
+        skippedCount: number;
+        assignments: Array<{ registrationNumber: string; bibNumber: string }>;
+        skipped: Array<{ registrationNumber: string; reason: string }>;
+      }>("runners/bibs/bulk-allot", { items }, ctx),
+    markKitCollected: (registrationNumber: string, collectedBy: string, ctx: CallContext) =>
+      post<ApiRunnerRegistration>(`runners/${encodeURIComponent(registrationNumber)}/kit-collected`, { collectedBy }, ctx),
+    undoKitCollected: (registrationNumber: string, ctx: CallContext) =>
+      request<ApiRunnerRegistration>(`runners/${encodeURIComponent(registrationNumber)}/kit-collected`, {
+        method: "DELETE",
+        headers: contextHeaders(ctx),
+        cache: "no-store",
+      }),
+    volunteers: (ctx: CallContext, limit = 200) =>
+      get<{ total: number; count: number; volunteers: ApiVolunteer[] }>(`volunteers?limit=${limit}`, ctx),
+    approveVolunteer: (id: string, ctx: CallContext) =>
+      post<ApiVolunteer>(`volunteers/${id}/approve`, {}, ctx),
+    assignVolunteer: (
+      id: string,
+      payload: { assignedRole?: string; assignedStation?: string; assignedSector?: string; supervisorName?: string; supervisorPhone?: string },
+      ctx: CallContext
+    ) => send<ApiVolunteer>("PATCH", `volunteers/${id}/assignment`, payload, ctx),
+    influencers: (ctx: CallContext, limit = 200) =>
+      get<{ total: number; count: number; influencers: Array<Record<string, unknown> & { id: string; fullName: string; email: string; primaryPlatform: string; followerCount: string; status: string | null }> }>(`influencers?limit=${limit}`, ctx),
+    reviewInfluencer: (id: string, decision: "approve" | "reject", ctx: CallContext) =>
+      post(`admin/influencers/${id}/review`, { decision }, ctx),
+    incidents: (ctx: CallContext) => get<Array<ApiIncident & { volunteer?: { assignedStation: string | null; user?: { firstName: string; lastName: string; phone: string | null } } }>>("incidents", ctx),
+    updateIncident: (id: string, payload: { status: "ACKNOWLEDGED" | "RESOLVED"; resolutionNote?: string }, ctx: CallContext) =>
+      send<ApiIncident>("PATCH", `incidents/${id}`, payload, ctx),
     quotaAppeals: (ctx: CallContext) => get<ApiQuotaAppeal[]>("admin/quota-appeals", ctx),
     reviewQuotaAppeal: (
       type: "team" | "corporate" | "school",
@@ -530,6 +589,32 @@ export const api = {
     ) => post(`admin/applications/${type}/${id}/review`, { decision }, ctx),
   },
 };
+
+export interface ApiAdminOverview {
+  totalRunners: number;
+  kitsCollectedCount: number;
+  totalVolunteers: number;
+  totalInfluencers: number;
+  totalGroups: number;
+  openIncidentsCount: number;
+  pendingApprovalsCount: number;
+  pendingQuotaAppealsCount: number;
+  totalRevenue: number;
+  categoryBreakdown: { distance: string; count: number }[];
+  tshirtBreakdown: { size: string; count: number }[];
+}
+
+export interface ApiAdminUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  role: ApiRole | null;
+  status: "PENDING_ONBOARDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED";
+  registrationSource: "SELF_REGISTERED" | "SCHOOL_REGISTERED" | "CORPORATE_REGISTERED" | "TEAM_REGISTERED";
+  createdAt: string;
+}
 
 export interface ApiManagedRunnerInput {
   firstName: string;

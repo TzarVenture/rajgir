@@ -103,17 +103,48 @@ export class UpdateMedicalDto {
   medicalNotes?: string;
 }
 
-/** Staff: bib number and start wave allotment. */
+/** Staff: bib number allotment. */
 export class AllotBibDto {
   @ApiProperty({ example: '21045' })
   @Matches(/^[A-Z0-9-]{1,12}$/i, { message: 'Bib number may contain letters, digits and dashes (max 12)' })
   bibNumber: string;
+}
 
-  @ApiPropertyOptional({ example: 'B' })
+/** Staff: auto-assign sequential bibs to unassigned runners. */
+export class AutoAllotBibsDto {
+  @ApiPropertyOptional({ example: '21.1 KM' })
   @IsOptional()
   @IsString()
-  @MaxLength(16)
-  startWave?: string;
+  @MaxLength(32)
+  distance?: string;
+
+  @ApiPropertyOptional({ example: 21001 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  startFrom?: number;
+}
+
+export class BulkAllotBibItemDto {
+  @ApiProperty({ example: 'RJG-2027-211K-5538' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  registrationNumber: string;
+
+  @ApiProperty({ example: '21045' })
+  @Matches(/^[A-Z0-9-]{1,12}$/i, { message: 'Bib number may contain letters, digits and dashes (max 12)' })
+  bibNumber: string;
+}
+
+export class BulkAllotBibsDto {
+  @ApiProperty({ type: [BulkAllotBibItemDto] })
+  @IsArray()
+  @ArrayMaxSize(1000)
+  @ValidateNested({ each: true })
+  @Type(() => BulkAllotBibItemDto)
+  items: BulkAllotBibItemDto[];
 }
 
 /** Staff: kit handed over at the expo. */

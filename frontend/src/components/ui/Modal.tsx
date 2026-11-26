@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { LuX } from "react-icons/lu";
 import { cn } from "./cn";
@@ -26,12 +26,19 @@ export function Modal({
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  // Keep the latest onClose in a ref so the effect below runs only when `open` changes.
+  // Callers usually pass an inline arrow, which is a new function on every render (every keystroke);
+  // if it were an effect dependency, the cleanup/setup would bounce focus out of the input being typed in.
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     const originalOverflow = document.body.style.overflow;
@@ -42,7 +49,7 @@ export function Modal({
       document.body.style.overflow = originalOverflow;
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

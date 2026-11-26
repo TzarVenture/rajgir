@@ -14,7 +14,8 @@ import type { Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupabaseService, isTransientAuthError } from '../supabase/supabase.service';
 import { UsersService, cleanNamePart, normalizeEmail, normalizeMobile, toPublicUser } from '../users/users.service';
-import type { ChangePasswordDto, DeleteAccountDto, LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
+import { Role } from '@prisma/client';
+import type { AdminSetupDto, ChangePasswordDto, DeleteAccountDto, LoginDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 export interface SessionTokens {
   accessToken: string;
@@ -293,6 +294,8 @@ export class AuthService {
       await tx.sponsorProfile.deleteMany({ where: { userId } });
       await tx.vendorProfile.deleteMany({ where: { userId } });
       await tx.tourismProfile.deleteMany({ where: { userId } });
+      await tx.adminProfile.deleteMany({ where: { userId } });
+      await tx.superAdminProfile.deleteMany({ where: { userId } });
       // Delete user
       await tx.user.delete({ where: { id: userId } });
     });
@@ -305,5 +308,39 @@ export class AuthService {
 
     this.logger.log(`User ${userId} deleted their account`);
     return { success: true };
+  }
+
+  /**
+   * Env-gated admin registration for testing/bootstrap.
+   * Requires ADMIN_SETUP_KEY in backend .env; fails closed when unset or mismatched.
+   */
+  async adminSetup(dto: AdminSetupDto) {
+    const expected = process.env.ADMIN_SETUP_KEY?.trim();
+    if (!expected || dto.setupKey.trim() !== expected) {
+      throw new ForbiddenException('Invalid or disabled admin setup key.');
+    }
+
+    const { user, session } = await this.users.createAccountAndRoleProfile(
+      {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        email: dto.email,
+        mobile: dto.mobile,
+        password: dto.password,
+        role: Role.ORGANIZER,
+      },
+      async (tx, createdUser) =>
+        tx.adminProfile.create({
+          data: { userId: createdUser.id },
+        }),
+    );
+
+    this.logger.log(`Admin account created via /admin-setup: ${user.email}`);
+    return {
+      needsVerification: !session,
+      email: user.email ?? dto.email,
+      session,
+      user: toPublicUser(user, true),
+    };
   }
 }

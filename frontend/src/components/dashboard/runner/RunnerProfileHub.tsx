@@ -406,8 +406,10 @@ export function RunnerProfileHub({
               required
             >
               <TextInput
+                type="tel"
+                inputMode="numeric"
                 value={draft.phone}
-                onChange={(e) => handleProfileChange("phone", e.target.value)}
+                onChange={(e) => handleProfileChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
                 maxLength={10}
                 disabled={profilePending}
                 required

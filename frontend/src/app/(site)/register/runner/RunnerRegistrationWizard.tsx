@@ -392,7 +392,7 @@ export default function RunnerRegistrationWizard({ user }: RunnerRegistrationWiz
                   label="Expected finish time (optional)"
                   htmlFor="rr-estimatedFinishTime"
                   error={fieldErrors.estimatedFinishTime}
-                  hint={`HH:MM, e.g. ${selectedDistance === "42.2 KM" ? "4:30" : selectedDistance === "21.1 KM" ? "2:05" : "0:58"}. Used to place you in the right start wave. Cut-off ${formatCutoff(currentOps.cutoffMinutes)}.`}
+                  hint={`HH:MM, e.g. ${selectedDistance === "42.2 KM" ? "4:30" : selectedDistance === "21.1 KM" ? "2:05" : "0:58"}. Cut-off ${formatCutoff(currentOps.cutoffMinutes)}.`}
                   className="max-w-xs"
                 >
                   <TextInput

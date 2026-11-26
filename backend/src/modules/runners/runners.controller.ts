@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { AuthContext, CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -6,7 +6,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/guards/roles.guard';
 import { RunnersService } from './runners.service';
 import { CreateRunnerDto, RegisterRunnerWithAccountDto } from './dto/create-runner.dto';
-import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
+import { AllotBibDto, AutoAllotBibsDto, BulkAllotBibsDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 
 @ApiTags('Runners')
 @ApiBearerAuth()
@@ -57,6 +57,22 @@ export class RunnersController {
     return this.runnersService.listRunners(Number(limit), Number(offset));
   }
 
+  @Post('bibs/auto-allot')
+  @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Auto-allot sequential bib numbers to unassigned runners (staff only)' })
+  autoAllotBibs(@Body() dto: AutoAllotBibsDto) {
+    return this.runnersService.autoAllotBibs(dto);
+  }
+
+  @Post('bibs/bulk-allot')
+  @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk allot bib numbers from CSV/Excel sheet (staff only)' })
+  bulkAllotBibs(@Body() dto: BulkAllotBibsDto) {
+    return this.runnersService.bulkAllotBibs(dto);
+  }
+
   @Get(':registrationNumber')
   @ApiOperation({ summary: 'Get a registration by number (owner or staff)' })
   getRegistration(@CurrentUser() auth: AuthContext, @Param('registrationNumber') registrationNumber: string) {
@@ -68,7 +84,7 @@ export class RunnersController {
 
   @Patch(':registrationNumber/bib')
   @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Allot bib number and start wave (staff only)' })
+  @ApiOperation({ summary: 'Allot bib number (staff only)' })
   allotBib(@Param('registrationNumber') registrationNumber: string, @Body() dto: AllotBibDto) {
     return this.runnersService.allotBib(registrationNumber, dto);
   }
@@ -79,6 +95,14 @@ export class RunnersController {
   @ApiOperation({ summary: 'Mark race kit as collected at the expo (staff only)' })
   markKitCollected(@Param('registrationNumber') registrationNumber: string, @Body() dto: KitCollectedDto) {
     return this.runnersService.markKitCollected(registrationNumber, dto);
+  }
+
+  @Delete(':registrationNumber/kit-collected')
+  @Roles(Role.ORGANIZER, Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Undo accidental race kit collection mark (staff only)' })
+  undoKitCollected(@Param('registrationNumber') registrationNumber: string) {
+    return this.runnersService.undoKitCollected(registrationNumber);
   }
 
   @Put(':registrationNumber/result')

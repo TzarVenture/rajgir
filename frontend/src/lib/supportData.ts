@@ -79,14 +79,6 @@ export const RUNNER_FAQS: SupportFaq[] = [
       "For timed distances (Full Marathon, Half Marathon, 10K), an RFID timing chip is affixed behind your bib. Do not fold, bend, or pierce the chip. Net timing starts when you cross the start mat and stops when you cross the finish line.",
   },
   {
-    id: "faq-timing-wave",
-    category: "timing",
-    categoryLabel: "Race Timing",
-    question: "How are start waves (corrals) allotted?",
-    answer:
-      "Start waves are allotted based on the estimated finish time submitted during registration and category pacing bands. Corrals open 45 minutes prior to your category gun time.",
-  },
-  {
     id: "faq-course-hydration",
     category: "course",
     categoryLabel: "Course & Safety",

@@ -173,7 +173,7 @@ export const runnerRegistrationSchema = z.object({
   netAmount: z.number().positive(),
   couponCode: z.string().optional(),
 
-  // Expected finish time "H:MM" (timed categories; seeds the start wave)
+  // Expected finish time "H:MM" (timed categories; target pace band)
   estimatedFinishTime: z
     .string()
     .trim()

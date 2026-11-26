@@ -12,7 +12,7 @@ import { STAFF_ROLES } from '../../common/constants/roles';
 import { ageOnRaceDay, isTimedDistance } from '../../common/constants/event';
 import { IDENTITY_SELECT, UsersService, displayName, withIdentity } from '../users/users.service';
 import { CreateRunnerDto, RegisterRunnerWithAccountDto } from './dto/create-runner.dto';
-import { AllotBibDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
+import { AllotBibDto, AutoAllotBibsDto, BulkAllotBibsDto, KitCollectedDto, UpdateMedicalDto, UpdateRunnerProfileDto, UpsertResultDto } from './dto/runner-ops.dto';
 import { quotePrice } from './pricing';
 
 /** What runner self-service reads return: the published result and the identity from users. */
@@ -284,7 +284,7 @@ export class RunnersService {
     try {
       return await this.prisma.runnerRegistration.update({
         where: { registrationNumber },
-        data: { bibNumber: dto.bibNumber.toUpperCase().trim(), startWave: dto.startWave?.trim() || null },
+        data: { bibNumber: dto.bibNumber.toUpperCase().trim() },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -294,12 +294,162 @@ export class RunnersService {
     }
   }
 
+  private defaultBibStart(distance: string): number {
+    const d = distance.toUpperCase();
+    if (d.includes('42')) return 42001;
+    if (d.includes('21')) return 21001;
+    if (d.includes('10')) return 10001;
+    if (d.includes('5')) return 5001;
+    if (d.includes('3')) return 3001;
+    return 1001;
+  }
+
+  async autoAllotBibs(dto: AutoAllotBibsDto) {
+    const distanceFilter = dto.distance?.trim() || undefined;
+    const unassigned = await this.prisma.runnerRegistration.findMany({
+      where: {
+        bibNumber: null,
+        ...(distanceFilter ? { distance: distanceFilter } : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, registrationNumber: true, distance: true },
+    });
+
+    if (unassigned.length === 0) {
+      return { assignedCount: 0, assignments: [] as Array<{ registrationNumber: string; bibNumber: string }> };
+    }
+
+    const existingRows = await this.prisma.runnerRegistration.findMany({
+      where: { bibNumber: { not: null } },
+      select: { bibNumber: true },
+    });
+    const usedBibs = new Set(existingRows.map((r) => (r.bibNumber ?? '').toUpperCase()));
+
+    const nextCursorByDistance = new Map<string, number>();
+    const assignments: Array<{ id: string; registrationNumber: string; bibNumber: string }> = [];
+
+    for (const runner of unassigned) {
+      const defaultStart = this.defaultBibStart(runner.distance);
+      let cursor = nextCursorByDistance.get(runner.distance) ?? (dto.startFrom && distanceFilter ? dto.startFrom : defaultStart);
+      while (usedBibs.has(String(cursor))) {
+        cursor += 1;
+      }
+      const bibNumber = String(cursor);
+      usedBibs.add(bibNumber);
+      nextCursorByDistance.set(runner.distance, cursor + 1);
+      assignments.push({
+        id: runner.id,
+        registrationNumber: runner.registrationNumber,
+        bibNumber,
+      });
+    }
+
+    await this.prisma.$transaction(
+      assignments.map((a) =>
+        this.prisma.runnerRegistration.update({
+          where: { id: a.id },
+          data: { bibNumber: a.bibNumber },
+        }),
+      ),
+    );
+
+    this.logger.log(`Auto-allotted ${assignments.length} bib numbers.`);
+    return {
+      assignedCount: assignments.length,
+      assignments: assignments.map(({ registrationNumber, bibNumber }) => ({
+        registrationNumber,
+        bibNumber,
+      })),
+    };
+  }
+
+  async bulkAllotBibs(dto: BulkAllotBibsDto) {
+    if (!dto.items || dto.items.length === 0) {
+      throw new BadRequestException('No bib rows provided.');
+    }
+
+    const normalized = dto.items.map((item) => ({
+      registrationNumber: item.registrationNumber.trim(),
+      bibNumber: item.bibNumber.toUpperCase().trim(),
+    }));
+
+    const regNumbers = normalized.map((i) => i.registrationNumber);
+    const matchingRunners = await this.prisma.runnerRegistration.findMany({
+      where: { registrationNumber: { in: regNumbers } },
+      select: { id: true, registrationNumber: true, bibNumber: true },
+    });
+    const byReg = new Map(matchingRunners.map((r) => [r.registrationNumber, r]));
+
+    const existingBibOwners = await this.prisma.runnerRegistration.findMany({
+      where: { bibNumber: { not: null } },
+      select: { registrationNumber: true, bibNumber: true },
+    });
+    const bibOwnerMap = new Map(existingBibOwners.map((r) => [(r.bibNumber ?? '').toUpperCase(), r.registrationNumber]));
+    const payloadBibSeen = new Set<string>();
+
+    const updates: Array<{ id: string; registrationNumber: string; bibNumber: string }> = [];
+    const skipped: Array<{ registrationNumber: string; reason: string }> = [];
+
+    for (const item of normalized) {
+      const runner = byReg.get(item.registrationNumber);
+      if (!runner) {
+        skipped.push({ registrationNumber: item.registrationNumber, reason: 'Registration not found' });
+        continue;
+      }
+      if (payloadBibSeen.has(item.bibNumber)) {
+        skipped.push({ registrationNumber: item.registrationNumber, reason: `Duplicate bib #${item.bibNumber} in upload` });
+        continue;
+      }
+      const currentOwner = bibOwnerMap.get(item.bibNumber);
+      if (currentOwner && currentOwner !== item.registrationNumber) {
+        skipped.push({ registrationNumber: item.registrationNumber, reason: `Bib #${item.bibNumber} already assigned to ${currentOwner}` });
+        continue;
+      }
+      payloadBibSeen.add(item.bibNumber);
+      updates.push({
+        id: runner.id,
+        registrationNumber: item.registrationNumber,
+        bibNumber: item.bibNumber,
+      });
+    }
+
+    if (updates.length > 0) {
+      await this.prisma.$transaction(
+        updates.map((u) =>
+          this.prisma.runnerRegistration.update({
+            where: { id: u.id },
+            data: { bibNumber: u.bibNumber },
+          }),
+        ),
+      );
+    }
+
+    this.logger.log(`Bulk allotted ${updates.length} bibs (${skipped.length} skipped).`);
+    return {
+      updatedCount: updates.length,
+      skippedCount: skipped.length,
+      assignments: updates.map(({ registrationNumber, bibNumber }) => ({
+        registrationNumber,
+        bibNumber,
+      })),
+      skipped,
+    };
+  }
+
   async markKitCollected(registrationNumber: string, dto: KitCollectedDto) {
     const record = await this.findByNumberOrThrow(registrationNumber);
     if (record.kitCollectedAt) throw new ConflictException('Kit was already collected for this registration.');
     return this.prisma.runnerRegistration.update({
       where: { registrationNumber },
       data: { kitCollectedAt: new Date(), kitCollectedBy: dto.collectedBy?.trim() || 'SELF' },
+    });
+  }
+
+  async undoKitCollected(registrationNumber: string) {
+    await this.findByNumberOrThrow(registrationNumber);
+    return this.prisma.runnerRegistration.update({
+      where: { registrationNumber },
+      data: { kitCollectedAt: null, kitCollectedBy: null },
     });
   }
 

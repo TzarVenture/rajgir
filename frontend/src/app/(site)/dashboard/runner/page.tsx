@@ -120,10 +120,10 @@ export default async function RunnerDashboard() {
     },
     {
       id: "bib",
-      title: "Bib number and start wave",
+      title: "Bib number",
       detail: r.bibNumber
-        ? `Bib #${r.bibNumber}${r.startWave ? `, wave ${r.startWave}` : ""}.`
-        : "The organizers allot bib numbers and waves before the expo. Nothing to do yet.",
+        ? `Bib #${r.bibNumber}.`
+        : "The organizers allot bib numbers before the expo. Nothing to do yet.",
       state: r.bibNumber ? "done" : "waiting",
       action: { label: "View bib pass", href: "/dashboard/runner/bib" },
     },
@@ -245,9 +245,9 @@ export default async function RunnerDashboard() {
               hint="Used for category rankings"
             />
             <ProfileTile
-              label="Start wave"
-              value={r.startWave ?? (ops.timed ? "TBA" : "Open")}
-              hint={`Gun ${startLabel}`}
+              label="Gun start"
+              value={startLabel}
+              hint="Race-day flag-off (IST)"
             />
             <ProfileTile
               label="Expected finish"
@@ -445,7 +445,7 @@ export default async function RunnerDashboard() {
 
       {EVENT.schedulesProvisional ? (
         <Notice tone="info" title="Provisional race-day schedule">
-          Start times, expo hours and start waves are provisional until the official race handbook is published. We will notify you of any change.
+          Start times and expo hours are provisional until the official race handbook is published. We will notify you of any change.
         </Notice>
       ) : null}
 
