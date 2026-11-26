@@ -152,16 +152,16 @@ export default function TeamRegisterForm({ user }: TeamRegisterFormProps) {
               placeholder="e.g. Patna, Nalanda, Gaya"
             />
           </Field>
-          <Field label="Estimated squad size" htmlFor="team-size" hint="Minimum 2 members" required>
+          <Field label="Estimated squad size" htmlFor="team-size" hint="Minimum 2, maximum 50 members initially (you can appeal to Admin for 50+ later)." required>
             <TextInput
               id="team-size"
               type="number"
               inputMode="numeric"
               min={2}
-              max={500}
+              max={50}
               required
               value={formData.estimatedMembers}
-              onChange={(e) => setFormData({ ...formData, estimatedMembers: parseInt(e.target.value) || 2 })}
+              onChange={(e) => setFormData({ ...formData, estimatedMembers: Math.min(50, parseInt(e.target.value) || 2) })}
             />
           </Field>
         </div>

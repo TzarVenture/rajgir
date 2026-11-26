@@ -485,4 +485,149 @@ export const api = {
     register: (payload: unknown, ctx: CallContext) =>
       post<{ success: boolean; id: string; fullName: string; status: string }>("influencers/register", payload, ctx),
   },
+
+  groups: {
+    dashboard: (ctx: CallContext) => get<ApiGroupDashboard>("groups/dashboard", ctx),
+    addRunner: (payload: ApiManagedRunnerInput, ctx: CallContext) =>
+      post<{ success: boolean; count: number; runners: ApiManagedRunner[] }>("groups/runners", payload, ctx),
+    bulkAddRunners: (runners: ApiManagedRunnerInput[], ctx: CallContext) =>
+      post<{ success: boolean; count: number; runners: ApiManagedRunner[] }>("groups/runners/bulk", { runners }, ctx),
+    submitQuotaAppeal: (payload: { requestedQuota: number; reason: string }, ctx: CallContext) =>
+      post<{ success: boolean; appealStatus: string; appealRequestedQuota: number }>("groups/quota-appeal", payload, ctx),
+    updateProfile: (payload: Record<string, unknown>, ctx: CallContext) =>
+      send<{ success: boolean }>("PATCH", "groups/profile", payload, ctx),
+  },
+
+  partners: {
+    dashboard: (ctx: CallContext) => get<ApiPartnerDashboard>("partners/dashboard", ctx),
+    updateProfile: (payload: Record<string, unknown>, ctx: CallContext) =>
+      send<{ success: boolean }>("PATCH", "partners/profile", payload, ctx),
+  },
+
+  admin: {
+    overview: (ctx: CallContext) =>
+      get<{
+        totalRunners: number;
+        totalVolunteers: number;
+        totalInfluencers: number;
+        totalGroups: number;
+        totalRevenue: number;
+        categoryBreakdown: { distance: string; count: number }[];
+      }>("admin/overview", ctx),
+    quotaAppeals: (ctx: CallContext) => get<ApiQuotaAppeal[]>("admin/quota-appeals", ctx),
+    reviewQuotaAppeal: (
+      type: "team" | "corporate" | "school",
+      id: string,
+      payload: { decision: "approve" | "reject"; approvedQuota?: number },
+      ctx: CallContext
+    ) => post(`admin/quota-appeals/${type}/${id}/review`, payload, ctx),
+    applications: (ctx: CallContext) => get<ApiAdminApplications>("admin/applications", ctx),
+    reviewApplication: (
+      type: "corporate" | "school" | "sponsor" | "vendor" | "tourism",
+      id: string,
+      decision: "approve" | "reject",
+      ctx: CallContext
+    ) => post(`admin/applications/${type}/${id}/review`, { decision }, ctx),
+  },
 };
+
+export interface ApiManagedRunnerInput {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  categoryDistance: string;
+  dateOfBirth: string;
+  gender: string;
+  bloodGroup: string;
+  tshirtSize: string;
+  bibName?: string;
+  emergencyName: string;
+  emergencyRelation?: string;
+  emergencyPhone: string;
+  medicalNotes?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
+export interface ApiManagedRunner {
+  userId: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  registrationSource: "SELF_REGISTERED" | "SCHOOL_REGISTERED" | "CORPORATE_REGISTERED" | "TEAM_REGISTERED";
+  registrationNumber: string;
+  distance: string;
+  raceTitle: string;
+  dateOfBirth: string;
+  ageOnRaceDay: number;
+  gender: string;
+  bibName: string;
+  bibNumber: string | null;
+  bloodGroup: string;
+  tshirtSize: string;
+  emergencyName: string;
+  emergencyRelation: string;
+  emergencyPhone: string;
+  paymentStatus: string | null;
+  qrCodeToken: string | null;
+  createdAt: string;
+}
+
+export interface ApiGroupDashboard {
+  role: "TEAM_CAPTAIN" | "CORPORATE_MANAGER" | "SCHOOL_COORDINATOR";
+  identity: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string;
+    phone: string | null;
+  };
+  profile: Record<string, unknown>;
+  quota: {
+    used: number;
+    maxRunnerQuota: number;
+    remaining: number;
+    appealStatus: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+    appealRequestedQuota: number | null;
+    appealReason: string | null;
+  };
+  runners: ApiManagedRunner[];
+}
+
+export interface ApiPartnerDashboard {
+  role: "SPONSOR" | "VENDOR" | "TOURISM_PARTNER";
+  accountStatus: string;
+  identity: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string;
+    phone: string | null;
+  };
+  profile: Record<string, unknown>;
+}
+
+export interface ApiQuotaAppeal {
+  type: "team" | "corporate" | "school";
+  id: string;
+  organizationName: string;
+  contact: { firstName: string; lastName: string; fullName: string; email: string; phone: string | null };
+  currentQuota: number;
+  requestedQuota: number | null;
+  reason: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  submittedAt: string | null;
+}
+
+export interface ApiAdminApplications {
+  corporates: Array<Record<string, unknown> & { id: string; status: string; contact: { fullName: string; email: string; phone: string | null } }>;
+  schools: Array<Record<string, unknown> & { id: string; status: string; contact: { fullName: string; email: string; phone: string | null } }>;
+  sponsors: Array<Record<string, unknown> & { id: string; status: string; contact: { fullName: string; email: string; phone: string | null } }>;
+  vendors: Array<Record<string, unknown> & { id: string; status: string; contact: { fullName: string; email: string; phone: string | null } }>;
+  tourism: Array<Record<string, unknown> & { id: string; status: string; contact: { fullName: string; email: string; phone: string | null } }>;
+}
