@@ -136,7 +136,7 @@ export class AuthService {
     } else {
       const mobile = normalizeMobile(identifier);
       const byPhone = mobile ? await this.users.findByPhone(mobile) : null;
-      if (!byPhone) throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
+      if (!byPhone || !byPhone.email) throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
       email = byPhone.email;
     }
 

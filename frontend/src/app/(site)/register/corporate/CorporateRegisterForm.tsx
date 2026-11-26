@@ -121,16 +121,16 @@ export default function CorporateRegisterForm({ user }: CorporateRegisterFormPro
               placeholder="e.g. tatasteel.com"
             />
           </Field>
-          <Field label="Estimated delegation passes" htmlFor="corp-passes" hint="Minimum 5 passes" required>
+          <Field label="Estimated delegation passes" htmlFor="corp-passes" hint="Minimum 5, maximum 50 passes initially (you can appeal to Admin for 50+ later)." required>
             <TextInput
               id="corp-passes"
               type="number"
               inputMode="numeric"
               min={5}
-              max={2000}
+              max={50}
               required
               value={formData.estimatedPasses}
-              onChange={(e) => setFormData({ ...formData, estimatedPasses: parseInt(e.target.value) || 5 })}
+              onChange={(e) => setFormData({ ...formData, estimatedPasses: Math.min(50, parseInt(e.target.value) || 5) })}
             />
           </Field>
           <Field label="GSTIN or tax ID (optional)" htmlFor="corp-gstin" hint="Needed for a GST invoice.">

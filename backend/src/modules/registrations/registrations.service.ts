@@ -82,31 +82,36 @@ export class RegistrationsService {
         async (tx, user) => {
           const reg = dto.registration;
           switch (type) {
-            case 'team':
+            case 'team': {
+              const members = Math.min(50, Math.max(2, Number(reg.estimatedMembers) || 10));
               return tx.teamProfile.create({
                 data: {
                   userId: user.id,
                   teamName: String(reg.teamName).trim(),
                   teamJoinCode: teamJoinCode!,
-                  estimatedMembers: Number(reg.estimatedMembers) || 10,
+                  estimatedMembers: members,
                   city: reg.city ? String(reg.city).trim() : null,
                 },
               });
-            case 'corporate':
+            }
+            case 'corporate': {
+              const passes = Math.min(50, Math.max(5, Number(reg.estimatedPasses) || 10));
               return tx.corporateProfile.create({
                 data: {
                   userId: user.id,
                   companyName: String(reg.companyName).trim(),
                   officialEmailDomain: String(reg.officialEmailDomain || '').trim(),
                   designation: String(reg.designation).trim(),
-                  estimatedPasses: Number(reg.estimatedPasses) || 10,
+                  estimatedPasses: passes,
                   gstin: reg.gstin ? String(reg.gstin).trim() : null,
                   csrFocus: reg.csrFocus ? String(reg.csrFocus).trim() : null,
                   billingAddress: reg.billingAddress ? String(reg.billingAddress).trim() : null,
                   status: 'pending',
                 },
               });
-            case 'school':
+            }
+            case 'school': {
+              const students = Math.min(50, Math.max(5, Number(reg.estimatedStudents) || 50));
               return tx.schoolProfile.create({
                 data: {
                   userId: user.id,
@@ -115,11 +120,12 @@ export class RegistrationsService {
                   city: String(reg.city || 'Rajgir').trim(),
                   teacherInCharge: String(reg.teacherInCharge || '').trim(),
                   teacherDesignation: String(reg.teacherDesignation || '').trim(),
-                  estimatedStudents: Number(reg.estimatedStudents) || 50,
+                  estimatedStudents: students,
                   parentalConsentAgreed: Boolean(reg.parentalConsentAgreed),
                   status: 'pending',
                 },
               });
+            }
             case 'sponsor':
               return tx.sponsorProfile.create({
                 data: {

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterTeamDto {
@@ -17,9 +17,10 @@ export class RegisterTeamDto {
   @IsNotEmpty()
   city: string;
 
-  @ApiProperty({ example: 15 })
+  @ApiProperty({ example: 15, maximum: 50 })
   @IsNumber()
   @Min(2)
+  @Max(50, { message: 'Initial squad size is capped at 50 members. Submit an appeal to Admin from your dashboard for 50+.' })
   estimatedMembers: number;
 
   @ApiProperty({ example: 'Participating in 21.1K and 10K categories', required: false })

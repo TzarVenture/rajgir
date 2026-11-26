@@ -6,10 +6,13 @@ import { usePathname } from "next/navigation";
 import {
   LuAward,
   LuBookOpen,
+  LuBuilding2,
   LuClipboardCheck,
   LuClipboardList,
   LuClock,
   LuFootprints,
+  LuGraduationCap,
+  LuHotel,
   LuHouse,
   LuIdCard,
   LuLayoutDashboard,
@@ -20,8 +23,10 @@ import {
   LuShieldAlert,
   LuSiren,
   LuSparkles,
+  LuStore,
   LuTimer,
   LuUserRound,
+  LuUsers,
   LuX,
 } from "react-icons/lu";
 import { Badge, cn } from "@/components/ui";
@@ -48,6 +53,11 @@ const ICONS = {
   brand: LuSparkles,
   pass: LuIdCard,
   media: LuMegaphone,
+  users: LuUsers,
+  building: LuBuilding2,
+  school: LuGraduationCap,
+  stall: LuStore,
+  hotel: LuHotel,
 } as const;
 
 export interface DashboardNavItem {
@@ -59,10 +69,20 @@ export interface DashboardNavItem {
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href.includes("#")) return false;
-  if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/dashboard/runner") return pathname === "/dashboard/runner";
-  if (href === "/dashboard/volunteer") return pathname === "/dashboard/volunteer";
-  if (href === "/dashboard/influencer") return pathname === "/dashboard/influencer";
+  if (
+    href === "/dashboard" ||
+    href === "/dashboard/runner" ||
+    href === "/dashboard/volunteer" ||
+    href === "/dashboard/influencer" ||
+    href === "/dashboard/team" ||
+    href === "/dashboard/corporate" ||
+    href === "/dashboard/school" ||
+    href === "/dashboard/sponsor" ||
+    href === "/dashboard/vendor" ||
+    href === "/dashboard/tourism"
+  ) {
+    return pathname === href;
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

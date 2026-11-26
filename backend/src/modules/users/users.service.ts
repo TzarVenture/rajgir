@@ -89,7 +89,7 @@ export function identityOf(user: Pick<User, 'firstName' | 'lastName' | 'email' |
     firstName: user.firstName,
     lastName: user.lastName,
     fullName: displayName(user),
-    email: user.email,
+    email: user.email ?? '',
     phone: user.phone,
   };
 }

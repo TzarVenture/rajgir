@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, Min, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, Min, Max, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterSchoolDto {
@@ -27,9 +27,10 @@ export class RegisterSchoolDto {
   @IsNotEmpty()
   teacherDesignation: string;
 
-  @ApiProperty({ example: 120 })
+  @ApiProperty({ example: 50, maximum: 50 })
   @IsNumber()
   @Min(5)
+  @Max(50, { message: 'Initial contingent is capped at 50 students. Submit an appeal to Admin from your dashboard for 50+.' })
   estimatedStudents: number;
 
   @ApiProperty({ example: true })

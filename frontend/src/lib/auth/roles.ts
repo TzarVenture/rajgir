@@ -171,6 +171,12 @@ export function dashboardPathForRole(value: string | null | undefined): string {
   if (value === "RUNNER") return "/dashboard/runner";
   if (value === "VOLUNTEER") return "/dashboard/volunteer";
   if (value === "INFLUENCER") return "/dashboard/influencer";
+  if (value === "TEAM_CAPTAIN") return "/dashboard/team";
+  if (value === "CORPORATE_MANAGER") return "/dashboard/corporate";
+  if (value === "SCHOOL_COORDINATOR") return "/dashboard/school";
+  if (value === "SPONSOR") return "/dashboard/sponsor";
+  if (value === "VENDOR") return "/dashboard/vendor";
+  if (value === "TOURISM_PARTNER") return "/dashboard/tourism";
   switch (getAccountTypeForRole(value)?.id) {
     case "individual":
       return "/dashboard/individual";

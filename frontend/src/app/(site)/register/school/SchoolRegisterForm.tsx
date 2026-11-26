@@ -113,15 +113,15 @@ export default function SchoolRegisterForm({ user }: SchoolRegisterFormProps) {
               placeholder="e.g. Rajgir, Nalanda, Patna"
             />
           </Field>
-          <Field label="Estimated student contingent" htmlFor="school-students" required hint="Minimum 5 students.">
+          <Field label="Estimated student contingent" htmlFor="school-students" required hint="Minimum 5, maximum 50 students initially (you can appeal to Admin for 50+ later).">
             <TextInput
               id="school-students"
               type="number"
               min={5}
-              max={1500}
+              max={50}
               required
               value={formData.estimatedStudents}
-              onChange={(e) => setFormData({ ...formData, estimatedStudents: parseInt(e.target.value) || 5 })}
+              onChange={(e) => setFormData({ ...formData, estimatedStudents: Math.min(50, parseInt(e.target.value) || 5) })}
             />
           </Field>
           <Field label="Teacher / coordinator in charge" htmlFor="school-teacher" required>
