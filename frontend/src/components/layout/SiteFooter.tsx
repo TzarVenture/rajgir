@@ -31,36 +31,12 @@ export default function SiteFooter() {
 
   return (
     <footer className="w-full bg-[#F8F8F6] border-t border-[#E5E7EB] text-[#4B5563] text-xs font-manrope">
-      {/* 1. TOP HIGHLIGHT BANNER */}
-      <div className="border-b border-[#E5E7EB] bg-white py-3 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-[#111827] text-xs uppercase tracking-wider">
-              Rajgir Marathon • November 2027
-            </span>
-            <span className="text-[#D1D5DB] hidden sm:inline">|</span>
-            <span className="text-[#6B7280] hidden sm:inline">
-              AIMS Certified Course • Run Through 2,500 Years of Living History
-            </span>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/register/runner"
-              className="text-[#E31B23] hover:text-[#B5121B] font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-colors"
-            >
-              <FaRunning />
-              <span>Register Now →</span>
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* 2. BRAND, RACE LINKS AND HELPDESK (the full site map follows below) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
-          
+
           {/* COLUMN 1: BRAND & HERITAGE (Cols 1-4) */}
           <div className="lg:col-span-5 flex flex-col items-start space-y-4">
             <Link href="/" className="flex items-center gap-3 group">

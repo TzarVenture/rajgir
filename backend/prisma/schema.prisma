@@ -29,20 +29,38 @@ enum AccountStatus {
   SUSPENDED
 }
 
+enum RegistrationSource {
+  SELF_REGISTERED
+  SCHOOL_REGISTERED
+  CORPORATE_REGISTERED
+  TEAM_REGISTERED
+}
+
+enum QuotaAppealStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   // Identity lives only here (single source of truth). Role tables hold domain data and link by user_id.
-  firstName      String         @map("first_name") @db.VarChar(64)
-  lastName       String         @map("last_name") @db.VarChar(64)
-  /// Lowercase; unique.
-  email          String         @unique @db.VarChar(128)
-  /// Normalised 10-digit mobile; unique. Nullable only for legacy rows created without a mobile.
-  phone          String?        @unique @db.VarChar(20)
-  role          Role?
-  status         AccountStatus  @default(PENDING_ONBOARDING)
-  supabaseAuthId String?        @unique @map("supabase_auth_id") @db.VarChar(64)
-  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firstName          String             @map("first_name") @db.VarChar(64)
+  lastName           String             @map("last_name") @db.VarChar(64)
+  /// Lowercase; unique. Nullable only for managed participants (e.g. minor school students).
+  email              String?            @unique @db.VarChar(128)
+  /// Normalised 10-digit mobile; unique. Nullable for legacy rows or managed minors.
+  phone              String?            @unique @db.VarChar(20)
+  role               Role?
+  status             AccountStatus      @default(PENDING_ONBOARDING)
+  supabaseAuthId     String?            @unique @map("supabase_auth_id") @db.VarChar(64)
+  registrationSource RegistrationSource @default(SELF_REGISTERED) @map("registration_source")
+  registeredByUserId String?            @map("registered_by_user_id") @db.Uuid
+  registeredBy       User?              @relation("ManagedRegistrations", fields: [registeredByUserId], references: [id], onDelete: SetNull)
+  managedUsers       User[]             @relation("ManagedRegistrations")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // 1-to-1 Role Profile Relationships (Strict 1 User = 1 Role)
   runnerRegistration RunnerRegistration?
@@ -57,6 +75,7 @@ model User {
 
   @@index([email])
   @@index([phone])
+  @@index([registeredByUserId])
   @@map("users")
 }
 
@@ -263,8 +282,13 @@ model TeamProfile {
   clubAffiliation String?  @map("club_affiliation") @db.VarChar(128)
   city            String   @db.VarChar(64)
   teamJoinCode    String   @unique @map("team_join_code") @db.VarChar(16)
-  estimatedMembers Int     @default(5) @map("estimated_members")
-  notes           String?  @db.Text
+  estimatedMembers     Int               @default(5) @map("estimated_members")
+  maxRunnerQuota       Int               @default(50) @map("max_runner_quota")
+  appealRequestedQuota Int?              @map("appeal_requested_quota")
+  appealReason         String?           @map("appeal_reason") @db.Text
+  appealStatus         QuotaAppealStatus @default(NONE) @map("appeal_status")
+  appealSubmittedAt    DateTime?         @map("appeal_submitted_at") @db.Timestamptz(6)
+  notes                String?           @db.Text
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("team_profiles")
@@ -279,8 +303,13 @@ model CorporateProfile {
   gstin               String?  @db.VarChar(32)
   officialEmailDomain String   @map("official_email_domain") @db.VarChar(64)
   designation         String   @db.VarChar(64)
-  estimatedPasses     Int      @map("estimated_passes")
-  csrFocus            String?  @map("csr_focus") @db.VarChar(128)
+  estimatedPasses      Int               @map("estimated_passes")
+  maxRunnerQuota       Int               @default(50) @map("max_runner_quota")
+  appealRequestedQuota Int?              @map("appeal_requested_quota")
+  appealReason         String?           @map("appeal_reason") @db.Text
+  appealStatus         QuotaAppealStatus @default(NONE) @map("appeal_status")
+  appealSubmittedAt    DateTime?         @map("appeal_submitted_at") @db.Timestamptz(6)
+  csrFocus             String?           @map("csr_focus") @db.VarChar(128)
   billingAddress      String?  @map("billing_address") @db.Text
   status              String   @default("pending") @db.VarChar(24) // pending, approved, rejected
   submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
@@ -298,8 +327,13 @@ model SchoolProfile {
   city                String   @db.VarChar(64)
   teacherInCharge     String   @map("teacher_in_charge") @db.VarChar(128)
   teacherDesignation  String   @map("teacher_designation") @db.VarChar(64)
-  estimatedStudents   Int      @map("estimated_students")
-  parentalConsentAgreed Boolean @default(true) @map("parental_consent_agreed")
+  estimatedStudents     Int               @map("estimated_students")
+  maxRunnerQuota        Int               @default(50) @map("max_runner_quota")
+  appealRequestedQuota  Int?              @map("appeal_requested_quota")
+  appealReason          String?           @map("appeal_reason") @db.Text
+  appealStatus          QuotaAppealStatus @default(NONE) @map("appeal_status")
+  appealSubmittedAt     DateTime?         @map("appeal_submitted_at") @db.Timestamptz(6)
+  parentalConsentAgreed Boolean           @default(true) @map("parental_consent_agreed")
   status              String   @default("pending") @db.VarChar(24) // pending, approved, rejected
   submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
 

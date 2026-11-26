@@ -174,37 +174,6 @@ const personaPathways = [
   },
 ];
 
-const heritageHighlights = [
-  {
-    title: "Vishwa Shanti Stupa",
-    tag: "Peace Pagoda • Ratnagiri Hill",
-    description:
-      "A magnificent white marble monument atop Ratnagiri Hill, overlooking mist-clad valleys and reachable by the iconic aerial ropeway.",
-    elevation: "400m Ascent",
-  },
-  {
-    title: "Cyclopean Wall of Rajgir",
-    tag: "Pre-Mauryan Wonder",
-    description:
-      "A massive 40-kilometer stone masonry fortification built over 2,500 years ago, standing as one of India's oldest surviving defense structures.",
-    elevation: "Historic Trailside",
-  },
-  {
-    title: "Venuvana Sacred Grove",
-    tag: "King Bimbisara's Gift",
-    description:
-      "The peaceful bamboo grove gifted by Emperor Bimbisara to Lord Buddha, known for its serene lotus ponds and meditative stillness.",
-    elevation: "Valley Level",
-  },
-  {
-    title: "Griddhakuta (Vulture Peak)",
-    tag: "Spiritual Landmark",
-    description:
-      "A sacred hillside retreat renowned for historic Buddhist discourses and breathtaking sunrise panoramas across Rajgir valley.",
-    elevation: "Scenic Vista Point",
-  },
-];
-
 const raceAmenities = [
   {
     icon: FaHeartbeat,
@@ -342,15 +311,7 @@ export default function RealMarathonHomePage() {
                   </div>
                 </div>
 
-                <Link
-                  href="/register/runner"
-                  className="self-start sm:self-auto shrink-0 bg-[#FFC928] hover:bg-[#F5A623] text-neutral-950 font-black text-sm uppercase tracking-wider p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col justify-between w-32 h-28 sm:w-36 sm:h-32 transition-colors active:scale-95"
-                >
-                  <span className="leading-tight font-manrope text-xs sm:text-sm font-extrabold">
-                    Register<br />Here
-                  </span>
-                  <FaArrowRight className="text-lg self-end" />
-                </Link>
+
               </div>
             </div>
 
@@ -378,13 +339,6 @@ export default function RealMarathonHomePage() {
                       400+ Crew & Clubs
                     </p>
                   </div>
-                  <Link
-                    href="/register/volunteer"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 font-bold text-xs uppercase tracking-wider text-center flex items-center justify-between transition-colors shadow-md"
-                  >
-                    <span>Register Here</span>
-                    <FaArrowRight className="text-[10px]" />
-                  </Link>
                 </div>
               </div>
 
@@ -410,13 +364,6 @@ export default function RealMarathonHomePage() {
                       Brand Visibility & VIP Tents
                     </p>
                   </div>
-                  <Link
-                    href="/register/sponsor"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-[#E31B23] hover:bg-[#B5121B] text-white font-bold text-xs uppercase tracking-wider text-center flex items-center justify-between transition-colors shadow-md"
-                  >
-                    <span>Register Here</span>
-                    <FaArrowRight className="text-[10px]" />
-                  </Link>
                 </div>
               </div>
 
@@ -442,13 +389,6 @@ export default function RealMarathonHomePage() {
                       Hotels & Heritage Guides
                     </p>
                   </div>
-                  <Link
-                    href="/register/tourism"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 font-bold text-xs uppercase tracking-wider text-center flex items-center justify-between transition-colors shadow-md"
-                  >
-                    <span>Register Here</span>
-                    <FaArrowRight className="text-[10px]" />
-                  </Link>
                 </div>
               </div>
 
@@ -474,13 +414,6 @@ export default function RealMarathonHomePage() {
                       Fitness Expo & Food Stalls
                     </p>
                   </div>
-                  <Link
-                    href="/register/vendor"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 font-bold text-xs uppercase tracking-wider text-center flex items-center justify-between transition-colors shadow-md"
-                  >
-                    <span>Register Here</span>
-                    <FaArrowRight className="text-[10px]" />
-                  </Link>
                 </div>
               </div>
             </div>
@@ -671,74 +604,6 @@ export default function RealMarathonHomePage() {
                 </Link>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          SECTION 5: DISCOVER RAJGIR (Heritage Landmarks)
-         ========================================================================= */}
-      <section id="route" className="py-20 bg-[#FFF9EF]/60 border-t border-[#E5E7EB] w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="text-xs font-black uppercase tracking-widest text-[#C78A12] font-manrope">
-              The Sacred Trail
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black uppercase text-[#111827] tracking-tight mt-1 font-barlow">
-              RUN THROUGH SACRED MAGADHA HERITAGE
-            </h2>
-            <p className="text-sm sm:text-base text-[#4B5563] max-w-2xl mx-auto mt-2 font-manrope">
-              The marathon course traverses 2,500 years of living history, passing ancient rock walls, sacred groves, and peace pagodas nestled in the Rajgir hills.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {heritageHighlights.map((site, sIdx) => (
-              <div
-                key={sIdx}
-                className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm hover:shadow-md hover:border-[#C78A12]/40 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <span className="text-[10px] font-bold text-[#C78A12] uppercase tracking-wider block mb-1">
-                    {site.tag}
-                  </span>
-                  <h3 className="text-base font-bold text-[#111827] mb-2">{site.title}</h3>
-                  <p className="text-xs text-[#4B5563] leading-relaxed mb-4 font-manrope">
-                    {site.description}
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-[#6B7280]">
-                  <span className="flex items-center gap-1">
-                    <FaRoute className="text-[#C78A12]" />
-                    <span>Course Highlight</span>
-                  </span>
-                  <span className="font-semibold text-[#111827]">{site.elevation}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Heritage Quote Banner */}
-          <div className="mt-12 p-6 sm:p-8 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-xl text-[#C78A12] shrink-0">
-                <FaAward />
-              </div>
-              <div>
-                <h4 className="text-base font-bold text-[#111827]">
-                  AIMS & Athletics Federation Measured Course
-                </h4>
-                <p className="text-xs text-[#4B5563] mt-0.5">
-                  Every kilometer is calibrated for accurate splits, safe gradient management, and runner welfare.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/register/runner"
-              className="px-6 py-2.5 rounded-lg bg-[#111827] hover:bg-[#E31B23] text-white text-xs font-bold uppercase tracking-wider transition-colors shrink-0 shadow-sm"
-            >
-              View Route Map & Bibs →
-            </Link>
           </div>
         </div>
       </section>

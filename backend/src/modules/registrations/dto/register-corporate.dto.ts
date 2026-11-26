@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterCorporateDto {
@@ -22,9 +22,10 @@ export class RegisterCorporateDto {
   @IsNotEmpty()
   designation: string;
 
-  @ApiProperty({ example: 50 })
+  @ApiProperty({ example: 50, maximum: 50 })
   @IsNumber()
   @Min(5)
+  @Max(50, { message: 'Initial delegation is capped at 50 passes. Submit an appeal to Admin from your dashboard for 50+.' })
   estimatedPasses: number;
 
   @ApiProperty({ example: 'Employee Wellness & Health', required: false })

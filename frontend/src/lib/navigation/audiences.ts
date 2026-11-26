@@ -104,8 +104,8 @@ export const AUDIENCES: Audience[] = [
     prdRoles: ["Corporate"],
     group: "Organisations",
     links: [
-      { title: "Bulk registration", href: "/dashboard/corporate/bulk-registration" },
-      { title: "Reports", href: "/dashboard/corporate/reports" },
+      { title: "Employee roster", href: "/dashboard/corporate/roster" },
+      { title: "GST & billing", href: "/dashboard/corporate/billing" },
     ],
   },
   {
@@ -118,8 +118,8 @@ export const AUDIENCES: Audience[] = [
     prdRoles: ["School"],
     group: "Organisations",
     links: [
-      { title: "Student upload", href: "/dashboard/school/students" },
-      { title: "Teacher dashboard", href: "/dashboard/school/teachers" },
+      { title: "Student roster", href: "/dashboard/school/roster" },
+      { title: "Consent & compliance", href: "/dashboard/school/compliance" },
     ],
   },
   {

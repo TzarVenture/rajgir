@@ -4,7 +4,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FOOTER_GROUPS, PUBLIC_NAV, findPublicNode, flattenPublic } from "@/lib/navigation/publicNav";
-import { ADMIN_BOTTOM_TABS, ADMIN_QUICK_ACTIONS, ALL_ROLE_KEYS, BOTTOM_TABS, QUICK_ACTIONS, ROLE_KEY, findRoleNavItem, roleNavItems } from "@/lib/navigation/roleNav";
+import { ADMIN_QUICK_ACTIONS, ALL_ROLE_KEYS, QUICK_ACTIONS, ROLE_KEY, findRoleNavItem, roleNavItems } from "@/lib/navigation/roleNav";
 import { ADMIN_NAV } from "@/lib/navigation/adminNav";
 import { AUDIENCES } from "@/lib/navigation/audiences";
 import { JOURNEYS, allJourneySteps } from "@/lib/navigation/journeys";
@@ -183,22 +183,18 @@ describe("role dashboard navigation", () => {
   });
 
   for (const key of ALL_ROLE_KEYS) {
-    it(`${key}: unique hrefs, valid icons, routable pages, tabs and quick actions inside the sidebar`, () => {
+    it(`${key}: unique hrefs, valid icons, routable pages and quick actions inside the sidebar`, () => {
       const role = Object.keys(ROLE_KEY).find((r) => ROLE_KEY[r] === key);
       const items = roleNavItems(key, role);
-      assert.ok(items.length >= 8, "sidebar should list the role's modules");
+      assert.ok(items.length >= 4, "sidebar should list the role's modules");
       assert.deepEqual(dupes(items.map((i) => i.href)), []);
       for (const i of items) {
         assert.ok(i.icon in NAV_ICONS, `${i.href}: unknown icon ${i.icon}`);
         assert.ok(routable(i.href), `${i.href} has no page file or placeholder route`);
         if (!i.existing) assert.ok(i.href.startsWith(`/dashboard/${key}/`), `${i.href} placeholder must live under /dashboard/${key}/`);
+        if (i.existing) assert.ok(staticMatch(baseOf(i.href)), `${i.href} is marked as an existing page but has no page file`);
       }
       const hrefs = new Set(items.map((i) => i.href));
-      assert.equal(BOTTOM_TABS[key].length, 4);
-      for (const t of BOTTOM_TABS[key]) {
-        assert.ok(t.icon in NAV_ICONS);
-        assert.ok(hrefs.has(t.href), `bottom tab ${t.href} is not in the ${key} sidebar`);
-      }
       for (const q of QUICK_ACTIONS[key]) assert.ok(hrefs.has(q.href), `quick action ${q.href} is not in the ${key} sidebar`);
     });
   }
@@ -213,10 +209,9 @@ describe("admin navigation", () => {
     }
   });
 
-  it("bottom tabs and quick actions point into the admin sidebar", () => {
+  it("quick actions point into the admin sidebar", () => {
     const hrefs = new Set(ADMIN_NAV.map((i) => i.href));
-    assert.equal(ADMIN_BOTTOM_TABS.length, 4);
-    for (const t of [...ADMIN_BOTTOM_TABS, ...ADMIN_QUICK_ACTIONS]) assert.ok(hrefs.has(t.href), t.href);
+    for (const t of ADMIN_QUICK_ACTIONS) assert.ok(hrefs.has(t.href), t.href);
   });
 
   it("includes every PRD section 22 module", () => {

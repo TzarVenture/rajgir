@@ -148,138 +148,47 @@ function influencer(): DashNavItem[] {
   ];
 }
 
-function sponsor(): DashNavItem[] {
-  const g = group("sponsor", "Sponsorship");
-  const g2 = group("sponsor", "Delivery & Reports");
-  const g3 = group("sponsor", "Commercial");
-  return [
-    live(dashboardPathForRole("SPONSOR"), "Overview", "overview", "Overview"),
-    ...g([
-      ["profile", "Brand Profile", "brand", "Logo, brand guidelines and contacts."],
-      ["packages", "Sponsorship Packages", "package", "Choose a package and benefits."],
-      ["proposal", "Partnership Enquiries", "document", "Request or review a sponsorship proposal."],
-    ]),
-    ...g2([
-      ["deliverables", "Deliverables", "checklist", "What was agreed and what is delivered."],
-      ["campaigns", "Campaigns", "media", "Activations and campaigns during the event."],
-      ["coupons", "Coupons", "tag", "Offers for runners."],
-      ["leads", "Lead Collection", "users", "Leads collected from your activations."],
-      ["visibility", "Event Visibility", "spreadsheet", "Impressions and placement reports."],
-      ["analytics", "Campaign Performance", "chart", "Reach and engagement."],
-    ]),
-    ...g3([
-      ["payments", "Payments", "payment", "Pay for your package."],
-      ["invoices", "Invoices", "invoice", "GST invoices."],
-      ["documents", "Documents", "document", "Contracts and brand assets."],
-      ["notifications", "Notifications", "bell", "Updates about your sponsorship."],
-    ]),
-  ];
-}
+/*
+ * Team, company, school, sponsor, vendor and tourism have real dashboards (built on main). Their entries below mirror the
+ * sidebar in app/(site)/dashboard/layout.tsx so search, the account menu and the journeys only ever link to pages that exist.
+ */
+const team = (): DashNavItem[] => [
+  live(dashboardPathForRole("TEAM_CAPTAIN"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/team/roster", "Squad Roster & Add Runners", "users", "My Team"),
+  live("/dashboard/team/profile", "Club Profile & Settings", "profile", "My Team"),
+];
 
-function vendor(): DashNavItem[] {
-  const g = group("vendor", "Stall");
-  const g2 = group("vendor", "Business");
-  return [
-    live(dashboardPathForRole("VENDOR"), "Overview", "overview", "Overview"),
-    ...g([
-      ["verification", "Verification", "shield", "Licence and document verification."],
-      ["stall-booking", "Stall Booking", "store", "Book and manage your stall."],
-      ["inventory", "Inventory", "boxes", "Stock for the expo."],
-    ]),
-    ...g2([
-      ["orders", "Orders", "orders", "Orders from runners."],
-      ["sales", "Sales", "banknote", "Sales summary."],
-      ["invoices", "Invoices", "invoice", "Invoices and settlements."],
-      ["analytics", "Analytics", "chart", "Footfall and sales analytics."],
-      ["notifications", "Notifications", "bell", "Expo notices and booking updates."],
-    ]),
-  ];
-}
+const corporate = (): DashNavItem[] => [
+  live(dashboardPathForRole("CORPORATE_MANAGER"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/corporate/roster", "Employee Roster & Upload", "users", "Employees"),
+  live("/dashboard/corporate/billing", "GST & Billing", "invoice", "Employees"),
+  live("/dashboard/corporate/profile", "Company Profile & Settings", "building", "Organisation"),
+];
 
-function tourism(): DashNavItem[] {
-  const g = group("tourism", "Listings");
-  return [
-    live(dashboardPathForRole("TOURISM_PARTNER"), "Overview", "overview", "Overview"),
-    ...g([
-      ["listings", "My Listings", "hotel", "Hotels, transport and guide services you offer."],
-      ["inventory", "Rooms & Availability", "calendar", "Rates and availability for race weekend."],
-      ["bookings", "Bookings", "bookings", "Bookings made by runners."],
-      ["packages", "Packages", "package", "Race-weekend packages."],
-      ["payouts", "Payouts & Invoices", "payment", "Settlements from bookings."],
-      ["notifications", "Notifications", "bell", "New bookings and partner notices."],
-    ]),
-  ];
-}
+const school = (): DashNavItem[] => [
+  live(dashboardPathForRole("SCHOOL_COORDINATOR"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/school/roster", "Student Roster & Upload", "users", "Students"),
+  live("/dashboard/school/compliance", "Consent & Compliance", "checklist", "Students"),
+  live("/dashboard/school/profile", "School Profile & Settings", "school", "Institution"),
+];
 
-function team(): DashNavItem[] {
-  const g = group("team", "My Team");
-  const g2 = group("team", "Activity");
-  return [
-    live(dashboardPathForRole("TEAM_CAPTAIN"), "Overview", "overview", "Overview"),
-    ...g([
-      ["members", "Members", "users", "Add and manage team members."],
-      ["invitations", "Invitations", "userplus", "Invite members by email or link."],
-      ["bulk-registration", "Team Registrations", "registration", "Register members together."],
-      ["invoices", "Invoices", "invoice", "Group invoices."],
-    ]),
-    ...g2([
-      ["events", "Team Activities", "calendar", "Club runs and meetups.", "planned", "Phase 2"],
-      ["challenges", "Challenges", "target", "Team challenges.", "planned", "Phase 2"],
-      ["leaderboard", "Performance", "trophy", "Team and member rankings."],
-      ["announcements", "Announcements", "media", "Messages to all members."],
-      ["settings", "Settings", "settings", "Team profile and permissions."],
-    ]),
-  ];
-}
+const sponsor = (): DashNavItem[] => [
+  live(dashboardPathForRole("SPONSOR"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/sponsor/deliverables", "Brand Deliverables & Passes", "brand", "Sponsorship"),
+  live("/dashboard/sponsor/profile", "Brand Profile & Settings", "profile", "Sponsorship"),
+];
 
-function corporate(): DashNavItem[] {
-  const g = group("corporate", "Organisation");
-  const g2 = group("corporate", "Participation");
-  const g3 = group("corporate", "Reports & Billing");
-  return [
-    live(dashboardPathForRole("CORPORATE_MANAGER"), "Overview", "overview", "Overview"),
-    ...g([
-      ["profile", "Organization Profile", "building", "Company, GSTIN and contacts."],
-      ["settings", "Settings", "settings", "Users and permissions."],
-    ]),
-    ...g2([
-      ["employees", "Employee Upload", "download", "Upload employee lists (CSV)."],
-      ["bulk-registration", "Employee Registrations", "registration", "Register employees in one go."],
-      ["teams", "Corporate Teams", "users", "Departments and teams."],
-      ["challenges", "Challenges", "target", "Internal challenges.", "planned", "Phase 2"],
-      ["event-participation", "Event Participation", "calendar", "Race-day roster and bib status."],
-      ["certificates", "Employee Certificates", "certificate", "Certificates for finishers."],
-    ]),
-    ...g3([
-      ["reports", "Participation Reports", "spreadsheet", "Participation and spend reports."],
-      ["csr", "CSR", "heart", "CSR contribution and reporting."],
-      ["leaderboard", "Company Leaderboard", "trophy", "Employee and department rankings."],
-      ["invoices", "Billing", "invoice", "GST invoices."],
-    ]),
-  ];
-}
+const vendor = (): DashNavItem[] => [
+  live(dashboardPathForRole("VENDOR"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/vendor/stall", "Stall & Compliance", "store", "Stall"),
+  live("/dashboard/vendor/profile", "Business Profile & Settings", "profile", "Stall"),
+];
 
-function school(): DashNavItem[] {
-  const g = group("school", "Institution");
-  const g2 = group("school", "Students");
-  return [
-    live(dashboardPathForRole("SCHOOL_COORDINATOR"), "Overview", "overview", "Overview"),
-    ...g([
-      ["profile", "Institution Profile", "school", "School details and coordinators."],
-      ["faculty", "Faculty & Coordinators", "users", "Teachers allowed to manage students."],
-      ["permissions", "Permissions", "key", "Guardian consent and authorised actions."],
-    ]),
-    ...g2([
-      ["students", "Student Registrations", "download", "Upload student lists (CSV)."],
-      ["teachers", "Teacher Dashboard", "checklist", "Class-wise roster, consent and payment status."],
-      ["teams", "Teams", "users", "House and class teams."],
-      ["schedule", "Event Schedules", "calendar", "Reporting times and Kids Run slots."],
-      ["certificates", "Certificates", "certificate", "Student certificates."],
-      ["leaderboard", "School Leaderboard", "trophy", "Class and house rankings."],
-      ["reports", "Reports", "spreadsheet", "Participation reports."],
-    ]),
-  ];
-}
+const tourism = (): DashNavItem[] => [
+  live(dashboardPathForRole("TOURISM_PARTNER"), "Overview Hub", "overview", "Overview"),
+  live("/dashboard/tourism/offers", "Listing & Runner Offers", "hotel", "Listings"),
+  live("/dashboard/tourism/profile", "Partner Profile & Settings", "profile", "Listings"),
+];
 
 const BUILDERS: Record<DashRoleKey, () => DashNavItem[]> = { runner, volunteer, influencer, sponsor, vendor, tourism, team, corporate, school };
 
@@ -311,41 +220,18 @@ export interface Shortcut {
 
 const sc = (label: string, icon: NavIconKey, href: string): Shortcut => ({ label, icon, href });
 
-/**
- * Four bottom tabs per role; the fifth tab ("Menu") is added by the bar and opens the full sidebar drawer.
- * Every href must also appear in the role's sidebar items (checked by tests/navigation.test.mts).
- */
-export const BOTTOM_TABS: Record<DashRoleKey, Shortcut[]> = {
-  runner: [sc("Home", "overview", "/dashboard/runner"), sc("Bib", "bib", "/dashboard/runner/bib"), sc("Results", "splits", "/dashboard/runner/splits"), sc("Alerts", "bell", "/dashboard/runner/notifications")],
-  volunteer: [sc("Home", "overview", "/dashboard/volunteer"), sc("Shift", "shift", "/dashboard/volunteer/shift"), sc("Incidents", "incidents", "/dashboard/volunteer/incidents"), sc("Alerts", "bell", "/dashboard/volunteer/notifications")],
-  influencer: [sc("Home", "overview", "/dashboard/influencer"), sc("Pass", "pass", "/dashboard/influencer/pass"), sc("Tasks", "deliverables", "/dashboard/influencer/deliverables"), sc("Alerts", "bell", "/dashboard/influencer/notifications")],
-  team: [sc("Home", "overview", "/dashboard/group"), sc("Members", "users", "/dashboard/team/members"), sc("Register", "registration", "/dashboard/team/bulk-registration"), sc("Ranks", "trophy", "/dashboard/team/leaderboard")],
-  corporate: [sc("Home", "overview", "/dashboard/group"), sc("Employees", "download", "/dashboard/corporate/employees"), sc("Register", "registration", "/dashboard/corporate/bulk-registration"), sc("Reports", "spreadsheet", "/dashboard/corporate/reports")],
-  school: [sc("Home", "overview", "/dashboard/group"), sc("Students", "download", "/dashboard/school/students"), sc("Roster", "checklist", "/dashboard/school/teachers"), sc("Reports", "spreadsheet", "/dashboard/school/reports")],
-  sponsor: [sc("Home", "overview", "/dashboard/partner"), sc("Packages", "package", "/dashboard/sponsor/packages"), sc("Campaigns", "media", "/dashboard/sponsor/campaigns"), sc("Alerts", "bell", "/dashboard/sponsor/notifications")],
-  vendor: [sc("Home", "overview", "/dashboard/partner"), sc("Stall", "store", "/dashboard/vendor/stall-booking"), sc("Orders", "orders", "/dashboard/vendor/orders"), sc("Alerts", "bell", "/dashboard/vendor/notifications")],
-  tourism: [sc("Home", "overview", "/dashboard/partner"), sc("Listings", "hotel", "/dashboard/tourism/listings"), sc("Bookings", "bookings", "/dashboard/tourism/bookings"), sc("Alerts", "bell", "/dashboard/tourism/notifications")],
-};
-
-/** "Manage" group in the avatar menu: the few things each role does most. */
+/** "Manage" group in the avatar menu: the few things each role does most. Every href also appears in the role's items. */
 export const QUICK_ACTIONS: Record<DashRoleKey, Shortcut[]> = {
   runner: [sc("My registration", "registration", "/dashboard/runner/registrations"), sc("Digital bib pass", "bib", "/dashboard/runner/bib"), sc("Race results", "splits", "/dashboard/runner/splits"), sc("Training plan", "training", "/dashboard/runner/training")],
   volunteer: [sc("My application", "registration", "/dashboard/volunteer/application"), sc("Shift control", "shift", "/dashboard/volunteer/shift"), sc("Incident desk", "incidents", "/dashboard/volunteer/incidents")],
   influencer: [sc("My application", "registration", "/dashboard/influencer/application"), sc("Media pass", "pass", "/dashboard/influencer/pass"), sc("Deliverables", "deliverables", "/dashboard/influencer/deliverables")],
-  team: [sc("Members", "users", "/dashboard/team/members"), sc("Team registrations", "registration", "/dashboard/team/bulk-registration"), sc("Invoices", "invoice", "/dashboard/team/invoices")],
-  corporate: [sc("Upload employees", "download", "/dashboard/corporate/employees"), sc("Bulk registration", "registration", "/dashboard/corporate/bulk-registration"), sc("Reports", "spreadsheet", "/dashboard/corporate/reports")],
-  school: [sc("Upload students", "download", "/dashboard/school/students"), sc("Teacher dashboard", "checklist", "/dashboard/school/teachers"), sc("Reports", "spreadsheet", "/dashboard/school/reports")],
-  sponsor: [sc("Packages", "package", "/dashboard/sponsor/packages"), sc("Deliverables", "checklist", "/dashboard/sponsor/deliverables"), sc("Invoices", "invoice", "/dashboard/sponsor/invoices")],
-  vendor: [sc("Stall booking", "store", "/dashboard/vendor/stall-booking"), sc("Inventory", "boxes", "/dashboard/vendor/inventory"), sc("Sales", "banknote", "/dashboard/vendor/sales")],
-  tourism: [sc("My listings", "hotel", "/dashboard/tourism/listings"), sc("Bookings", "bookings", "/dashboard/tourism/bookings"), sc("Payouts", "payment", "/dashboard/tourism/payouts")],
+  team: [sc("Squad roster", "users", "/dashboard/team/roster"), sc("Club profile", "profile", "/dashboard/team/profile")],
+  corporate: [sc("Employee roster", "users", "/dashboard/corporate/roster"), sc("GST & billing", "invoice", "/dashboard/corporate/billing"), sc("Company profile", "building", "/dashboard/corporate/profile")],
+  school: [sc("Student roster", "users", "/dashboard/school/roster"), sc("Consent & compliance", "checklist", "/dashboard/school/compliance"), sc("School profile", "school", "/dashboard/school/profile")],
+  sponsor: [sc("Brand deliverables", "brand", "/dashboard/sponsor/deliverables"), sc("Brand profile", "profile", "/dashboard/sponsor/profile")],
+  vendor: [sc("Stall & compliance", "store", "/dashboard/vendor/stall"), sc("Business profile", "profile", "/dashboard/vendor/profile")],
+  tourism: [sc("Listing & offers", "hotel", "/dashboard/tourism/offers"), sc("Partner profile", "profile", "/dashboard/tourism/profile")],
 };
-
-export const ADMIN_BOTTOM_TABS: Shortcut[] = [
-  sc("Home", "overview", "/admin/dashboard"),
-  sc("Registrations", "registration", "/admin/registrations"),
-  sc("Live race", "radio", "/admin/live-race"),
-  sc("Payments", "payment", "/admin/payments"),
-];
 
 export const ADMIN_QUICK_ACTIONS: Shortcut[] = [
   sc("Admin dashboard", "overview", "/admin/dashboard"),
