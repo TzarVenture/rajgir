@@ -8,6 +8,9 @@ import React, { createContext, useContext } from "react";
  */
 export interface HeaderUser {
   name: string;
+  /** Backend role (e.g. RUNNER) and account status, used to personalise the avatar menu and search. */
+  role?: string | null;
+  status?: string;
 }
 
 const HeaderAuthContext = createContext<HeaderUser | null>(null);

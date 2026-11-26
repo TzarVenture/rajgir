@@ -3,6 +3,7 @@ import "./site-theme.css";
 import { isGateActive } from "@/lib/gate";
 import { HeaderAuthProvider } from "@/components/layout/HeaderAuth";
 import { PreviewProvider } from "@/components/layout/PreviewContext";
+import { SearchProvider } from "@/components/search/SearchContext";
 import { getCurrentUser } from "@/lib/auth/session";
 
 /**
@@ -27,7 +28,9 @@ export default async function SiteLayout({
   return (
     <div className="site-root flex flex-1 flex-col bg-white text-[#111827] font-manrope antialiased">
       <PreviewProvider isPreview={isGateActive()}>
-        <HeaderAuthProvider user={user && !user.isPending ? { name: user.name } : null}>{children}</HeaderAuthProvider>
+        <HeaderAuthProvider user={user && !user.isPending ? { name: user.name, role: user.role, status: user.status } : null}>
+          <SearchProvider>{children}</SearchProvider>
+        </HeaderAuthProvider>
       </PreviewProvider>
     </div>
   );

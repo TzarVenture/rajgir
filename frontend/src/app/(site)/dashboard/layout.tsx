@@ -1,11 +1,9 @@
 import React from "react";
-import { LuLogOut } from "react-icons/lu";
-import { logout } from "@/app/actions/auth";
 import { roleLabel as getRoleLabel, registerPathForRole } from "@/lib/auth/roles";
 import { requireUser } from "@/lib/auth/session";
-import { Button } from "@/components/ui";
 import { DashboardShell, type DashboardNavItem } from "@/components/dashboard/DashboardShell";
 import { DashboardSupportDrawer } from "@/components/dashboard/support/DashboardSupportDrawer";
+import { BOTTOM_TABS, JOURNEYS, ROLE_KEY, audienceForRole, journeyProgress, roleNavItems } from "@/lib/navigation";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireUser("/dashboard");
@@ -15,61 +13,33 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const isVolunteer = user.role === "VOLUNTEER";
   const isInfluencer = user.role === "INFLUENCER";
 
-  const items: DashboardNavItem[] = isRunner
-    ? [
-      { href: "/dashboard/runner", label: "Overview Hub", icon: "overview" },
-      { href: "/dashboard/runner/bib", label: "Digital Bib Pass", icon: "bib" },
-      { href: "/dashboard/runner/splits", label: "Race & Splits", icon: "splits" },
-      { href: "/dashboard/runner/medical", label: "Medical Profile", icon: "medical" },
-      { href: "/dashboard/runner/training", label: "Training Plan", icon: "training" },
-      { href: "/dashboard/runner/invoice", label: "Invoice & Certificate", icon: "invoice" },
-      { href: "/dashboard/runner/profile", label: "Profile & Account", icon: "profile" },
-      { href: "/dashboard/runner/support", label: "Support & Helpdesk", icon: "help" },
-      { href: "/", label: "Marathon Home", icon: "home" },
-    ]
-    : isVolunteer
-      ? [
-        { href: "/dashboard/volunteer", label: "Overview Hub", icon: "overview" },
-        { href: "/dashboard/volunteer/shift", label: "Duty & Shift Control", icon: "shift" },
-        { href: "/dashboard/volunteer/badge", label: "Accreditation Badge", icon: "badge" },
-        { href: "/dashboard/volunteer/checklist", label: "Station Checklist", icon: "checklist" },
-        { href: "/dashboard/volunteer/incidents", label: "Incident Desk", icon: "incidents" },
-        { href: "/dashboard/volunteer/sop", label: "Field SOP Manual", icon: "sop" },
-        { href: "/dashboard/volunteer/application", label: "My Application", icon: "registration" },
-        { href: "/dashboard/volunteer/profile", label: "Profile & Account", icon: "profile" },
-        { href: "/dashboard/volunteer/support", label: "Support & Helpdesk", icon: "help" },
-        { href: "/", label: "Marathon Home", icon: "home" },
-      ]
-      : isInfluencer
-        ? [
-          { href: "/dashboard/influencer", label: "Overview Hub", icon: "overview" },
-          { href: "/dashboard/influencer/pass", label: "Media Accreditation Pass", icon: "pass" },
-          { href: "/dashboard/influencer/deliverables", label: "Campaign Deliverables", icon: "deliverables" },
-          { href: "/dashboard/influencer/brand-kit", label: "Brand Kit & Promo Code", icon: "brand" },
-          { href: "/dashboard/influencer/application", label: "My Application", icon: "registration" },
-          { href: "/dashboard/influencer/profile", label: "Profile & Account", icon: "profile" },
-          { href: "/dashboard/influencer/support", label: "PR & Media Helpdesk", icon: "help" },
-          { href: "/", label: "Marathon Home", icon: "home" },
-        ]
-        : [
-          { href: "/dashboard", label: "Overview", icon: "overview" },
-          { href: registerPathForRole(user.role), label: "My registration", icon: "registration" },
-          { href: "/contact", label: "Contact and help", icon: "help" },
-          { href: "/", label: "Home", icon: "home" },
-        ];
+  // Sidebar, bottom tabs and journey all come from the navigation registry (lib/navigation).
+  // Staff and role-less accounts get a small generic menu.
+  const roleKey = user.role ? ROLE_KEY[user.role] : undefined;
+  const items: DashboardNavItem[] = roleKey
+    ? roleNavItems(roleKey, user.role)
+    : [
+      { href: "/dashboard", label: "Overview", icon: "overview" },
+      { href: registerPathForRole(user.role), label: "My registration", icon: "registration" },
+      { href: "/contact", label: "Contact and help", icon: "help" },
+      { href: "/", label: "Home", icon: "home" },
+    ];
+
+  const audience = audienceForRole(user.role);
+  const journey = audience ? JOURNEYS[audience] : null;
+  const progress = journey ? journeyProgress(journey, user) : null;
 
   return (
     <DashboardShell
       items={items}
       userName={user.name}
-      roleLabel={roleLabel}
-      logoutForm={
-        <form action={logout}>
-          <Button type="submit" variant="secondary" size="md" icon={LuLogOut}>
-            Log out
-          </Button>
-        </form>
-      }
+      role={user.role}
+      status={user.status}
+      title={`${roleLabel} dashboard`}
+      bottomTabs={roleKey ? BOTTOM_TABS[roleKey] : undefined}
+      journey={journey}
+      progress={progress}
+      audience={audience}
     >
       {children}
       <DashboardSupportDrawer

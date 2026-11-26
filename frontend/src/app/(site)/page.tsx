@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import { SearchField } from "@/components/search/SearchField";
 import PreviewBanner from "@/components/layout/PreviewBanner";
 import { usePreviewMode } from "@/components/layout/PreviewContext";
 import {
@@ -485,6 +486,12 @@ export default function RealMarathonHomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* FIND ANYTHING: big search field so first-time visitors can discover the site's search */}
+      <section aria-label="Find anything" className="w-full border-b border-[#E5E7EB] bg-white px-4 py-8 sm:py-10">
+        <h2 className="mb-4 text-center font-barlow text-2xl font-bold uppercase text-[#111827] sm:text-3xl">Find anything</h2>
+        <SearchField />
       </section>
 
       {/* =========================================================================
