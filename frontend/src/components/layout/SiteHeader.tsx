@@ -1,244 +1,139 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logout } from "@/app/actions/auth";
+import { FaBars, FaTimes, FaUserCircle } from "react-icons/fa";
+import { LuSearch, LuUserRound } from "react-icons/lu";
 import { useHeaderUser } from "@/components/layout/HeaderAuth";
-import {
-  FaRunning,
-  FaBars,
-  FaTimes,
-  FaUserCircle,
-  FaArrowRight,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+import { MegaNav } from "./MegaMenu";
+import { MobileDrawer } from "./MobileDrawer";
+import { NotificationBell } from "./NotificationBell";
+import { AvatarMenu } from "./AvatarMenu";
+import { UtilityBar } from "./UtilityBar";
+import { useSearch } from "@/components/search/SearchContext";
+
+/** Header action buttons share size, shape and the round icon badge; Search is the soft utility pill, Log in the solid brand-red one. */
+const PILL_BASE =
+  "group inline-flex h-11 items-center gap-2.5 whitespace-nowrap rounded-full pl-1.5 pr-4 font-manrope text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E31B23]";
+const SEARCH_PILL = `${PILL_BASE} bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] hover:text-[#111827]`;
+const SEARCH_BADGE =
+  "flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#E31B23] shadow-[0_1px_3px_rgba(17,24,39,0.12)] transition-transform group-hover:scale-105";
+const LOGIN_PILL = `${PILL_BASE} bg-gradient-to-b from-[#F0343C] to-[#CF1018] text-white hover:from-[#E6252D] hover:to-[#B80E15]`;
+const LOGIN_BADGE = "flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition-transform group-hover:scale-105";
 
 interface SiteHeaderProps {
   /** If a preview top banner is rendered above the header, pass hasPreviewBanner=true */
   hasPreviewBanner?: boolean;
 }
 
+/**
+ * Two-row public header.
+ *  Row 1 (desktop): countdown, help, quick links, search, language, account (UtilityBar).
+ *  Row 2: logo, one mega menu per journey stage (MegaNav) and the Register CTA.
+ *  Mobile: compact bar with search / account / menu; the drawer carries the whole navigation.
+ * All links come from lib/navigation (publicNav, megaMenu, audiences).
+ */
 export default function SiteHeader({ hasPreviewBanner = false }: SiteHeaderProps) {
   const pathname = usePathname();
   const user = useHeaderUser();
-  const firstName = user?.name.trim().split(" ")[0] ?? "";
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const { open: openSearch } = useSearch();
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close mobile drawer on route change
+  // Close the mobile drawer on route change
   useEffect(() => {
-    setMobileMenuOpen(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileOpen(false);
   }, [pathname]);
 
-  const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "Races", href: "/#categories" },
-    { label: "Perks & Amenities", href: "/#perks" },
-    { label: "Training", href: "/training" },
-    { label: "Tourism", href: "/tourism" },
-    { label: "Community", href: "/join" },
-    { label: "Contact", href: "/contact" },
-  ];
-
-  const isLinkActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    if (href.startsWith("/#")) return pathname === "/" && typeof window !== "undefined" && window.location.hash === href.replace("/", "");
-    return pathname.startsWith(href);
-  };
-
   return (
-    <header
-      className={`w-full z-40 transition-all duration-300 ${hasPreviewBanner ? "sticky top-9" : "sticky top-0"
-        } ${scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-[#E5E7EB]"
-          : "bg-white/90 backdrop-blur-sm border-b border-[#E5E7EB]"
-        }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+    <>
+      <header
+        className={`w-full z-40 transition-shadow duration-300 ${hasPreviewBanner ? "sticky top-9" : "sticky top-0"} ${
+          scrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-white/95 backdrop-blur-sm"
+        } border-b border-[#E5E7EB]`}
+      >
+        <UtilityBar user={user} />
 
-          {/* 1. BRAND LOGO */}
-          <Link href="/" className="flex items-center gap-3 group focus:outline-none shrink-0">
-            <img
-              src="/images/mainLogo.png"
-              alt="Rajgir Marathon Logo"
-              className="h-10 sm:h-12 md:h-14 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-            />
-            <div className="flex flex-col text-left">
-              <span className="font-extrabold text-sm sm:text-base lg:text-lg tracking-wider text-[#111827] font-graduate leading-tight">
-                RAJGIR MARATHON
-              </span>
-              <span className="text-[9.5px] sm:text-[10px] tracking-widest uppercase text-[#C78A12] font-bold">
-                Run Through History • 2027
-              </span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-3 xl:h-[72px] xl:gap-4">
+            {/* Brand: the same logo as the Coming Soon page, logo only (no text) */}
+            <Link href="/" aria-label="Rajgir Marathon home" className="group flex shrink-0 items-center focus:outline-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/rajgir_new_logo.png"
+                alt="Rajgir Marathon Logo"
+                className="h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105 xl:h-14"
+              />
+            </Link>
+
+            {/* Desktop mega navigation */}
+            <div className="hidden min-w-0 xl:block">
+              <MegaNav />
             </div>
-          </Link>
 
-          {/* 2. DESKTOP NAVIGATION */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold uppercase tracking-wider font-manrope">
-            {navLinks.map((item) => {
-              const active = isLinkActive(item.href);
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`transition-colors duration-200 py-1 relative group ${active ? "text-[#E31B23]" : "text-[#4B5563] hover:text-[#111827]"
-                    }`}
-                >
-                  {item.label}
-                  <span
-                    className={`absolute bottom-0 left-0 h-[2px] bg-[#E31B23] transition-all duration-200 ${active ? "w-full" : "w-0 group-hover:w-full"
-                      }`}
-                  />
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* 3. RIGHT CTAS */}
-          <div className="hidden sm:flex items-center gap-3">
-            {user ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 font-manrope shadow-sm max-w-[11rem]"
-                >
-                  <FaUserCircle className="text-sm text-[#C78A12] shrink-0" />
-                  <span className="truncate">{firstName}</span>
-                </Link>
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-[#6B7280] hover:text-[#E31B23] transition-colors font-manrope"
-                  >
-                    Log out
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-[#374151] hover:text-[#E31B23] transition-colors font-manrope"
-                >
+            {/* Desktop actions: Search and Log in (signed-in users have the account menu in the top bar) */}
+            <div className="hidden shrink-0 items-center gap-2 xl:flex">
+              <button type="button" onClick={openSearch} aria-label="Search (Ctrl K)" title="Search · Ctrl K" className={SEARCH_PILL}>
+                <span className={SEARCH_BADGE}>
+                  <LuSearch className="h-[17px] w-[17px]" aria-hidden />
+                </span>
+                Search
+              </button>
+              {!user ? (
+                <Link href="/login" className={LOGIN_PILL}>
+                  <span className={LOGIN_BADGE}>
+                    <LuUserRound className="h-[17px] w-[17px]" aria-hidden />
+                  </span>
                   Log in
                 </Link>
-                <Link
-                  href="/signup"
-                  className="px-3.5 py-2 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F3F4F6] text-[#374151] hover:text-[#111827] text-xs font-bold uppercase tracking-wider transition-all font-manrope shadow-sm"
-                >
-                  Sign up
+              ) : null}
+            </div>
+
+            {/* Mobile / tablet cluster */}
+            <div className="flex shrink-0 items-center gap-1.5 xl:hidden">
+              <button
+                type="button"
+                onClick={openSearch}
+                aria-label="Search"
+                className={`${user ? "hidden sm:flex" : "flex"} h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-[#111827] transition-colors hover:bg-[#E5E7EB] hover:text-[#E31B23]`}
+              >
+                <LuSearch className="text-lg" aria-hidden />
+              </button>
+              {user ? (
+                <>
+                  <NotificationBell role={user.role} />
+                  <AvatarMenu name={user.name} role={user.role} status={user.status} compact />
+                </>
+              ) : (
+                <Link href="/login" aria-label="Log in" className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-[#F0343C] to-[#CF1018] text-white transition-colors hover:from-[#E6252D] hover:to-[#B80E15]">
+                  <FaUserCircle className="text-lg" />
                 </Link>
-              </>
-            )}
-
-          </div>
-
-          {/* 4. MOBILE HAMBURGER BUTTON */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <Link
-              href={user ? "/dashboard" : "/login"}
-              aria-label={user ? "My dashboard" : "Log in"}
-              className="sm:hidden w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-[#111827] hover:text-[#E31B23] transition-colors"
-            >
-              <FaUserCircle className="text-lg" />
-            </Link>
-
-
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-[#111827] hover:text-[#E31B23] focus:outline-none transition-colors"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <FaTimes className="text-lg" /> : <FaBars className="text-lg" />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. MOBILE DRAWER */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#E5E7EB] bg-white/98 backdrop-blur-xl px-5 pt-4 pb-6 space-y-3 animate-fadeIn shadow-lg">
-          <div className="flex flex-col space-y-1.5">
-            {navLinks.map((item) => {
-              const active = isLinkActive(item.href);
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`px-3 py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all font-manrope ${active
-                    ? "bg-red-50 text-[#E31B23] border border-red-100"
-                    : "text-[#4B5563] hover:bg-gray-50 hover:text-[#111827]"
-                    }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="pt-3 border-t border-[#E5E7EB] flex flex-col gap-2.5">
-            <Link
-              href="/register/runner"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-3 rounded-lg bg-[#E31B23] hover:bg-[#B5121B] text-white font-extrabold text-xs uppercase tracking-wider text-center shadow-md shadow-red-500/20 flex items-center justify-center gap-2 font-manrope"
-            >
-              <FaRunning />
-              <span>Register As Runner</span>
-            </Link>
-
-            {user ? (
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope truncate"
-                >
-                  {firstName}: Dashboard
-                </Link>
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#E31B23] font-manrope"
-                  >
-                    Log out
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[#4B5563] text-xs font-bold uppercase tracking-wider text-center hover:bg-gray-100 hover:text-[#111827] font-manrope"
-                >
-                  Sign up
-                </Link>
-              </div>
-            )}
+              )}
+              <button
+                type="button"
+                onClick={() => setMobileOpen((o) => !o)}
+                aria-expanded={mobileOpen}
+                aria-label="Toggle navigation menu"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#111827] transition-colors hover:bg-[#E5E7EB] hover:text-[#E31B23] focus:outline-none"
+              >
+                {mobileOpen ? <FaTimes className="text-lg" /> : <FaBars className="text-lg" />}
+              </button>
+            </div>
           </div>
         </div>
-      )}
-    </header>
+      </header>
+
+      <MobileDrawer open={mobileOpen} onClose={closeMobile} user={user} onSearch={openSearch} />
+    </>
   );
 }
-

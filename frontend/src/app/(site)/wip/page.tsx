@@ -1,23 +1,51 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  LuArrowRight,
-  LuBuilding2,
-  LuCircleCheck,
-  LuCompass,
-  LuHandHeart,
-  LuLogOut,
-  LuActivity,
-  LuShieldCheck,
-  LuStore,
-} from "react-icons/lu";
+import { LuLogOut } from "react-icons/lu";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import { StatusBadge } from "@/components/modules/ModulePage";
+import { JourneyStepper } from "@/components/flow/JourneyStepper";
 import { Badge, Breadcrumb, Button, Card, LinkButton, Notice, PageHero } from "@/components/ui";
+import { ADMIN_NAV, ALL_ROLE_KEYS, AUDIENCES, JOURNEYS, PUBLIC_NAV, flattenPublic, hrefOf, roleNavItems } from "@/lib/navigation";
+import { NAV_ICONS } from "@/lib/navigation/icons";
+import type { NavStatus } from "@/lib/navigation";
 
-export default function WipPreviewHome() {
+const ROLE_TITLES: Record<string, string> = {
+  runner: "Runner",
+  volunteer: "Volunteer",
+  influencer: "Influencer / Creator",
+  team: "Team / Running Club",
+  corporate: "Corporate",
+  school: "School",
+  sponsor: "Sponsor",
+  vendor: "Vendor",
+  tourism: "Tourism Partner",
+};
+
+function Row({ title, href, status }: { title: string; href: string; status: NavStatus }) {
+  return (
+    <li className="flex items-center justify-between gap-3 py-1.5">
+      <Link href={href} className="min-w-0 truncate text-sm font-medium text-charcoal-800 hover:text-brand-red hover:underline">
+        {title}
+      </Link>
+      <StatusBadge status={status} />
+    </li>
+  );
+}
+
+function count(statuses: NavStatus[]) {
+  return {
+    live: statuses.filter((s) => s === "live").length,
+    partial: statuses.filter((s) => s === "partial").length,
+    planned: statuses.filter((s) => s === "planned").length,
+  };
+}
+
+/** Platform map: every module and sub-page from the PRD, with its build status. Used by the team to navigate and track the UI skeleton. */
+export default function PlatformMap() {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -26,25 +54,24 @@ export default function WipPreviewHome() {
     router.refresh();
   };
 
-  const portalModules = [
-    { title: "Runner Portal", path: "/portal/runner", icon: LuActivity, desc: "Registration, Digital Bib, Results & Certificates" },
-    { title: "Volunteer Portal", path: "/portal/volunteer", icon: LuHandHeart, desc: "Shift rosters, QR check-in & SOS alerts" },
-    { title: "Institutional / B2B", path: "/portal/corporate", icon: LuBuilding2, desc: "Corporate & School bulk roster uploads" },
-    { title: "Expo & Vendors", path: "/portal/vendor", icon: LuStore, desc: "Interactive booth map & exhibitor passes" },
-    { title: "Tourism & Hotels", path: "/portal/tourism", icon: LuCompass, desc: "Rajgir stay, transit & heritage packages" },
-    { title: "Admin Command Center", path: "/portal/admin", icon: LuShieldCheck, desc: "Race day operations, RFID timing & finances" },
-  ];
+  const publicNodes = flattenPublic().filter((n) => n.path !== "/login");
+  const roleSections = ALL_ROLE_KEYS.map((key) => ({ key, items: roleNavItems(key).filter((i) => i.href !== "/") }));
+  const totals = count([
+    ...publicNodes.map((n) => n.status),
+    ...roleSections.flatMap((r) => r.items.map((i) => i.status)),
+    ...ADMIN_NAV.map((i) => i.status),
+  ]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white font-manrope text-charcoal-900">
       <SiteHeader />
       <main className="flex-1 bg-surface-soft">
         <div className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Preview" }]} />
+          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Platform map" }]} />
           <PageHero
             eyebrow={<Badge>Stakeholder preview environment</Badge>}
-            title="Platform modules"
-            subtitle="Rajgir Marathon Platform v1.0. Modules below are in progress."
+            title="Platform flow map"
+            subtitle="The whole project on one page: who uses it, the steps each person goes through, and every module behind those steps with its build status. Live = real page, In progress = prototype or static content, Planned = placeholder."
           >
             <div className="flex flex-wrap gap-3">
               <LinkButton href="/" variant="secondary" size="md">
@@ -59,35 +86,99 @@ export default function WipPreviewHome() {
             </div>
           </PageHero>
 
-          <Notice tone="success" title="Preview session active" className="mb-8">
-            You are authenticated. The Coming Soon page remains active for public visitors, while you can inspect and build
-            all internal pages here. <span className="font-mono text-xs">ENV: COMING_SOON=true</span>
+          <Notice tone="success" title="Preview session active" className="mb-6">
+            The Coming Soon page remains active for public visitors while you can open every page below.{" "}
+            <span className="font-mono text-xs">ENV: COMING_SOON=true</span>
           </Notice>
 
-          <h2 className="mb-4 text-base font-bold text-charcoal-900">Platform modules architecture (in progress)</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {portalModules.map((mod) => {
-              const Icon = mod.icon;
+          <div className="mb-8 flex flex-wrap items-center gap-3 text-sm">
+            <span className="font-semibold text-charcoal-700">{totals.live + totals.partial + totals.planned} pages:</span>
+            <Badge tone="success">{totals.live} live</Badge>
+            <Badge tone="warning">{totals.partial} in progress</Badge>
+            <Badge tone="neutral">{totals.planned} planned</Badge>
+          </div>
+
+          <h2 className="mb-1 text-lg font-bold text-charcoal-900">Flow by audience</h2>
+          <p className="mb-4 text-sm text-charcoal-600">Each lane is the journey of one kind of participant, in order. Click a step to open its page.</p>
+          <div className="mb-10 space-y-4">
+            {AUDIENCES.map((a) => {
+              const Icon = NAV_ICONS[a.icon];
+              const journey = JOURNEYS[a.id];
+              const steps = journey.steps;
+              const counts = count(steps.map((x) => x.status));
               return (
-                <Card key={mod.path} className="flex flex-col justify-between">
-                  <div>
-                    <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-red-light text-brand-red">
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <h3 className="text-base font-bold text-charcoal-900">{mod.title}</h3>
-                    <p className="mt-1 text-sm text-charcoal-600">{mod.desc}</p>
+                <Card key={a.id}>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-red-light text-brand-red">
+                        <Icon className="h-5 w-5" aria-hidden />
+                      </span>
+                      <div>
+                        <Link href={`/how-it-works/${a.id}`} className="text-base font-bold text-charcoal-900 hover:text-brand-red">
+                          {a.title}
+                        </Link>
+                        <p className="text-xs text-charcoal-500">{a.tagline}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge tone="success">{counts.live} live</Badge>
+                      <Badge tone="warning">{counts.partial} in progress</Badge>
+                      <Badge tone="neutral">{counts.planned} planned</Badge>
+                    </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-charcoal-200 pt-3 text-xs font-semibold text-charcoal-500">
-                    <span className="inline-flex items-center gap-1.5">
-                      <LuCircleCheck className="h-4 w-4" aria-hidden />
-                      Ready for scaffolding
-                    </span>
-                    <LuArrowRight className="h-4 w-4" aria-hidden />
-                  </div>
+                  <JourneyStepper journey={journey} orientation="horizontal" />
                 </Card>
               );
             })}
           </div>
+
+          <h2 className="mb-4 text-lg font-bold text-charcoal-900">Public website</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {PUBLIC_NAV.filter((n) => n.path !== "/login").map((mod) => (
+              <Card key={mod.path}>
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <Link href={hrefOf(mod)} className="text-base font-bold text-charcoal-900 hover:text-brand-red">
+                    {mod.title}
+                  </Link>
+                  <StatusBadge status={mod.status} />
+                </div>
+                {mod.children?.length ? (
+                  <ul className="divide-y divide-charcoal-100 border-t border-charcoal-100">
+                    {mod.children.map((c) => (
+                      <Row key={c.path} title={c.title} href={hrefOf(c)} status={c.status} />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-charcoal-600">{mod.description}</p>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          <h2 className="mb-1 mt-10 text-lg font-bold text-charcoal-900">Role dashboards</h2>
+          <p className="mb-4 text-sm text-charcoal-600">Sign in as the role to open these (each role can only open its own dashboard).</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {roleSections.map(({ key, items }) => (
+              <Card key={key}>
+                <h3 className="mb-2 text-base font-bold text-charcoal-900">{ROLE_TITLES[key]}</h3>
+                <ul className="divide-y divide-charcoal-100 border-t border-charcoal-100">
+                  {items.map((i) => (
+                    <Row key={i.href} title={i.label} href={i.href} status={i.status} />
+                  ))}
+                </ul>
+              </Card>
+            ))}
+          </div>
+
+          <h2 className="mb-1 mt-10 text-lg font-bold text-charcoal-900">Admin console</h2>
+          <p className="mb-4 text-sm text-charcoal-600">Staff accounts only (Organizer / Super Admin).</p>
+          <Card>
+            <ul className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+              {ADMIN_NAV.map((i) => (
+                <Row key={i.href} title={i.label} href={i.href} status={i.status} />
+              ))}
+            </ul>
+          </Card>
         </div>
       </main>
       <SiteFooter />

@@ -15,6 +15,7 @@ import {
   FaHeartbeat,
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import { FOOTER_GROUPS } from "@/lib/navigation";
 
 export default function SiteFooter() {
   const currentYear = new Date().getFullYear();
@@ -27,25 +28,17 @@ export default function SiteFooter() {
     { label: "Junior & Fun Run (3 KM)", distance: "3 KM", tag: "Family" },
   ];
 
-  const portalLinks = [
-    { label: "Runner Registration", href: "/register/runner" },
-    { label: "Volunteer Crew Application", href: "/register/volunteer" },
-    { label: "Influencer & Creator Hub", href: "/register/influencer" },
-    { label: "Community & Partners Hub", href: "/join" },
-    { label: "Race Command Center", href: "/admin" },
-    { label: "Platform Modules Roadmap", href: "/wip" },
-  ];
 
   return (
     <footer className="w-full bg-[#F8F8F6] border-t border-[#E5E7EB] text-[#4B5563] text-xs font-manrope">
 
 
-      {/* 2. MAIN 4-COLUMN FOOTER CONTENT */}
+      {/* 2. BRAND, RACE LINKS AND HELPDESK (the full site map follows below) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
 
           {/* COLUMN 1: BRAND & HERITAGE (Cols 1-4) */}
-          <div className="lg:col-span-4 flex flex-col items-start space-y-4">
+          <div className="lg:col-span-5 flex flex-col items-start space-y-4">
             <Link href="/" className="flex items-center gap-3 group">
               <img
                 src="/images/mainLogo.png"
@@ -73,8 +66,8 @@ export default function SiteFooter() {
             </div>
           </div>
 
-          {/* COLUMN 2: RACE CATEGORIES (Cols 5-6) */}
-          <div className="lg:col-span-3 space-y-3">
+          {/* COLUMN 2: RACE CATEGORIES */}
+          <div className="lg:col-span-4 space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
               Race Categories
             </h4>
@@ -99,29 +92,8 @@ export default function SiteFooter() {
             </ul>
           </div>
 
-          {/* COLUMN 3: ECOSYSTEM & PORTALS (Cols 7-9) */}
+          {/* COLUMN 3: HOST CITY, SUPPORT AND APP */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
-              Ecosystem & Portals
-            </h4>
-            <div className="w-8 h-[2px] bg-[#E31B23]" />
-
-            <ul className="space-y-2 pt-1">
-              {portalLinks.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="text-[#4B5563] hover:text-[#E31B23] transition-colors inline-block hover:translate-x-1 duration-150"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* COLUMN 4: HOST CITY & SUPPORT (Cols 10-12) */}
-          <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">
               Event Helpdesk
             </h4>
@@ -151,11 +123,40 @@ export default function SiteFooter() {
                   Contact Organizers
                 </Link>
               </div>
+
+              <div className="pt-3">
+                <p className="mb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#9CA3AF]">Mobile app</p>
+                <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                  <span className="rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[#6B7280]">Install as app (PWA) · soon</span>
+                  <span className="rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[#6B7280]">Android &amp; iOS · soon</span>
+                </div>
+              </div>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* 2b. SITE MAP: every PRD module, driven by lib/navigation/publicNav.ts */}
+      <nav aria-label="Site map" className="border-t border-[#E5E7EB] bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-5">
+          {FOOTER_GROUPS.map((group) => (
+            <div key={group.title} className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#111827] font-barlow text-sm">{group.title}</h4>
+              <div className="w-8 h-[2px] bg-[#E31B23]" />
+              <ul className="space-y-2 pt-1">
+                {group.links.map((link) => (
+                  <li key={link.href + link.title}>
+                    <Link href={link.href} className="text-[#4B5563] hover:text-[#E31B23] transition-colors">
+                      {link.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </nav>
 
       {/* 3. BOTTOM COPYRIGHT & SOCIAL STRIP */}
       <div className="border-t border-[#E5E7EB] bg-white py-6 px-4 sm:px-6 lg:px-8">
@@ -171,6 +172,10 @@ export default function SiteFooter() {
             <span>•</span>
             <Link href="/register/runner" className="hover:text-[#111827] transition-colors">
               Runner Registration
+            </Link>
+            <span>•</span>
+            <Link href="/wip" className="hover:text-[#111827] transition-colors">
+              Platform map
             </Link>
             <span>•</span>
             <Link href="/coming-soon" className="text-[#C78A12] hover:underline">

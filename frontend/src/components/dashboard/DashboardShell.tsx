@@ -30,6 +30,7 @@ import {
   LuX,
 } from "react-icons/lu";
 import { Badge, cn } from "@/components/ui";
+import { NAV_ICONS, type NavIconKey } from "@/lib/navigation/icons";
 
 const ICONS = {
   overview: LuLayoutDashboard,
@@ -63,7 +64,7 @@ const ICONS = {
 export interface DashboardNavItem {
   href: string;
   label: string;
-  icon: keyof typeof ICONS;
+  icon: keyof typeof ICONS | NavIconKey;
 }
 
 function isActive(pathname: string, href: string) {
@@ -91,7 +92,7 @@ function NavList({ items, pathname, onNavigate }: { items: DashboardNavItem[]; p
     <nav aria-label="Dashboard">
       <ul className="space-y-1">
         {items.map((item) => {
-          const Icon = ICONS[item.icon];
+          const Icon = item.icon in ICONS ? ICONS[item.icon as keyof typeof ICONS] : NAV_ICONS[item.icon as NavIconKey];
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href}>
