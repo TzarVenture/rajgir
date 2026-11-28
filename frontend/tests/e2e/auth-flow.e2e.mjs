@@ -398,7 +398,8 @@ describe("authorization in the UI", () => {
     await staff.login("staff@example.com", "correct-horse");
     const { status, chain } = await staff.visit("/admin");
     assert.equal(status, 200);
-    assert.equal(chain.at(-1), "/admin");
+    // /admin opens the console dashboard.
+    assert.equal(chain.at(-1), "/admin/dashboard");
   });
 
   it("registration pages send anonymous visitors to sign-up and back", async () => {

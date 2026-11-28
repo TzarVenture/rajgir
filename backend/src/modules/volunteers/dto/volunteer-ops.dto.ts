@@ -100,9 +100,10 @@ export class AssignVolunteerDto {
   @MaxLength(128)
   supervisorName?: string;
 
+  /** 10 digits, or "" to clear it (assignment fields are cleared with an empty string). */
   @ApiPropertyOptional({ example: '9876500000' })
   @IsOptional()
-  @Matches(/^\d{10}$/, { message: 'Supervisor mobile must be 10 digits' })
+  @Matches(/^(\d{10})?$/, { message: 'Supervisor mobile must be 10 digits' })
   supervisorPhone?: string;
 
   @ApiPropertyOptional({ example: '2027-11-21T04:00:00+05:30' })

@@ -10,7 +10,11 @@ const USERS = [
   { id: "u-unverified", email: "unverified@example.com", password: "correct-horse", firstName: "Uma", lastName: "New", phone: "9876543212", role: null, status: "PENDING_ONBOARDING", emailVerified: false },
 ];
 
-export function startMockApi() {
+/**
+ * @param {{ routes?: (ctx: { req: import("node:http").IncomingMessage, path: string, body: any, user: any, send: (status: number, payload: unknown) => void }) => boolean | Promise<boolean> }} [options]
+ *   `routes` handles extra signed-in endpoints (return true when handled). Used by the admin console e2e test.
+ */
+export function startMockApi(options = {}) {
   const state = {
     mode: "up", // "up" | "down" (503) | "throttled" (429) on /auth/me and /auth/refresh
     accessTtl: 3600,
@@ -95,6 +99,7 @@ export function startMockApi() {
     if (path === "/auth/me") return send(200, publicUser(user));
     if (path === "/auth/logout" && req.method === "POST") { state.sessions.delete(token); return send(200, { success: true }); }
     if (path === "/registrations/me") return send(200, { registered: false });
+    if (options.routes && (await options.routes({ req, path, body, user, send }))) return;
 
     return send(404, { statusCode: 404, message: `mock: ${req.method} ${path} not implemented` });
   });

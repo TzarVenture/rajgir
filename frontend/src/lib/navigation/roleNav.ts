@@ -234,8 +234,8 @@ export const QUICK_ACTIONS: Record<DashRoleKey, Shortcut[]> = {
 };
 
 export const ADMIN_QUICK_ACTIONS: Shortcut[] = [
-  sc("Admin dashboard", "overview", "/admin/dashboard"),
+  sc("Dashboard", "overview", "/admin/dashboard"),
   sc("Registrations", "registration", "/admin/registrations"),
   sc("Volunteers", "heart", "/admin/volunteers"),
-  sc("Legacy console", "layout", "/admin"),
+  sc("Payments", "payment", "/admin/payments"),
 ];

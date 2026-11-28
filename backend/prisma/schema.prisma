@@ -436,3 +436,128 @@ model AdminProfile {
   @@index([assignedByUserId])
   @@map("admins")
 }
+
+// ---------------------------------------------------------------------------
+// 11. EVENT OPS, COMMERCE, CMS, SUPPORT & GOVERNANCE (Admin Live Modules)
+// ---------------------------------------------------------------------------
+
+model EventCategoryConfig {
+  id            String   @id @default(uuid()) @db.Uuid
+  distance      String   @unique @db.VarChar(32)
+  title         String   @db.VarChar(80)
+  fee           Int
+  minAge        Int      @default(12) @map("min_age")
+  startTime     String   @default("05:30") @map("start_time") @db.VarChar(16)
+  cutoffMinutes Int      @default(180) @map("cutoff_minutes")
+  capacity      Int      @default(2000)
+  isTimed       Boolean  @default(true) @map("is_timed")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("event_categories")
+}
+
+model PaymentTransaction {
+  id                 String   @id @default(uuid()) @db.Uuid
+  registrationNumber String?  @map("registration_number") @db.VarChar(64)
+  payerName          String   @map("payer_name") @db.VarChar(120)
+  payerEmail         String   @map("payer_email") @db.VarChar(160)
+  distance           String?  @db.VarChar(32)
+  amount             Int
+  gstAmount          Int      @default(0) @map("gst_amount")
+  method             String   @default("MANUAL") @db.VarChar(32)
+  referenceCode      String?  @map("reference_code") @db.VarChar(80)
+  status             String   @default("CAPTURED") @db.VarChar(24) // CAPTURED, PENDING, REFUNDED
+  notes              String?  @db.VarChar(300)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("payment_transactions")
+}
+
+model MediaAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(160)
+  category    String   @default("PRESS_RELEASE") @db.VarChar(32) // PRESS_RELEASE, PHOTO, LOGO, BANNER
+  url         String   @db.VarChar(500)
+  caption     String?  @db.VarChar(400)
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("media_assets")
+}
+
+model CmsBlock {
+  id             String   @id @default(uuid()) @db.Uuid
+  slug           String   @unique @db.VarChar(80)
+  title          String   @db.VarChar(160)
+  section        String   @default("HOMEPAGE") @db.VarChar(48)
+  content        String
+  isPublished    Boolean  @default(true) @map("is_published")
+  updatedByEmail String?  @map("updated_by_email") @db.VarChar(160)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("cms_blocks")
+}
+
+model NotificationCampaign {
+  id             String    @id @default(uuid()) @db.Uuid
+  title          String    @db.VarChar(160)
+  channel        String    @default("EMAIL") @db.VarChar(24) // EMAIL, SMS, WHATSAPP, IN_APP
+  audience       String    @default("ALL_RUNNERS") @db.VarChar(48)
+  message        String
+  recipientCount Int       @default(0) @map("recipient_count")
+  status         String    @default("DRAFT") @db.VarChar(24) // DRAFT, QUEUED, SENT
+  createdByEmail String?   @map("created_by_email") @db.VarChar(160)
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("notification_campaigns")
+}
+
+model SupportTicket {
+  id             String   @id @default(uuid()) @db.Uuid
+  ticketNumber   String   @unique @map("ticket_number") @db.VarChar(32)
+  requesterName  String   @map("requester_name") @db.VarChar(120)
+  requesterEmail String   @map("requester_email") @db.VarChar(160)
+  category       String   @default("GENERAL") @db.VarChar(48)
+  subject        String   @db.VarChar(200)
+  message        String
+  priority       String   @default("NORMAL") @db.VarChar(24) // NORMAL, HIGH, URGENT
+  status         String   @default("OPEN") @db.VarChar(24) // OPEN, IN_PROGRESS, RESOLVED
+  assignedTo     String?  @map("assigned_to") @db.VarChar(120)
+  resolutionNote String?  @map("resolution_note") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorEmail String   @map("actor_email") @db.VarChar(160)
+  actorRole  String   @map("actor_role") @db.VarChar(32)
+  action     String   @db.VarChar(80)
+  targetType String   @map("target_type") @db.VarChar(48)
+  targetId   String?  @map("target_id") @db.VarChar(120)
+  summary    String   @db.VarChar(400)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model PlatformSetting {
+  key         String   @id @db.VarChar(80)
+  value       String   @db.VarChar(500)
+  category    String   @default("GENERAL") @db.VarChar(48)
+  description String?  @db.VarChar(240)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_settings")
+}

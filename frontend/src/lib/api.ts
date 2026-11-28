@@ -587,8 +587,151 @@ export const api = {
       decision: "approve" | "reject",
       ctx: CallContext
     ) => post(`admin/applications/${type}/${id}/review`, { decision }, ctx),
+    events: (ctx: CallContext) => get<ApiEventCategoryConfig[]>("admin/events", ctx),
+    upsertEvent: (payload: Omit<ApiEventCategoryConfig, "id">, ctx: CallContext) =>
+      post<ApiEventCategoryConfig>("admin/events", payload, ctx),
+    payments: (ctx: CallContext, limit = 100) => get<ApiPaymentTransaction[]>(`admin/payments?limit=${limit}`, ctx),
+    createPayment: (payload: Record<string, unknown>, ctx: CallContext) =>
+      post<ApiPaymentTransaction>("admin/payments", payload, ctx),
+    updatePaymentStatus: (id: string, status: "CAPTURED" | "PENDING" | "REFUNDED", ctx: CallContext) =>
+      send<ApiPaymentTransaction>("PATCH", `admin/payments/${id}/status`, { status }, ctx),
+    media: (ctx: CallContext) => get<ApiMediaAsset[]>("admin/media", ctx),
+    createMedia: (payload: { title: string; category: string; url: string; caption?: string }, ctx: CallContext) =>
+      post<ApiMediaAsset>("admin/media", payload, ctx),
+    toggleMedia: (id: string, isPublished: boolean, ctx: CallContext) =>
+      send<ApiMediaAsset>("PATCH", `admin/media/${id}`, { isPublished }, ctx),
+    cms: (ctx: CallContext) => get<ApiCmsBlock[]>("admin/cms", ctx),
+    upsertCms: (payload: { slug: string; title: string; section: string; content: string; isPublished: boolean }, ctx: CallContext) =>
+      post<ApiCmsBlock>("admin/cms", payload, ctx),
+    notifications: (ctx: CallContext) => get<ApiNotificationCampaign[]>("admin/notifications", ctx),
+    createNotification: (payload: { title: string; channel: string; audience: string; message: string; sendNow?: boolean }, ctx: CallContext) =>
+      post<ApiNotificationCampaign>("admin/notifications", payload, ctx),
+    support: (ctx: CallContext) => get<ApiSupportTicket[]>("admin/support", ctx),
+    createSupport: (payload: { requesterName: string; requesterEmail: string; category: string; subject: string; message: string; priority?: string }, ctx: CallContext) =>
+      post<ApiSupportTicket>("admin/support", payload, ctx),
+    updateSupport: (id: string, payload: { status: string; assignedTo?: string; resolutionNote?: string }, ctx: CallContext) =>
+      send<ApiSupportTicket>("PATCH", `admin/support/${id}`, payload, ctx),
+    permissions: (ctx: CallContext) => get<ApiAdminPermissionProfile[]>("admin/permissions", ctx),
+    updatePermissions: (id: string, payload: Record<string, unknown>, ctx: CallContext) =>
+      send<ApiAdminPermissionProfile>("PATCH", `admin/permissions/${id}`, payload, ctx),
+    auditLogs: (ctx: CallContext, limit = 100) => get<ApiAuditLog[]>(`admin/audit-logs?limit=${limit}`, ctx),
+    settings: (ctx: CallContext) => get<ApiPlatformSetting[]>("admin/settings", ctx),
+    upsertSetting: (payload: { key: string; value: string; category?: string; description?: string }, ctx: CallContext) =>
+      post<ApiPlatformSetting>("admin/settings", payload, ctx),
   },
 };
+
+export interface ApiEventCategoryConfig {
+  id: string;
+  distance: string;
+  title: string;
+  fee: number;
+  minAge: number;
+  startTime: string;
+  cutoffMinutes: number;
+  capacity: number;
+  isTimed: boolean;
+  isActive: boolean;
+}
+
+export interface ApiPaymentTransaction {
+  id: string;
+  registrationNumber: string | null;
+  payerName: string;
+  payerEmail: string;
+  distance: string | null;
+  amount: number;
+  gstAmount: number;
+  method: string;
+  referenceCode: string | null;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface ApiMediaAsset {
+  id: string;
+  title: string;
+  category: string;
+  url: string;
+  caption: string | null;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+export interface ApiCmsBlock {
+  id: string;
+  slug: string;
+  title: string;
+  section: string;
+  content: string;
+  isPublished: boolean;
+  updatedByEmail: string | null;
+  updatedAt: string;
+}
+
+export interface ApiNotificationCampaign {
+  id: string;
+  title: string;
+  channel: string;
+  audience: string;
+  message: string;
+  recipientCount: number;
+  status: string;
+  createdByEmail: string | null;
+  sentAt: string | null;
+  createdAt: string;
+}
+
+export interface ApiSupportTicket {
+  id: string;
+  ticketNumber: string;
+  requesterName: string;
+  requesterEmail: string;
+  category: string;
+  subject: string;
+  message: string;
+  priority: string;
+  status: string;
+  assignedTo: string | null;
+  resolutionNote: string | null;
+  createdAt: string;
+}
+
+export interface ApiAdminPermissionProfile {
+  id: string;
+  userId: string;
+  designation: string;
+  department: string | null;
+  isActive: boolean;
+  canManageRunners: boolean;
+  canAllotBibs: boolean;
+  canManageVolunteers: boolean;
+  canManageInfluencers: boolean;
+  canManageGroups: boolean;
+  canManagePartners: boolean;
+  canManageIncidents: boolean;
+  user: { id: string; firstName: string; lastName: string; email: string; phone: string | null; role: string | null; status: string };
+}
+
+export interface ApiAuditLog {
+  id: string;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  summary: string;
+  createdAt: string;
+}
+
+export interface ApiPlatformSetting {
+  key: string;
+  value: string;
+  category: string;
+  description: string | null;
+  updatedAt: string;
+}
 
 export interface ApiAdminOverview {
   totalRunners: number;

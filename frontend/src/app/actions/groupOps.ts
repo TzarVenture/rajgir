@@ -91,33 +91,4 @@ export async function updatePartnerProfileAction(payload: Record<string, unknown
   return { success: true };
 }
 
-export async function reviewQuotaAppealAdminAction(
-  type: "team" | "corporate" | "school",
-  id: string,
-  decision: "approve" | "reject",
-  approvedQuota?: number
-): Promise<ActionResult> {
-  const ctx = await authContext();
-  if (!ctx) return { success: false, error: SIGNED_OUT };
-
-  const res = await api.admin.reviewQuotaAppeal(type, id, { decision, approvedQuota }, ctx);
-  if (!res.success) return { success: false, error: res.error ?? "Action failed." };
-
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-export async function reviewApplicationAdminAction(
-  type: "corporate" | "school" | "sponsor" | "vendor" | "tourism",
-  id: string,
-  decision: "approve" | "reject"
-): Promise<ActionResult> {
-  const ctx = await authContext();
-  if (!ctx) return { success: false, error: SIGNED_OUT };
-
-  const res = await api.admin.reviewApplication(type, id, decision, ctx);
-  if (!res.success) return { success: false, error: res.error ?? "Action failed." };
-
-  revalidatePath("/admin");
-  return { success: true };
-}
+// Admin reviews of quota appeals and applications live in app/actions/adminOps.ts.

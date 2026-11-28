@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Controller, Get, Module } from '@nestjs/common';
+import { Controller, Get, Module, type Provider, type Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -42,19 +42,20 @@ export interface TestApp {
  * Boots the real auth controller, auth/users services, global guards and validation pipe over HTTP,
  * with Supabase and Prisma replaced by in-memory fakes.
  */
-export async function startTestApp(): Promise<TestApp> {
+export async function startTestApp(extra: { controllers?: Type[]; providers?: Provider[] } = {}): Promise<TestApp> {
   const supabase = new FakeSupabase();
   const prisma = new FakePrisma();
 
   @Module({
     imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }])],
-    controllers: [AuthController, ProbeController],
+    controllers: [AuthController, ProbeController, ...(extra.controllers ?? [])],
     providers: [
       AuthService,
       UsersService,
       { provide: SupabaseService, useValue: supabase },
       { provide: PrismaService, useValue: prisma },
       ...GLOBAL_GUARDS,
+      ...(extra.providers ?? []),
     ],
   })
   class TestModule {}
