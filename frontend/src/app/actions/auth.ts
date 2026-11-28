@@ -177,3 +177,46 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
 
   redirect("/login?reset=1");
 }
+
+
+export async function adminSetupAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const firstName = text(formData, "firstName").replace(/\s+/g, " ");
+  const lastName = text(formData, "lastName").replace(/\s+/g, " ");
+  const email = text(formData, "email").toLowerCase();
+  const mobileInput = text(formData, "mobile");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  const setupKey = text(formData, "setupKey");
+  const values = { firstName, lastName, email, mobile: mobileInput };
+
+  const fieldErrors: Record<string, string> = {};
+  if (!firstName) fieldErrors.firstName = "Enter first name.";
+  if (!lastName) fieldErrors.lastName = "Enter last name.";
+  if (!EMAIL_PATTERN.test(email)) fieldErrors.email = "Enter a valid email address.";
+  const mobile = tenDigitMobile(mobileInput);
+  if (!mobile) fieldErrors.mobile = "Enter a valid 10-digit mobile number.";
+  if (password.length < 8) fieldErrors.password = "Use at least 8 characters.";
+  else if (password.length > 72) fieldErrors.password = "Use at most 72 characters.";
+  if (!fieldErrors.password && password !== confirm) fieldErrors.confirm = "Passwords do not match.";
+  if (!setupKey) fieldErrors.setupKey = "Enter the admin setup key.";
+
+  if (Object.keys(fieldErrors).length > 0 || !mobile) {
+    return { error: "Please fix the highlighted fields.", fieldErrors, values };
+  }
+
+  const res = await api.auth.adminSetup(
+    { firstName, lastName, email, mobile, password, setupKey },
+    await clientContext()
+  );
+
+  if (!res.success || !res.data) {
+    return { error: res.error ?? "Could not create admin account.", values };
+  }
+
+  if (res.data.session) {
+    await saveSession(res.data.session);
+    redirect("/admin");
+  }
+
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
+}

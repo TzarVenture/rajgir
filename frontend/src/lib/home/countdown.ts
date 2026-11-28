@@ -9,7 +9,7 @@ export interface TimeLeft {
   done: boolean;
 }
 
-/** Gun time of the first (flagship) wave on race day, in IST. */
+/** Gun time of the flagship race on race day, in IST. */
 export function raceStart(): number {
   const first = CATEGORY_OPS[0]?.startTime ?? "05:00";
   return new Date(`${EVENT.raceDate}T${first}:00${IST_OFFSET}`).getTime();

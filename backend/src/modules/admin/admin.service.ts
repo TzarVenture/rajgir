@@ -9,40 +9,123 @@ export class AdminService {
   async getPlatformOverview() {
     const [
       runnersCount,
+      kitsCollectedCount,
       volunteersCount,
       influencersCount,
       teamsCount,
       corporatesCount,
       schoolsCount,
+      openIncidentsCount,
+      pendingCorporates,
+      pendingSchools,
+      pendingSponsors,
+      pendingVendors,
+      pendingTourism,
+      pendingVolunteers,
+      pendingInfluencers,
+      pendingTeamAppeals,
+      pendingCorpAppeals,
+      pendingSchoolAppeals,
       revenueResult,
       runnersByCategory,
+      tshirtCounts,
     ] = await Promise.all([
       this.prisma.runnerRegistration.count(),
+      this.prisma.runnerRegistration.count({ where: { kitCollectedAt: { not: null } } }),
       this.prisma.volunteer.count(),
       this.prisma.influencer.count(),
       this.prisma.teamProfile.count(),
       this.prisma.corporateProfile.count(),
       this.prisma.schoolProfile.count(),
-      this.prisma.runnerRegistration.aggregate({
-        _sum: { netAmount: true },
-      }),
-      this.prisma.runnerRegistration.groupBy({
-        by: ['distance'],
-        _count: { id: true },
-      }),
+      this.prisma.incident.count({ where: { status: { not: 'RESOLVED' } } }),
+      this.prisma.corporateProfile.count({ where: { status: 'pending' } }),
+      this.prisma.schoolProfile.count({ where: { status: 'pending' } }),
+      this.prisma.sponsorProfile.count({ where: { status: 'pending' } }),
+      this.prisma.vendorProfile.count({ where: { status: 'pending' } }),
+      this.prisma.tourismProfile.count({ where: { status: 'pending' } }),
+      this.prisma.volunteer.count({ where: { status: 'pending' } }),
+      this.prisma.influencer.count({ where: { status: 'pending' } }),
+      this.prisma.teamProfile.count({ where: { appealStatus: 'PENDING' } }),
+      this.prisma.corporateProfile.count({ where: { appealStatus: 'PENDING' } }),
+      this.prisma.schoolProfile.count({ where: { appealStatus: 'PENDING' } }),
+      this.prisma.runnerRegistration.aggregate({ _sum: { netAmount: true } }),
+      this.prisma.runnerRegistration.groupBy({ by: ['distance'], _count: { id: true } }),
+      this.prisma.runnerRegistration.groupBy({ by: ['tshirtSize'], _count: { id: true } }),
     ]);
 
     return {
       totalRunners: runnersCount,
+      kitsCollectedCount,
       totalVolunteers: volunteersCount,
       totalInfluencers: influencersCount,
       totalGroups: teamsCount + corporatesCount + schoolsCount,
+      openIncidentsCount,
+      pendingApprovalsCount:
+        pendingCorporates +
+        pendingSchools +
+        pendingSponsors +
+        pendingVendors +
+        pendingTourism +
+        pendingVolunteers +
+        pendingInfluencers,
+      pendingQuotaAppealsCount: pendingTeamAppeals + pendingCorpAppeals + pendingSchoolAppeals,
       totalRevenue: revenueResult._sum.netAmount || 0,
       categoryBreakdown: runnersByCategory.map((c) => ({
         distance: c.distance,
         count: c._count.id,
       })),
+      tshirtBreakdown: tshirtCounts.map((t) => ({
+        size: t.tshirtSize,
+        count: t._count.id,
+      })),
     };
+  }
+
+  async listUsers(limit = 100) {
+    return this.prisma.user.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        registrationSource: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async setUserStatus(userId: string, status: 'ACTIVE' | 'SUSPENDED') {
+    if (!['ACTIVE', 'SUSPENDED'].includes(status)) {
+      throw new BadRequestException('Status must be ACTIVE or SUSPENDED');
+    }
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) throw new NotFoundException('User not found');
+    if (existing.role === 'SUPER_ADMIN') {
+      throw new BadRequestException('Cannot suspend a Super Admin account.');
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { status },
+      select: { id: true, status: true },
+    });
+  }
+
+  async reviewInfluencer(id: string, decision: 'approve' | 'reject') {
+    const existing = await this.prisma.influencer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Influencer not found');
+    const status = decision === 'approve' ? 'approved' : 'rejected';
+    const userStatus = decision === 'approve' ? ('ACTIVE' as const) : ('SUSPENDED' as const);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.influencer.update({ where: { id }, data: { status } });
+      await tx.user.update({ where: { id: existing.userId }, data: { status: userStatus } });
+      return updated;
+    });
   }
 
   /** List all quota appeals (50+ runner requests) from Teams, Corporates, and Schools. */

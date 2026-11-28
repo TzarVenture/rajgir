@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/guards/roles.guard';
@@ -15,6 +15,25 @@ export class AdminController {
   @ApiOperation({ summary: 'Overall platform registration metrics (staff only)' })
   getOverview() {
     return this.adminService.getPlatformOverview();
+  }
+
+  @Get('users')
+  @ApiOperation({ summary: 'List platform users with role, source, and status' })
+  listUsers(@Query('limit') limit = 100) {
+    return this.adminService.listUsers(Number(limit) || 100);
+  }
+
+  @Patch('users/:id/status')
+  @ApiOperation({ summary: 'Suspend or reactivate a user account' })
+  setUserStatus(@Param('id') id: string, @Body() body: { status: 'ACTIVE' | 'SUSPENDED' }) {
+    return this.adminService.setUserStatus(id, body.status);
+  }
+
+  @Post('influencers/:id/review')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve or reject an influencer application' })
+  reviewInfluencer(@Param('id') id: string, @Body() body: { decision: 'approve' | 'reject' }) {
+    return this.adminService.reviewInfluencer(id, body.decision);
   }
 
   @Get('quota-appeals')

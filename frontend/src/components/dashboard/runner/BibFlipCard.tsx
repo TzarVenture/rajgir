@@ -12,7 +12,6 @@ export interface BibPassData {
   bibName: string;
   distance: string;
   raceTitle: string;
-  startWave: string | null;
   startLabel: string;
   timed: boolean;
   color: string;
@@ -54,10 +53,7 @@ export function BibFlipCard({ data }: { data: BibPassData }) {
       </div>
       <div className="flex items-center justify-between gap-2 border-t border-charcoal-200 px-4 py-2 text-[11px] font-semibold text-charcoal-600 sm:text-xs">
         <span className="break-words font-medium">{data.raceTitle}</span>
-        <span className="shrink-0">
-          {data.startWave ? `Wave ${data.startWave} | ` : ""}
-          {data.startLabel}
-        </span>
+        <span className="shrink-0">{data.startLabel}</span>
       </div>
       <div className="h-2" style={{ backgroundColor: data.color }} />
     </div>

@@ -46,7 +46,7 @@ export const TAX = {
 
 export interface CategoryOps {
   distance: string;
-  /** Wave-1 gun time "HH:MM" (IST). */
+  /** Gun time "HH:MM" (IST). */
   startTime: string;
   cutoffMinutes: number;
   timed: boolean;

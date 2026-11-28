@@ -118,3 +118,36 @@ export class DeleteAccountDto {
   @IsString()
   password?: string;
 }
+
+export class AdminSetupDto {
+  @ApiProperty({ example: 'Admin' })
+  @IsString()
+  @Length(1, 64, { message: 'Enter first name.' })
+  firstName: string;
+
+  @ApiProperty({ example: 'User' })
+  @IsString()
+  @Length(1, 64, { message: 'Enter last name.' })
+  lastName: string;
+
+  @ApiProperty({ example: 'admin@rajgirmarathon.com' })
+  @IsEmail({}, { message: 'Enter a valid email address.' })
+  @MaxLength(128)
+  email: string;
+
+  @ApiProperty({ example: '9876543210' })
+  @IsString()
+  @MaxLength(20)
+  mobile: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(8, { message: PASSWORD_RULE })
+  @MaxLength(72, { message: PASSWORD_RULE })
+  password: string;
+
+  @ApiProperty({ description: 'Matches ADMIN_SETUP_KEY in backend .env' })
+  @IsString()
+  @IsNotEmpty({ message: 'Enter the admin setup key.' })
+  setupKey: string;
+}

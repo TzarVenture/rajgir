@@ -146,7 +146,7 @@ export function SplitsMatrix({
       <p className="text-sm text-charcoal-600">
         Timing mats at {ops.checkpoints.map((c) => c.label).join(", ")}. Your official chip splits appear here after the race.
       </p>
-      <EmptyState icon={LuTimer} title="No expected finish time on file" description="Contact the runner help desk to add one; it sets your start wave and a target pace band." />
+      <EmptyState icon={LuTimer} title="No expected finish time on file" description="Contact the runner help desk to add one; it sets your target pace band." />
     </div>
   );
 }

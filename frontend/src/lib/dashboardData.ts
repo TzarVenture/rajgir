@@ -71,7 +71,6 @@ function runnerFromProfile(p: Record<string, unknown>): ApiRunnerRegistration {
     updatedAt: str(p.updatedAt),
     estimatedFinishTime: strOrNull(p.estimatedFinishTime),
     bibNumber: strOrNull(p.bibNumber),
-    startWave: strOrNull(p.startWave),
     kitCollectedAt: strOrNull(p.kitCollectedAt),
     kitCollectedBy: strOrNull(p.kitCollectedBy),
     medicalUpdatedAt: strOrNull(p.medicalUpdatedAt),

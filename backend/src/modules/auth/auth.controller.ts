@@ -5,7 +5,7 @@ import { AuthContext, CurrentUser } from '../../common/decorators/current-user.d
 import { Public } from '../../common/decorators/public.decorator';
 import { requireEmailVerification, toPublicUser } from '../users/users.service';
 import { AuthService } from './auth.service';
-import { ChangePasswordDto, EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
+import { AdminSetupDto, ChangePasswordDto, EmailDto, LoginDto, RefreshDto, ResetPasswordDto, SignupDto, VerifyEmailDto } from './dto/auth.dto';
 
 const perMinute = (limit: number) => ({ default: { limit, ttl: 60_000 } });
 
@@ -23,6 +23,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Public auth settings the UI adapts to' })
   config() {
     return { requireEmailVerification: requireEmailVerification() };
+  }
+
+  @Public()
+  @Post('admin-setup')
+  @Throttle(perMinute(5))
+  @ApiOperation({ summary: 'Create an ORGANIZER admin account using ADMIN_SETUP_KEY (for testing/bootstrap)' })
+  adminSetup(@Body() dto: AdminSetupDto) {
+    return this.auth.adminSetup(dto);
   }
 
   @Public()
